@@ -1,0 +1,211 @@
+import { PRELIM, FINAL, FUNNEL } from '../../../data/facts'
+import PaceSimulator from './visuals/exam-format-and-strategy/PaceSimulator'
+import GuessValue from './visuals/exam-format-and-strategy/GuessValue'
+import FinalTaskMap from './visuals/exam-format-and-strategy/FinalTaskMap'
+
+You can raise your Prelim score before you learn any AI at all, just by understanding how the paper is scored. This lesson shows exactly what the Prelim and the Final look like, then turns three scoring facts into a strategy you can practise.
+
+## The Prelim at a glance
+
+| | NOAI 2027 Preliminary Round |
+| --- | --- |
+| When | {PRELIM.dateLabel}, with {PRELIM.admin} |
+| Questions | {PRELIM.questions} multiple-choice questions (MCQs), each with four options and exactly one correct answer |
+| Time | {PRELIM.minutes} minutes |
+| Where | {PRELIM.mode} |
+| Allowed | {PRELIM.materials} |
+| Marking | {PRELIM.marking} |
+| Who goes on | About the top {FUNNEL[1].n} go to the Final, ranked on total correct answers (school seat quotas apply; no fixed cut-off) |
+
+Three lines in that table matter most for strategy: the **time**, the **calculator ban** and the **marking**. The rest of this lesson takes them one at a time. Two more facts from the official FAQ: there is no extra time for anyone, and the Prelim alone does not earn a certificate (only finalists get one).
+
+The calculator ban is the easiest to deal with: because no calculator is allowed, questions with arithmetic are meant to be done by hand, with small, friendly numbers. Practise doing them that way from now on, and use the [Prelim speed drills](#/learn/prelim-speed-toolkit) once you reach them.
+
+## The 36-second budget
+
+<Analogy title="Lap splits in a 2.4 km run">
+
+In NAPFA's 2.4 km run you check your time at every lap. Sprint the first lap and you walk the last; dawdle and you cannot catch up. Nobody runs every metre at the same speed, but the lap times keep you honest.
+
+</Analogy>
+
+Ninety minutes for 150 questions works out to a simple average:
+
+$$
+t = \frac{T}{N}
+$$
+
+- $T$ is the total time in seconds.
+- $N$ is the number of questions.
+- $t$ is the average time you can afford per question.
+
+<Steps title="The Prelim's time per question, without a calculator">
+  <Step title="Minutes to seconds">
+    $T = 90 \times 60 = 5400$ seconds.
+  </Step>
+  <Step title="Divide by the number of questions">
+    $t = \dfrac{5400}{150}$. Cancel a zero from both: $\dfrac{540}{15}$. Then $15 \times 36 = 540$, so $t = 36$ seconds.
+  </Step>
+  <Step title="Turn it into checkpoints">
+    Plan on about **30 seconds** for most questions. Then a quick rule tells you where you should be: **question number ÷ 2 = minutes gone**. Q30 at 15:00, Q60 at 30:00, Q90 at 45:00, Q120 at 60:00.
+  </Step>
+  <Step title="Save time for the slow ones">
+    If the last tenth of the paper is long scenarios, as in 2026, that is 15 questions. Give them about 60 s each: $135 \times 30 + 15 \times 60 = 4050 + 900 = 4950$ s $= 82.5$ minutes. That leaves **7.5 minutes** spare for flagged questions.
+  </Step>
+</Steps>
+
+But 36 seconds is an **average**, not a rule for each question. Some questions take you 10 seconds; some you would not crack in 3 minutes. What matters is how you handle the slow ones. The simulator below sits one made-up Prelim twice with the same student: once working strictly in order, once with a time limit per question. Before you touch it, predict: is a tighter limit always better?
+
+<PaceSimulator />
+
+<KeyIdea>
+
+36 seconds is an average you manage with checkpoints. **Cap the time** on any question that is not going anywhere: pick your best answer, flag it, move on, and come back if time is left. Capping protects the marks waiting for you at the end of the paper.
+
+</KeyIdea>
+
+Two rules turn that into a habit:
+
+1. **The 10-second rule.** If after about 10 seconds you cannot see how to even start, cross out what you can, pick an answer, jot the question number on your scrap paper and move on.
+2. **The 30-to-40-second cap.** If you can see the way but it is taking long, stop at around 30 to 40 seconds, pick your best answer, flag it and move on. Come back after you have reached the end.
+
+<Mistake>
+
+"I'm nearly there" is the most expensive thought in a timed paper. Two extra minutes on one question is four quick questions you never reach, and those were easier marks.
+
+</Mistake>
+
+## No negative marking: never leave a blank
+
+<Analogy title="A free lucky-draw ticket">
+
+Someone hands you a free lucky-draw ticket. It might win, it might not, but it costs nothing to drop it in the box. You would never throw it away unused. A blank answer is a lucky-draw ticket thrown in the bin.
+
+</Analogy>
+
+Every correct answer earns 1 mark and a wrong answer loses nothing, and you are ranked by your total number of correct answers. The official FAQ asks: *are students expected to answer all 150?* Its answer is **yes**. (Ties for 150th place are resolved with predefined criteria, such as performance in particular domains and the time taken; where appropriate, all tied students may go through.) So what is a guess worth? Use the <Term def="The average result per try if you repeated the same situation many times: each outcome's value times its probability, added up.">expected value</Term>:
+
+$$
+E = 1 \times P(\text{right}) + 0 \times P(\text{wrong}) = \frac{1}{k}
+$$
+
+- $E$ is the average number of marks one guess earns.
+- $k$ is the number of options still in play, so $P(\text{right}) = \frac{1}{k}$ for a pure guess among them.
+- A wrong answer scores 0, so the second term vanishes.
+
+With all four options in play, $E = \frac14$ of a mark. Cross out one option you are sure is wrong and $E = \frac13$; cross out two and $E = \frac12$. A blank is always worth exactly 0.
+
+<Steps title="Twenty unanswered questions">
+  <Step title="Blind guesses">
+    $20 \times \frac14 = 5$ marks, on average, for 30 seconds of clicking.
+  </Step>
+  <Step title="Cross out one option in each first">
+    $20 \times \frac13 \approx 6.7$ marks.
+  </Step>
+  <Step title="How much did eliminating one option help?">
+    Each guess went from $\frac14$ to $\frac13$ of a mark: $\frac13 \div \frac14 = \frac43$, so every guess became **33% more valuable**.
+  </Step>
+</Steps>
+
+<GuessValue />
+
+<Mistake>
+
+Treating "not 100% sure" as "no idea". Suppose you are fairly sure option X is wrong: say it has only a 10% chance of being right. Then the other three share the remaining 90%, about 30% each, which beats a blind guess at 25%. So cross X out and guess among the rest: it costs you only in the rare case your hunch was wrong, and on average you gain. The simplest rule of all: **always pick the option you think is most likely, and never leave a blank.**
+
+</Mistake>
+
+The reasoning behind "1 in $k$" is ordinary probability: favourable outcomes divided by equally likely outcomes. NOAI also asks about it directly, and [Probability rules and conditional probability](#/learn/probability-and-statistics/probability-rules) teaches it from the start.
+
+<QuickCheck
+  q="One minute is left and 12 questions are still blank. You have no time to read them, so you guess all 12 blind. How many marks do you expect to gain?"
+  options={['3', '0', '4', '12']}
+  answer={0}
+  explain="Each blind guess among 4 options is worth $\tfrac14$ of a mark on average, so $12 \times \tfrac14 = 3$. Leaving them blank gains exactly 0. 4 would need each guess to be 1 in 3 (one option crossed out in each), and 12 would mean every guess is right."
+/>
+
+<ExamTip>
+
+With about 2 minutes left, stop working and **sweep**: go through the whole form and make sure every question has an answer. Do it *before* you press Submit: the 2026 form warned that you cannot change answers once submitted.
+
+</ExamTip>
+
+## Reading a long question fast
+
+In 2026 the questions came in **domain blocks**: Mathematics first, Problem solving last. Most questions were short (about 110 characters, question plus options, for the first 60), but the last block held the long scenarios: the final 30 questions had a median length of about **690 characters**, six times longer. About 1 in 8 questions in 2026 was over 400 characters, almost all of them in that last block.
+
+Those long scenario questions reward a reading trick: **read the question line first** (usually the last sentence), then hunt for the one detail that decides it, usually a number, a date or a comparison. Try it on this real question from the end of the 2026 paper. You have not learnt the words yet, so do not worry about that. Read the last sentence first, then check each option against three details in the scenario: how common each of the 50 classes is, what the training loss did, and which classes the model predicts.
+
+<PastPaperQuestion paper="prelim2026" n={278} />
+
+<Reveal label="How the trick works on this question">
+
+The question line asks which failure mode "best explains this", so you are matching a cause to the symptoms. Now test each option against the details:
+
+- One blames *class imbalance*, with the model favouring "frequent classes". But the scenario says the 50 classes are **uniform** (all equally common), so there are no frequent classes, and nothing in that option explains why 0, 1 and 2 in particular would win.
+- One says the final layer's weights *diverge* (grow out of control). But the training loss **converged**: it settled at 2.8 instead of blowing up.
+- One blames weights drawn at the *wrong scale*. Random weights have no reason to favour classes 0, 1 and 2 in particular, so it does not fit such a specific symptom.
+- That leaves the option that names exactly the classes the model never predicts: a starting *bias* set far too low for **classes 3-49**. A bias is a number added to a class's score for every input, so a big handicap on classes 3 to 49 leaves 0, 1 and 2 on top whatever the input.
+
+The numbers did the work: "only classes 0, 1, 2" in the scenario matches "classes 3-49" in the answer. You will learn about output biases in [Initialisation, BatchNorm and LayerNorm](#/learn/training-deep-networks/initialisation-and-normalisation); for now, notice that three plain details in the scenario crossed out three options.
+
+</Reveal>
+
+## The Final: theory plus implementation
+
+<Analogy title="A driving test">
+
+The theory test gets you in, but you pass the driving test by actually driving. The Prelim checks what you know; the Final checks whether you can build it.
+
+</Analogy>
+
+About the top 150 sit the Final on **{FINAL.dateLabel}**. In 2026 it lasted 3 hours at NTU, with no internet, and was out of 100 marks: 20 for the MCQs and 80 for programming. Results come out in early April as an award tier (Gold, Silver, Bronze or Participation), with no scores. The Final has two sections:
+
+- **Section 1: 20 MCQs.** Harder than the Prelim. In 2026 most were scenarios with code: "you're debugging this function", "what does this training loop do wrong?". The paper suggested about 30 minutes for them.
+- **Section 2: 3 programming tasks** in <Term def="A document that mixes text with cells of Python code you can run one at a time. Data scientists use Jupyter for experiments.">Jupyter notebooks</Term>. You implement a classic algorithm **from scratch** (writing the steps yourself instead of calling a library that does it all), using NumPy or PyTorch (the Python libraries for array maths and for neural networks), inside a notebook that gives you the function names and some tests.
+
+The map below shows all six programming tasks from the 2025 and 2026 Finals. You will not know most of these names yet, and that is expected: each card starts with a plain-English line, and by the Final you will have built every one of them in this course.
+
+<FinalTaskMap />
+
+<KeyIdea>
+
+Every past Final task has been a well-known algorithm or building block with a clear recipe (gradient descent, k-means, document retrieval, gradient boosting, attention), plus one debugging job (a broken U-Net, then a score called IoU). That makes the Final very preparable: practise implementing each one from scratch, without AI help, before February.
+
+</KeyIdea>
+
+<Steps title="Budgeting a 3-hour Final (if 2027 matches 2026)">
+  <Step title="MCQs first">
+    Spend about 30 minutes on the 20 MCQs (1.5 minutes each) and bank as many of those 20 marks as you can.
+  </Step>
+  <Step title="Minutes per mark">
+    That leaves $180 - 30 = 150$ minutes for 80 marks: $\frac{150}{80} = \frac{15}{8} \approx 1.9$ minutes per mark.
+  </Step>
+  <Step title="Share it out">
+    A 25-mark task gets $25 \times \tfrac{15}{8} \approx 47$ minutes, a 20-mark task $20 \times \tfrac{15}{8} = 37.5 \approx 38$, and a 35-mark task $35 \times \tfrac{15}{8} \approx 66$. Check: $\tfrac{15}{8} \times 80 = 150$.
+  </Step>
+  <Step title="Bank the easy parts first">
+    Each task is split into sub-questions marked separately. A correct small function beats an ambitious broken one, so finish the core parts before any bonus part.
+  </Step>
+</Steps>
+
+<ExamTip>
+
+In 2026 there was no internet and no AI assistant during the Final, and you had to submit with the same email address you used for the Prelim. Keep every function name exactly as given (hidden tests call them by name), and run the provided test cells after each function.
+
+</ExamTip>
+
+<Mistake>
+
+Practising your coding with an AI autocomplete switched on. It feels productive, but on the day it is gone. Practise the way you will be tested: plain Jupyter, your own memory of NumPy and PyTorch.
+
+</Mistake>
+
+<Takeaways>
+
+- The Prelim is {PRELIM.questions} MCQs in {PRELIM.minutes} minutes, so $5400 \div 150 = 36$ s per question on average. Aim for about 30 s, check your pace with **question number ÷ 2 = minutes gone**, and keep spare time for long scenarios.
+- **Cap the time** on stuck questions: guess, flag and come back. It reaches more questions and scores more than solving everything in order.
+- No negative marking: a guess among $k$ options is worth $\frac1k$ of a mark on average and a blank is worth 0, so **never leave a blank**. Crossing out options you are sure about makes guesses worth more.
+- The Final is 20 MCQs plus 3 Python programming tasks, implemented from scratch in Jupyter. Every past task is a well-known algorithm or building block (plus one debugging job) that you can practise in advance.
+
+</Takeaways>

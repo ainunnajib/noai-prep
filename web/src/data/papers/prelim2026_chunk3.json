@@ -1,0 +1,1163 @@
+{
+  "paper": "prelim2026_chunk3",
+  "source": "NOAI 2026 Preliminary Round Assessment (20 Feb 2026, 300 MCQs, Google Form PDF), AI Singapore. Google-Form items 112-161 = assessment questions 101-150. https://aisingapore.org/wp-content/uploads/2026/04/NOAI-2026-Preliminary-Round-Assessment-300-MCQs-Google-Forms.pdf",
+  "questions": [
+    {
+      "n": 101,
+      "question": "How do you handle missing values in Pandas?",
+      "options": [
+        "Manually replace with loops",
+        "Use try-except",
+        "Cannot handle missing data",
+        "`df.fillna()`, `df.dropna()`, or `df.interpolate()`"
+      ],
+      "answer": 3,
+      "domain": "computing",
+      "subtopic": "pandas",
+      "difficulty": "beginner",
+      "style": "definition",
+      "concepts": [
+        "missing values (NaN)",
+        "fillna / dropna",
+        "interpolation"
+      ],
+      "explanation": "Pandas has built-in, vectorised methods for missing values (`NaN`): `df.dropna()` removes rows or columns that contain them, `df.fillna(value)` replaces them with a value such as 0 or the column mean, and `df.interpolate()` estimates them from neighbouring values (useful for time series). Writing manual loops would work but is slow and error-prone, so it is not *how* you handle them in Pandas. `try-except` is for catching Python exceptions, and a `NaN` in a DataFrame does not raise an exception. The claim that Pandas cannot handle missing data is simply false.",
+      "confidence": "high",
+      "notes": ""
+    },
+    {
+      "n": 102,
+      "question": "What is the difference between `np.dot()` and `*` for arrays?",
+      "options": [
+        "They are identical",
+        "`*` is matrix multiplication",
+        "`np.dot()` is matrix multiplication, `*` is element-wise",
+        "`np.dot()` is element-wise"
+      ],
+      "answer": 2,
+      "domain": "computing",
+      "subtopic": "numpy",
+      "difficulty": "beginner",
+      "style": "comparison",
+      "concepts": [
+        "element-wise multiplication",
+        "matrix multiplication",
+        "np.dot vs *"
+      ],
+      "explanation": "For NumPy arrays, `*` multiplies matching entries one by one (element-wise), while `np.dot()` (like `@`) performs matrix multiplication for 2-D arrays (and a dot product for 1-D arrays). Example with $A=\\begin{bmatrix}1&2\\\\3&4\\end{bmatrix}$ and $B=\\begin{bmatrix}5&6\\\\7&8\\end{bmatrix}$: `A * B` gives $\\begin{bmatrix}5&12\\\\21&32\\end{bmatrix}$, but `np.dot(A, B)` gives $\\begin{bmatrix}1\\cdot5+2\\cdot7 & 1\\cdot6+2\\cdot8\\\\ 3\\cdot5+4\\cdot7 & 3\\cdot6+4\\cdot8\\end{bmatrix}=\\begin{bmatrix}19&22\\\\43&50\\end{bmatrix}$. The tempting trap is option B: `*` means matrix multiplication only for the old `np.matrix` class, not for normal `ndarray`s.",
+      "confidence": "high",
+      "notes": ""
+    },
+    {
+      "n": 103,
+      "question": "How do you concatenate two arrays along `axis=0`?",
+      "options": [
+        "`np.concatenate([arr1, arr2], axis=0)`",
+        "`arr1 + arr2`",
+        "`np.stack([arr1, arr2])`",
+        "`arr1.concat(arr2)`"
+      ],
+      "answer": 0,
+      "domain": "computing",
+      "subtopic": "numpy",
+      "difficulty": "beginner",
+      "style": "definition",
+      "concepts": [
+        "np.concatenate",
+        "axis argument",
+        "concatenate vs stack"
+      ],
+      "explanation": "`np.concatenate([arr1, arr2], axis=0)` joins the arrays along the existing first axis, so a (2, 3) array and a (4, 3) array become a (6, 3) array. `arr1 + arr2` does element-wise addition, not joining. `np.stack` is the tempting distractor: it creates a **new** axis (two (2, 3) arrays become (2, 2, 3)) and requires both arrays to have exactly the same shape. NumPy arrays have no `.concat()` method (that name belongs to `pd.concat` in Pandas).",
+      "confidence": "high",
+      "notes": ""
+    },
+    {
+      "n": 104,
+      "question": "Why is NumPy faster than Python lists for numerical operations?",
+      "options": [
+        "Contiguous memory, C implementations, vectorisation",
+        "Uses GPU automatically",
+        "Compiled to machine code",
+        "Parallel processing only"
+      ],
+      "answer": 0,
+      "domain": "computing",
+      "subtopic": "numpy",
+      "difficulty": "beginner",
+      "style": "why-reasoning",
+      "concepts": [
+        "contiguous memory layout",
+        "vectorisation",
+        "C-level loops"
+      ],
+      "explanation": "A NumPy array stores raw numbers of one type side by side in a single contiguous block of memory, whereas a Python list stores pointers to separate Python objects scattered in memory. Operations like `a + b` run as tight loops in pre-compiled C code over that block (vectorisation), avoiding the per-element overhead of the Python interpreter. NumPy never uses the GPU automatically (that is what libraries like CuPy or PyTorch on CUDA do). \"Compiled to machine code\" is incomplete: your Python code is not compiled; only NumPy's internal routines are pre-compiled C. Some routines (e.g. BLAS matrix multiply) do use multiple threads, but \"parallel processing only\" is not the main reason.",
+      "confidence": "high",
+      "notes": ""
+    },
+    {
+      "n": 105,
+      "question": "What is stride in NumPy arrays?",
+      "options": [
+        "Step size in `arange()`",
+        "Bytes to jump to next element in each dimension",
+        "Array shape",
+        "Data type size"
+      ],
+      "answer": 1,
+      "domain": "computing",
+      "subtopic": "numpy",
+      "difficulty": "intermediate",
+      "style": "definition",
+      "concepts": [
+        "array strides",
+        "memory layout",
+        "row-major (C) order"
+      ],
+      "explanation": "`arr.strides` is a tuple giving, for each dimension, how many **bytes** NumPy must jump in memory to move one step along that dimension. For a C-ordered `float64` array of shape (3, 4), each element is 8 bytes, so moving to the next column jumps 8 bytes and moving to the next row jumps $4 \\times 8 = 32$ bytes: `strides == (32, 8)`. Transposing just swaps the strides to (8, 32) without copying data, which is why `.T` is so cheap. The `step` argument of `arange()` is a different idea that happens to sound similar, and the data type size is `arr.itemsize` (8 here), which is only one ingredient of the strides.",
+      "confidence": "high",
+      "notes": ""
+    },
+    {
+      "n": 106,
+      "question": "How do you create a PyTorch tensor from a list?",
+      "options": [
+        "`torch.array([1, 2, 3])`",
+        "`Tensor([1, 2, 3])`",
+        "`torch.tensor([1, 2, 3])`",
+        "`tensor([1, 2, 3])`"
+      ],
+      "answer": 2,
+      "domain": "computing",
+      "subtopic": "pytorch",
+      "difficulty": "beginner",
+      "style": "definition",
+      "concepts": [
+        "torch.tensor",
+        "tensor creation",
+        "dtype inference"
+      ],
+      "explanation": "The recommended factory function is `torch.tensor(data)`, which copies the list and infers the dtype (here `torch.int64`). `torch.array` does not exist in PyTorch (you may be thinking of `np.array`). `Tensor([1, 2, 3])` and `tensor([1, 2, 3])` only run if you first did `from torch import Tensor` / `from torch import tensor`; even then, the `Tensor` constructor always makes a `float32` tensor, which is why `torch.tensor` is the standard answer.",
+      "confidence": "high",
+      "notes": "Options B and D would also run after `from torch import Tensor` / `from torch import tensor`; the intended answer is the fully-qualified `torch.tensor([1, 2, 3])`.",
+      "caveat": "Options B and D would also run after `from torch import Tensor` / `from torch import tensor`; the intended answer is the fully-qualified `torch.tensor([1, 2, 3])`."
+    },
+    {
+      "n": 107,
+      "question": "What is the purpose of `requires_grad=True`?",
+      "options": [
+        "Freezes the tensor",
+        "Moves tensor to GPU",
+        "Sets random seed",
+        "Enables gradient computation for the tensor"
+      ],
+      "answer": 3,
+      "domain": "computing",
+      "subtopic": "pytorch",
+      "difficulty": "beginner",
+      "style": "definition",
+      "concepts": [
+        "autograd",
+        "requires_grad",
+        "computational graph"
+      ],
+      "explanation": "Setting `requires_grad=True` tells PyTorch's autograd engine to record every operation on that tensor, so that calling `.backward()` later fills in its `.grad` attribute. Model parameters (weights and biases) have it set to `True` by default, which is how they get trained. It is the opposite of freezing: freezing a tensor means setting `requires_grad=False`. Moving to the GPU is done with `.to('cuda')`, and seeds are set with `torch.manual_seed()`.",
+      "confidence": "high",
+      "notes": ""
+    },
+    {
+      "n": 108,
+      "question": "How do you move a tensor to GPU?",
+      "options": [
+        "`tensor.gpu()`",
+        "`tensor.to('cuda')` or `tensor.cuda()`",
+        "`tensor.device('cuda')`",
+        "Automatically handled"
+      ],
+      "answer": 1,
+      "domain": "computing",
+      "subtopic": "pytorch",
+      "difficulty": "beginner",
+      "style": "definition",
+      "concepts": [
+        "devices (CPU/CUDA)",
+        "tensor.to()",
+        "explicit device placement"
+      ],
+      "explanation": "In PyTorch you move a tensor explicitly with `tensor.to('cuda')` (the most flexible, device-agnostic form) or the shortcut `tensor.cuda()`. Both return a **new** tensor on the GPU, so you must assign it, e.g. `x = x.to('cuda')`. There is no `.gpu()` method, and `tensor.device` is an attribute that *reports* where the tensor lives; it cannot be called to move it. PyTorch never moves tensors automatically, which is why mixing a CPU tensor with a GPU model raises a device-mismatch error.",
+      "confidence": "high",
+      "notes": ""
+    },
+    {
+      "n": 109,
+      "question": "What does `loss.backward()` do?",
+      "options": [
+        "Reverses the forward pass",
+        "Updates weights",
+        "Computes gradients via backpropagation",
+        "Resets the model"
+      ],
+      "answer": 2,
+      "domain": "computing",
+      "subtopic": "pytorch",
+      "difficulty": "beginner",
+      "style": "definition",
+      "concepts": [
+        "backpropagation",
+        "autograd",
+        "backward vs optimiser.step"
+      ],
+      "explanation": "`loss.backward()` walks backwards through the recorded computational graph and uses the chain rule to compute $\\partial \\text{loss} / \\partial w$ for every tensor with `requires_grad=True`, storing the result in each parameter's `.grad`. It does **not** change the weights; that is the job of `optimiser.step()`, which reads those `.grad` values. This split is the most tempting confusion: a typical loop is `zero_grad()` -> forward -> `loss.backward()` -> `optimiser.step()`. It does not \"reverse\" the forward pass (it does not recover the inputs), and it does not reset anything.",
+      "confidence": "high",
+      "notes": ""
+    },
+    {
+      "n": 110,
+      "question": "Why do you need `optimiser.zero_grad()`?",
+      "options": [
+        "Initialises optimiser",
+        "Clears loss",
+        "PyTorch accumulates gradients; must reset",
+        "Resets model weights"
+      ],
+      "answer": 2,
+      "domain": "computing",
+      "subtopic": "pytorch",
+      "difficulty": "beginner",
+      "style": "why-reasoning",
+      "concepts": [
+        "gradient accumulation",
+        "training loop",
+        "zero_grad"
+      ],
+      "explanation": "Every call to `.backward()` **adds** the new gradients to whatever is already stored in each parameter's `.grad`; it does not overwrite them. If you never reset, the gradient from batch 2 would be added on top of batch 1's, and so on, so the update direction becomes wrong. `optimiser.zero_grad()` clears (zeros or sets to `None`) the stored gradients so each step uses only the current batch's gradient. It does not touch the loss value or the weights themselves, and the optimiser is initialised when you construct it, e.g. `torch.optim.SGD(model.parameters(), lr=0.01)`.",
+      "confidence": "high",
+      "notes": ""
+    },
+    {
+      "n": 111,
+      "question": "What is `nn.Module` in PyTorch?",
+      "options": [
+        "Base class for all neural network modules",
+        "Activation function",
+        "Loss function",
+        "Optimiser"
+      ],
+      "answer": 0,
+      "domain": "computing",
+      "subtopic": "pytorch",
+      "difficulty": "beginner",
+      "style": "definition",
+      "concepts": [
+        "nn.Module",
+        "subclassing",
+        "parameter registration"
+      ],
+      "explanation": "`torch.nn.Module` is the base class that every layer and model inherits from: `nn.Linear`, `nn.Conv2d`, `nn.ReLU`, and your own models all subclass it. It automatically registers sub-layers and parameters (so `model.parameters()` finds them), and provides helpers like `.to()`, `.train()`, `.eval()` and `state_dict()`. Activation functions and loss functions (e.g. `nn.ReLU`, `nn.CrossEntropyLoss`) are themselves *examples* of modules, not what `nn.Module` is. Optimisers live in `torch.optim` and are not modules at all.",
+      "confidence": "high",
+      "notes": ""
+    },
+    {
+      "n": 112,
+      "question": "How do you define a forward pass in PyTorch?",
+      "options": [
+        "Call `model.backward()`",
+        "Implement `forward()` method in `nn.Module`",
+        "Use `predict()` method",
+        "Automatic from `__init__`"
+      ],
+      "answer": 1,
+      "domain": "computing",
+      "subtopic": "pytorch",
+      "difficulty": "beginner",
+      "style": "definition",
+      "concepts": [
+        "forward method",
+        "nn.Module subclass",
+        "__init__ vs forward"
+      ],
+      "explanation": "In a custom model you create layers in `__init__` and describe how data flows through them in a `forward(self, x)` method. You then call `model(x)`, which internally runs `forward` (plus any hooks). `__init__` only *creates* the layers; it says nothing about the order or the operations applied, so the forward pass is not automatic. PyTorch modules have no `predict()` method (that is scikit-learn/Keras style), and `backward()` belongs to tensors (the loss), not to models.\n\n```python\nclass Net(nn.Module):\n    def __init__(self):\n        super().__init__()\n        self.fc = nn.Linear(4, 2)\n    def forward(self, x):\n        return self.fc(x)\n```",
+      "confidence": "high",
+      "notes": ""
+    },
+    {
+      "n": 113,
+      "question": "What is the purpose of `model.train()` and `model.eval()`?",
+      "options": [
+        "Start/stop training",
+        "Load/save models",
+        "Toggle GPU usage",
+        "Switch between training/evaluation modes (affects dropout, batch norm)"
+      ],
+      "answer": 3,
+      "domain": "computing",
+      "subtopic": "pytorch",
+      "difficulty": "intermediate",
+      "style": "definition",
+      "concepts": [
+        "train/eval mode",
+        "dropout",
+        "batch normalisation"
+      ],
+      "explanation": "`model.train()` and `model.eval()` only flip a flag (`model.training`) that some layers check. In training mode, Dropout randomly zeros activations and BatchNorm uses the current batch's statistics (and updates its running averages); in eval mode, Dropout does nothing and BatchNorm uses the stored running mean/variance. Despite the names, `model.train()` does **not** run any training, which is why option A is a trap. They do not save/load models or move anything to the GPU, and they also do not turn off gradient tracking (use `torch.no_grad()` for that).",
+      "confidence": "high",
+      "notes": ""
+    },
+    {
+      "n": 114,
+      "question": "How do you create a simple linear layer?",
+      "options": [
+        "`nn.Layer(input_size, output_size)`",
+        "`nn.Linear(input_size, output_size)`",
+        "`torch.Linear(input_size, output_size)`",
+        "`Linear(input_size, output_size)`"
+      ],
+      "answer": 1,
+      "domain": "computing",
+      "subtopic": "pytorch",
+      "difficulty": "beginner",
+      "style": "definition",
+      "concepts": [
+        "nn.Linear",
+        "fully connected layer",
+        "weights and bias"
+      ],
+      "explanation": "A fully connected (dense) layer is `nn.Linear(in_features, out_features)`, which computes $y = xW^T + b$. For example, `nn.Linear(3, 2)` holds a weight of shape (2, 3) and a bias of shape (2). There is no `nn.Layer` class, and `Linear` lives inside `torch.nn`, not directly under `torch`, so `torch.Linear` fails. A bare `Linear(...)` only works if you explicitly `from torch.nn import Linear`.",
+      "confidence": "high",
+      "notes": ""
+    },
+    {
+      "n": 115,
+      "question": "What happens if you call `loss.backward()` twice without `zero_grad()`?",
+      "options": [
+        "Gradients accumulate (add up)",
+        "Error is raised",
+        "Second call overwrites first",
+        "Only second call's gradients are kept"
+      ],
+      "answer": 0,
+      "domain": "computing",
+      "subtopic": "pytorch",
+      "difficulty": "intermediate",
+      "style": "why-reasoning",
+      "concepts": [
+        "gradient accumulation",
+        "zero_grad",
+        "retain_graph"
+      ],
+      "explanation": "PyTorch adds new gradients into the existing `.grad` instead of replacing them. Example: with $w=2$ and $\\text{loss}=w^2$, one backward pass gives $\\frac{d\\,\\text{loss}}{dw}=2w=4$; computing the loss again and calling backward again without zeroing leaves `w.grad = 4 + 4 = 8`. This is why options C and D (overwrite / keep only the second) are wrong, and also why `zero_grad()` is needed every step. The behaviour is sometimes used on purpose (\"gradient accumulation\") to simulate a larger batch on limited memory.",
+      "confidence": "medium",
+      "notes": "Taken literally (calling `.backward()` twice on the *same* `loss` tensor), PyTorch usually raises `RuntimeError: Trying to backward through the graph a second time` unless `retain_graph=True` is passed on the first call (verified with torch 2.x). The intended reading is two backward passes (e.g. two iterations) without zeroing, where gradients accumulate, so A is the intended answer; B is defensible under the literal reading.",
+      "caveat": "Taken literally (calling `.backward()` twice on the *same* `loss` tensor), PyTorch usually raises `RuntimeError: Trying to backward through the graph a second time` unless `retain_graph=True` is passed on the first call (verified with torch 2.x). The intended reading is two backward passes (e.g. two iterations) without zeroing, where gradients accumulate, so A is the intended answer; B is defensible under the literal reading."
+    },
+    {
+      "n": 116,
+      "question": "What is `torch.no_grad()` used for?",
+      "options": [
+        "Resets gradients",
+        "Stops training",
+        "Disables gradient computation (saves memory during inference)",
+        "Freezes model"
+      ],
+      "answer": 2,
+      "domain": "computing",
+      "subtopic": "pytorch",
+      "difficulty": "beginner",
+      "style": "definition",
+      "concepts": [
+        "torch.no_grad",
+        "inference",
+        "autograd graph"
+      ],
+      "explanation": "Inside a `with torch.no_grad():` block, PyTorch does not record operations in the computational graph, so outputs have `requires_grad=False`. That saves memory and time, which is exactly what you want during validation and inference. It does not reset existing `.grad` values (that is `zero_grad()`), and it does not permanently freeze parameters (that is `param.requires_grad = False`); once you leave the block, tracking resumes. It is also separate from `model.eval()`, which changes Dropout/BatchNorm behaviour; in evaluation code you typically use both.",
+      "confidence": "high",
+      "notes": ""
+    },
+    {
+      "n": 117,
+      "question": "How do you access model parameters?",
+      "options": [
+        "`model.weights()`",
+        "`model.get_params()`",
+        "`model.parameters()` or `model.named_parameters()`",
+        "`model.layers()`"
+      ],
+      "answer": 2,
+      "domain": "computing",
+      "subtopic": "pytorch",
+      "difficulty": "beginner",
+      "style": "definition",
+      "concepts": [
+        "model.parameters",
+        "named_parameters",
+        "optimiser setup"
+      ],
+      "explanation": "Every `nn.Module` provides `model.parameters()`, an iterator over all learnable tensors (this is what you pass to an optimiser), and `model.named_parameters()`, which also yields names like `'fc.weight'` and `'fc.bias'`. For example, `nn.Linear(3, 2).named_parameters()` yields `weight` and `bias`. `get_params()` is a scikit-learn method that returns *hyperparameters*, a tempting mix-up. `model.weights()` and `model.layers()` do not exist on PyTorch modules (the latter is Keras-style; in PyTorch you would use `model.children()` or `model.modules()`).",
+      "confidence": "high",
+      "notes": ""
+    },
+    {
+      "n": 118,
+      "question": "What is the difference between `torch.Tensor` and `torch.tensor`?",
+      "options": [
+        "They are identical",
+        "`tensor` infers dtype, `Tensor` uses default float32",
+        "`Tensor` is deprecated",
+        "`tensor` cannot compute gradients"
+      ],
+      "answer": 1,
+      "domain": "computing",
+      "subtopic": "pytorch",
+      "difficulty": "intermediate",
+      "style": "comparison",
+      "concepts": [
+        "torch.tensor vs torch.Tensor",
+        "dtype inference",
+        "default dtype"
+      ],
+      "explanation": "`torch.tensor(data)` is a factory function that infers the dtype from the data: `torch.tensor([1, 2, 3])` is `int64` and `torch.tensor([1., 2.])` is `float32`. `torch.Tensor` is the tensor class itself; calling its constructor `torch.Tensor([1, 2, 3])` always gives the default floating type (`float32`). So they are not identical. `torch.Tensor` is not deprecated (it is the type of every tensor; only using its constructor for data is discouraged), and `torch.tensor(..., requires_grad=True)` works fine for gradients.",
+      "confidence": "high",
+      "notes": ""
+    },
+    {
+      "n": 119,
+      "question": "How do you implement a custom loss function?",
+      "options": [
+        "Use built-in losses only",
+        "Modify existing loss",
+        "Subclass `nn.Module` and define `forward()`",
+        "Write regular Python function (no gradients)"
+      ],
+      "answer": 2,
+      "domain": "computing",
+      "subtopic": "pytorch",
+      "difficulty": "intermediate",
+      "style": "definition",
+      "concepts": [
+        "custom loss",
+        "nn.Module",
+        "autograd with torch ops"
+      ],
+      "explanation": "A clean way to write a custom loss is to subclass `nn.Module` and compute the loss from `pred` and `target` inside `forward()` using differentiable torch operations; autograd then gives you gradients for free when you call `loss.backward()`. You are not limited to built-in losses and do not need to edit PyTorch's source. Option D is wrong because of its claim \"(no gradients)\": as long as the function uses torch operations on tensors, autograd still tracks it.\n\n```python\nclass RMSELoss(nn.Module):\n    def forward(self, pred, target):\n        return torch.sqrt(torch.mean((pred - target) ** 2))\n```",
+      "confidence": "high",
+      "notes": "In practice, a plain Python function built from torch ops (e.g. `def my_loss(p, t): return ((p - t) ** 2).mean()`) also works and does get gradients; option D is wrong only because of its \"(no gradients)\" claim.",
+      "caveat": "In practice, a plain Python function built from torch ops (e.g. `def my_loss(p, t): return ((p - t) ** 2).mean()`) also works and does get gradients; option D is wrong only because of its \"(no gradients)\" claim."
+    },
+    {
+      "n": 120,
+      "question": "What is `torch.nn.Sequential` used for?",
+      "options": [
+        "Process sequences (RNN)",
+        "Parallel processing",
+        "Stack layers in order for simple models",
+        "Data augmentation"
+      ],
+      "answer": 2,
+      "domain": "ai_ml_dl",
+      "subtopic": "pytorch",
+      "difficulty": "beginner",
+      "style": "definition",
+      "concepts": [
+        "nn.Sequential",
+        "layer stacking",
+        "model building"
+      ],
+      "explanation": "`nn.Sequential` is a container that runs its sub-modules one after another, passing each output to the next, so you can build a simple feed-forward model without writing a `forward()` method, e.g. `nn.Sequential(nn.Linear(4, 8), nn.ReLU(), nn.Linear(8, 2))`. The word \"sequential\" refers to the order of layers, not to sequence data, so it is not an RNN (those are `nn.RNN`/`nn.LSTM`). It cannot handle branches or skip connections, which is when you write a custom `nn.Module` instead. It has nothing to do with parallelism or data augmentation.",
+      "confidence": "high",
+      "notes": ""
+    },
+    {
+      "n": 121,
+      "question": "How do you freeze a layer's parameters?",
+      "options": [
+        "Remove layer from model",
+        "Use `model.freeze()`",
+        "Set `param.requires_grad = False`",
+        "Set learning rate to 0"
+      ],
+      "answer": 2,
+      "domain": "ai_ml_dl",
+      "subtopic": "pytorch",
+      "difficulty": "intermediate",
+      "style": "definition",
+      "concepts": [
+        "freezing layers",
+        "requires_grad",
+        "transfer learning"
+      ],
+      "explanation": "Freezing means the layer still runs in the forward pass but its weights are not updated. In PyTorch you loop over that layer's parameters and set `param.requires_grad = False`, so autograd computes no gradients for them and the optimiser leaves them unchanged; this is common in transfer learning. Removing the layer changes the model's computation entirely. PyTorch has no built-in `model.freeze()` method. Setting the learning rate to 0 would stop updates for **all** parameters in that group and still waste time computing gradients, so it is not the standard way.",
+      "confidence": "high",
+      "notes": ""
+    },
+    {
+      "n": 122,
+      "question": "What is a `DataLoader` in PyTorch?",
+      "options": [
+        "Loads pretrained models",
+        "Reads image files",
+        "Stores training data",
+        "Iterates over dataset in batches with shuffling"
+      ],
+      "answer": 3,
+      "domain": "ai_ml_dl",
+      "subtopic": "pytorch",
+      "difficulty": "beginner",
+      "style": "definition",
+      "concepts": [
+        "DataLoader",
+        "Dataset",
+        "mini-batching and shuffling"
+      ],
+      "explanation": "`torch.utils.data.DataLoader` wraps a `Dataset` and yields mini-batches, optionally shuffling each epoch and loading in parallel with `num_workers`, e.g. `DataLoader(ds, batch_size=32, shuffle=True)`. The `Dataset` is what defines how to fetch a single example (for instance, reading an image file in `__getitem__`) and \"stores\"/indexes the data; the DataLoader just batches and iterates over it. That split is why options B and C are tempting but wrong. Pretrained models are loaded with things like `torchvision.models` or `torch.load`, not with a DataLoader.",
+      "confidence": "high",
+      "notes": ""
+    },
+    {
+      "n": 123,
+      "question": "How do you save a trained model?",
+      "options": [
+        "`model.save('path')`",
+        "`torch.save(model.state_dict(), 'path')`",
+        "`save(model, 'path')`",
+        "`model.export('path')`"
+      ],
+      "answer": 1,
+      "domain": "ai_ml_dl",
+      "subtopic": "pytorch",
+      "difficulty": "beginner",
+      "style": "definition",
+      "concepts": [
+        "state_dict",
+        "torch.save / torch.load",
+        "model checkpointing"
+      ],
+      "explanation": "The recommended approach is to save the model's `state_dict()` (a dictionary of parameter and buffer tensors) with `torch.save(model.state_dict(), 'model.pt')`. To restore it you create the same architecture and call `model.load_state_dict(torch.load('model.pt'))`. `nn.Module` has no `.save()` or `.export()` method (`model.save` is Keras-style), and a bare `save(...)` is not a defined function unless you imported it.",
+      "confidence": "high",
+      "notes": ""
+    },
+    {
+      "n": 124,
+      "question": "What is mixed precision training?",
+      "options": [
+        "Training on multiple GPUs",
+        "Combining different optimisers",
+        "Using FP16 + FP32 to speed up training with less memory",
+        "Using multiple loss functions"
+      ],
+      "answer": 2,
+      "domain": "ai_ml_dl",
+      "subtopic": "pytorch",
+      "difficulty": "intermediate",
+      "style": "definition",
+      "concepts": [
+        "mixed precision (FP16/BF16 + FP32)",
+        "torch.amp autocast",
+        "loss scaling"
+      ],
+      "explanation": "Mixed precision runs most operations (like matrix multiplies) in 16-bit floating point (FP16 or BF16), which halves memory for activations and runs much faster on modern GPU tensor cores. Numerically sensitive parts, such as the master copy of the weights and some reductions, stay in 32-bit (FP32) to keep training stable; with FP16 a *loss scaler* is also used so small gradients do not underflow to zero. In PyTorch this is done with `torch.autocast` and `torch.amp.GradScaler`. Training on multiple GPUs is *data/model parallelism*, a different idea; \"mixed\" refers to number precision, not optimisers or losses.",
+      "confidence": "high",
+      "notes": ""
+    },
+    {
+      "n": 125,
+      "question": "Why use `torch.jit.script()` or `torch.jit.trace()`?",
+      "options": [
+        "Optimise model for deployment via TorchScript",
+        "Debug model",
+        "Visualise architecture",
+        "Convert to TensorFlow"
+      ],
+      "answer": 0,
+      "domain": "ai_ml_dl",
+      "subtopic": "pytorch",
+      "difficulty": "advanced",
+      "style": "definition",
+      "concepts": [
+        "TorchScript",
+        "tracing vs scripting",
+        "model deployment"
+      ],
+      "explanation": "`torch.jit.trace` (records the operations run on an example input) and `torch.jit.script` (compiles the Python code, including control flow) both turn a model into **TorchScript**, a serialisable intermediate representation. A TorchScript model can be optimised and run without a Python interpreter, for example from C++ (LibTorch) or on mobile, which is why it is used for deployment. It makes debugging *harder*, not easier, does not visualise architectures (use tools like TensorBoard or torchinfo), and does not convert to TensorFlow (ONNX export is the usual bridge).",
+      "confidence": "high",
+      "notes": "TorchScript is now in maintenance mode; newer PyTorch versions recommend `torch.compile` / `torch.export` for optimisation and deployment, but A remains the correct description of what `torch.jit` is for.",
+      "caveat": "TorchScript is now in maintenance mode; newer PyTorch versions recommend `torch.compile` / `torch.export` for optimisation and deployment, but A remains the correct description of what `torch.jit` is for."
+    },
+    {
+      "n": 126,
+      "question": "Your code raises `IndexError: list index out of range`. What's the likely cause?",
+      "options": [
+        "Wrong data type",
+        "Memory overflow",
+        "GPU error",
+        "Accessing index ≥ list length"
+      ],
+      "answer": 3,
+      "domain": "ai_ml_dl",
+      "subtopic": "code-debugging",
+      "difficulty": "beginner",
+      "style": "scenario-diagnosis",
+      "concepts": [
+        "IndexError",
+        "zero-based indexing",
+        "off-by-one errors"
+      ],
+      "explanation": "Python lists are zero-indexed, so a list of length $n$ has valid indices $0$ to $n-1$ (and $-1$ to $-n$ from the end). Accessing `lst[n]` or beyond, a classic off-by-one bug such as looping `for i in range(len(lst) + 1)`, raises `IndexError`. A wrong data type (e.g. `lst['a']`) raises `TypeError` instead, running out of memory raises `MemoryError`, and GPU problems show up as CUDA `RuntimeError`s.",
+      "confidence": "high",
+      "notes": ""
+    },
+    {
+      "n": 127,
+      "question": "What does `print()` debugging help with?",
+      "options": [
+        "Inspecting variable values during execution",
+        "Fixing syntax errors",
+        "Optimising speed",
+        "Reducing memory"
+      ],
+      "answer": 0,
+      "domain": "ai_ml_dl",
+      "subtopic": "code-debugging",
+      "difficulty": "beginner",
+      "style": "definition",
+      "concepts": [
+        "print debugging",
+        "inspecting state",
+        "tensor shapes"
+      ],
+      "explanation": "Adding `print()` statements lets you see the actual values (and, in ML code, the shapes and dtypes) of variables at specific points while the program runs, so you can find where reality differs from what you expected, e.g. `print(x.shape, x.dtype)` before a layer. It cannot help with syntax errors, because a file with a syntax error never starts running, so your prints never execute; the interpreter's error message is what points you to the line. Printing does not make code faster or use less memory; if anything it slows code down slightly.",
+      "confidence": "high",
+      "notes": ""
+    },
+    {
+      "n": 128,
+      "question": "A `RuntimeError: CUDA out of memory` suggests:",
+      "options": [
+        "Batch size too large or model too big for GPU",
+        "Code syntax error",
+        "Wrong optimiser",
+        "Missing data"
+      ],
+      "answer": 0,
+      "domain": "ai_ml_dl",
+      "subtopic": "code-debugging",
+      "difficulty": "beginner",
+      "style": "scenario-diagnosis",
+      "concepts": [
+        "GPU memory",
+        "batch size",
+        "activation memory"
+      ],
+      "explanation": "This error (raised in recent PyTorch versions as `torch.OutOfMemoryError`, a subclass of `RuntimeError`) means the GPU ran out of its fixed memory (VRAM) while allocating tensors. GPU memory holds the model's weights, the optimiser state, and the activations saved for backpropagation, and activation memory grows with batch size. Common fixes are reducing the batch size, using a smaller model, using mixed precision, or wrapping inference in `torch.no_grad()`. Syntax errors stop the program before it runs, and the choice of optimiser or missing data would give different errors (though optimisers like Adam do add some memory for their state).",
+      "confidence": "high",
+      "notes": ""
+    },
+    {
+      "n": 129,
+      "question": "How do you check if a tensor is on GPU?",
+      "options": [
+        "`tensor.device` or `tensor.is_cuda`",
+        "`tensor.gpu()`",
+        "`tensor.location`",
+        "`torch.device(tensor)`"
+      ],
+      "answer": 0,
+      "domain": "ai_ml_dl",
+      "subtopic": "pytorch",
+      "difficulty": "beginner",
+      "style": "definition",
+      "concepts": [
+        "tensor.device",
+        "is_cuda",
+        "device mismatch debugging"
+      ],
+      "explanation": "Every tensor has a `.device` attribute (e.g. `device(type='cpu')` or `device(type='cuda', index=0)`) and a boolean `.is_cuda` that is `True` when it lives on a CUDA GPU. Checking these is the first step when you hit a \"tensors on different devices\" error. `.gpu()` and `.location` do not exist, and `torch.device(...)` is used to *create* a device object from a string like `'cuda'`, not to inspect a tensor.",
+      "confidence": "high",
+      "notes": ""
+    },
+    {
+      "n": 130,
+      "question": "Your training loss is NaN. What should you check first?",
+      "options": [
+        "Model architecture only",
+        "Learning rate (too high), loss function (division by zero), or exploding gradients",
+        "Batch size",
+        "Number of epochs"
+      ],
+      "answer": 1,
+      "domain": "ai_ml_dl",
+      "subtopic": "ml-debugging-diagnosis",
+      "difficulty": "intermediate",
+      "style": "scenario-diagnosis",
+      "concepts": [
+        "NaN loss",
+        "learning rate",
+        "exploding gradients",
+        "numerical stability"
+      ],
+      "explanation": "A NaN (\"not a number\") appears when some arithmetic becomes undefined, such as $0/0$, $\\log(0) = -\\infty$ then multiplied by 0, or numbers overflowing to infinity. The usual culprits are a learning rate that is too high (weights blow up), a loss with an unsafe division or log (add a small $\\epsilon$ or use stable built-ins like `CrossEntropyLoss`), and exploding gradients (fix with gradient clipping or normalisation). It is also worth checking the input data for NaNs. Batch size and number of epochs rarely cause NaNs on their own, and looking at the architecture *only* ignores the most common causes.",
+      "confidence": "high",
+      "notes": ""
+    },
+    {
+      "n": 131,
+      "question": "How do you profile PyTorch code to find bottlenecks?",
+      "options": [
+        "Print execution time for each line",
+        "Guess which parts are slow",
+        "Use `torch.profiler` or `cProfile`",
+        "Use `time.sleep()`"
+      ],
+      "answer": 2,
+      "domain": "ai_ml_dl",
+      "subtopic": "code-debugging",
+      "difficulty": "intermediate",
+      "style": "definition",
+      "concepts": [
+        "profiling",
+        "torch.profiler",
+        "cProfile"
+      ],
+      "explanation": "A profiler measures where time (and memory) is actually spent. `cProfile` reports time per Python function, and `torch.profiler` also records individual operators and CPU/GPU kernels, which matters because GPU work runs asynchronously. Manually printing timings for every line is tedious and can be misleading on a GPU (without `torch.cuda.synchronize()` you mostly time the kernel *launch*). Guessing is unreliable, and `time.sleep()` just pauses the program.",
+      "confidence": "high",
+      "notes": ""
+    },
+    {
+      "n": 132,
+      "question": "What is gradient clipping used for?",
+      "options": [
+        "Speeding up training",
+        "Reducing model size",
+        "Preventing exploding gradients",
+        "Improving accuracy"
+      ],
+      "answer": 2,
+      "domain": "ai_ml_dl",
+      "subtopic": "training-regularisation",
+      "difficulty": "intermediate",
+      "style": "definition",
+      "concepts": [
+        "gradient clipping",
+        "exploding gradients",
+        "training stability"
+      ],
+      "explanation": "Gradient clipping caps how large the gradients can get before the optimiser step, most commonly by rescaling the whole gradient vector when its norm exceeds a threshold: if $\\|g\\| > c$, use $g \\cdot c / \\|g\\|$. This stops one huge gradient from throwing the weights far away, which is a common problem in RNNs and deep networks (\"exploding gradients\"). In PyTorch: `torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=1.0)` between `backward()` and `step()`. It does not shrink the model or directly speed things up, and any accuracy gain is only an indirect result of more stable training.",
+      "confidence": "high",
+      "notes": ""
+    },
+    {
+      "n": 133,
+      "question": "Why might training be slow on GPU compared to CPU?",
+      "options": [
+        "GPU is always slower",
+        "Wrong optimiser",
+        "Too many parameters",
+        "Data transfer overhead, small batch size, or simple model"
+      ],
+      "answer": 3,
+      "domain": "ai_ml_dl",
+      "subtopic": "optimisation-tradeoffs",
+      "difficulty": "intermediate",
+      "style": "why-reasoning",
+      "concepts": [
+        "CPU-GPU data transfer",
+        "GPU utilisation",
+        "batch size"
+      ],
+      "explanation": "GPUs are fast because they do huge amounts of work in parallel, but every step also has fixed costs: copying data from CPU RAM to GPU memory and launching kernels. If the model is tiny or the batch is very small, there is not enough work to keep the GPU busy, so these overheads dominate and a CPU can win. Many parameters is actually the situation where GPUs shine, so option C points the wrong way, and GPUs are certainly not always slower. Fixes include larger batches, keeping data on the GPU, and using `pin_memory=True`/`num_workers` in the DataLoader.",
+      "confidence": "high",
+      "notes": ""
+    },
+    {
+      "n": 134,
+      "question": "What is the difference between `.item()` and `.detach()` in PyTorch?",
+      "options": [
+        "They are identical",
+        "`.item()` converts to Python scalar, `.detach()` removes from comp graph",
+        "`.item()` moves to CPU",
+        "`.detach()` deletes tensor"
+      ],
+      "answer": 1,
+      "domain": "ai_ml_dl",
+      "subtopic": "pytorch",
+      "difficulty": "intermediate",
+      "style": "comparison",
+      "concepts": [
+        "item()",
+        "detach()",
+        "computational graph"
+      ],
+      "explanation": "`.item()` works only on a one-element tensor and returns a plain Python number (e.g. `float`), which is the usual way to log a loss value: `running_loss += loss.item()`. `.detach()` returns a new **tensor** that shares the same data but is cut off from the computational graph (`requires_grad=False`), staying on the same device. Option C is tempting because `.item()` does copy the value back to the host, but its defining job is producing a Python scalar, not moving a tensor to the CPU (that is `.cpu()`). `.detach()` never deletes anything.",
+      "confidence": "high",
+      "notes": ""
+    },
+    {
+      "n": 135,
+      "question": "How do you detect memory leaks in PyTorch?",
+      "options": [
+        "Check disk space",
+        "Count parameters",
+        "Run on CPU",
+        "Monitor `torch.cuda.memory_allocated()` or use profilers"
+      ],
+      "answer": 3,
+      "domain": "ai_ml_dl",
+      "subtopic": "code-debugging",
+      "difficulty": "intermediate",
+      "style": "scenario-diagnosis",
+      "concepts": [
+        "GPU memory monitoring",
+        "memory leaks",
+        "keeping graph references"
+      ],
+      "explanation": "A memory leak shows up as memory usage that keeps growing every iteration instead of staying flat. You can detect it by printing `torch.cuda.memory_allocated()` (or `torch.cuda.memory_summary()`) each step or by using `torch.profiler` with `profile_memory=True`. A classic cause is accumulating `total_loss += loss` instead of `loss.item()`, which keeps every iteration's graph alive. Disk space is unrelated to RAM/VRAM, the parameter count is fixed and does not grow, and switching to the CPU only moves the problem.",
+      "confidence": "high",
+      "notes": ""
+    },
+    {
+      "n": 136,
+      "question": "Supervised learning requires:",
+      "options": [
+        "Unlabeled data only",
+        "Reinforcement signals",
+        "No data",
+        "Labeled training data"
+      ],
+      "answer": 3,
+      "domain": "ai_ml_dl",
+      "subtopic": "ml-fundamentals",
+      "difficulty": "beginner",
+      "style": "definition",
+      "concepts": [
+        "supervised learning",
+        "labels",
+        "learning paradigms"
+      ],
+      "explanation": "In supervised learning each training example comes with the correct answer (a label), such as an email marked \"spam\" or a house with its sale price, and the model learns a mapping from inputs to those labels. Learning from unlabeled data only is unsupervised learning (e.g. clustering). Learning from rewards received by acting in an environment is reinforcement learning. Every learning approach needs some data or experience, so \"no data\" is never right.",
+      "confidence": "high",
+      "notes": ""
+    },
+    {
+      "n": 137,
+      "question": "Which is an unsupervised learning algorithm?",
+      "options": [
+        "K-means clustering",
+        "Logistic regression",
+        "Decision tree",
+        "Support Vector Machine"
+      ],
+      "answer": 0,
+      "domain": "ai_ml_dl",
+      "subtopic": "unsupervised",
+      "difficulty": "beginner",
+      "style": "definition",
+      "concepts": [
+        "unsupervised learning",
+        "clustering",
+        "K-means"
+      ],
+      "explanation": "K-means groups unlabeled points into $K$ clusters by repeatedly assigning each point to its nearest centroid and moving each centroid to the mean of its points; it never sees any labels, so it is unsupervised. Logistic regression, decision trees and SVMs are all supervised methods that learn from labeled examples (classification or regression). Don't be fooled by the \"K\": K-nearest neighbours (KNN) is supervised, while K-means is unsupervised.",
+      "confidence": "high",
+      "notes": ""
+    },
+    {
+      "n": 138,
+      "question": "In linear regression, what are we predicting?",
+      "options": [
+        "Class label",
+        "Cluster assignment",
+        "Continuous value",
+        "Probability distribution"
+      ],
+      "answer": 2,
+      "domain": "ai_ml_dl",
+      "subtopic": "regression",
+      "difficulty": "beginner",
+      "style": "definition",
+      "concepts": [
+        "linear regression",
+        "continuous target",
+        "regression vs classification"
+      ],
+      "explanation": "Linear regression predicts a continuous numeric value, such as a price or temperature, using $\\hat{y} = w_1x_1 + \\dots + w_dx_d + b$. Predicting a class label is classification, and cluster assignment is unsupervised clustering. Producing a probability (for a binary class) is what logistic regression does by passing the linear score through a sigmoid, which is why it counts as a classifier despite its name.",
+      "confidence": "high",
+      "notes": ""
+    },
+    {
+      "n": 139,
+      "question": "Logistic regression is used for:",
+      "options": [
+        "Continuous regression",
+        "Clustering",
+        "Dimensionality reduction",
+        "Binary classification"
+      ],
+      "answer": 3,
+      "domain": "ai_ml_dl",
+      "subtopic": "classification",
+      "difficulty": "beginner",
+      "style": "definition",
+      "concepts": [
+        "logistic regression",
+        "sigmoid",
+        "binary classification"
+      ],
+      "explanation": "Despite the word \"regression\" in its name, logistic regression is a classification model. It computes a linear score $z = w^\\top x + b$ and squashes it with the sigmoid $\\sigma(z) = \\frac{1}{1+e^{-z}}$ into a probability between 0 and 1, then predicts class 1 if that probability is at least a threshold (often 0.5). The name is the trap that makes \"continuous regression\" tempting; continuous targets are handled by linear regression. It can be extended to many classes (multinomial/softmax regression), but its classic use is binary classification.",
+      "confidence": "high",
+      "notes": ""
+    },
+    {
+      "n": 140,
+      "question": "In KNN (K-Nearest Neighbors), predictions are based on:",
+      "options": [
+        "K clusters",
+        "K features",
+        "K decision trees",
+        "K nearest training examples"
+      ],
+      "answer": 3,
+      "domain": "ai_ml_dl",
+      "subtopic": "classification",
+      "difficulty": "beginner",
+      "style": "definition",
+      "concepts": [
+        "k-nearest neighbours",
+        "distance metrics",
+        "majority vote"
+      ],
+      "explanation": "To predict a new point, KNN computes its distance (usually Euclidean) to every training example, picks the $K$ closest ones, and takes a majority vote of their labels (classification) or the average of their values (regression). For example, with $K=3$ and neighbour labels {cat, cat, dog}, the prediction is \"cat\". \"K clusters\" describes K-means, a different (unsupervised) algorithm, and \"K decision trees\" sounds like a random forest. KNN does no training beyond storing the data, so it is called a \"lazy\" learner.",
+      "confidence": "high",
+      "notes": ""
+    },
+    {
+      "n": 141,
+      "question": "A decision tree splits data based on:",
+      "options": [
+        "Random selection",
+        "Alphabetical order",
+        "Feature values that best separate classes",
+        "Feature names"
+      ],
+      "answer": 2,
+      "domain": "ai_ml_dl",
+      "subtopic": "trees-ensembles",
+      "difficulty": "beginner",
+      "style": "definition",
+      "concepts": [
+        "decision tree splits",
+        "impurity (Gini/entropy)",
+        "information gain"
+      ],
+      "explanation": "At each node a decision tree tries candidate splits such as \"age $\\le$ 30\" and picks the feature and threshold that make the child groups as pure as possible, measured by Gini impurity or entropy (information gain) for classification, or variance for regression. For example, Gini impurity is $1 - \\sum_k p_k^2$, so a node with a 50/50 class mix has impurity $1 - (0.5^2+0.5^2) = 0.5$, while a pure node has 0. Feature names and alphabetical order carry no information about the target. Random selection of features is used by random forests to diversify trees, but even there the best split among the chosen features is picked.",
+      "confidence": "high",
+      "notes": ""
+    },
+    {
+      "n": 142,
+      "question": "What is overfitting?",
+      "options": [
+        "Model is too simple",
+        "Training loss is high",
+        "Model trains too fast",
+        "Model memorises training data, poor generalisation"
+      ],
+      "answer": 3,
+      "domain": "ai_ml_dl",
+      "subtopic": "ml-fundamentals",
+      "difficulty": "beginner",
+      "style": "definition",
+      "concepts": [
+        "overfitting",
+        "generalisation",
+        "train vs validation gap"
+      ],
+      "explanation": "Overfitting means the model has learned the training data too closely, including its noise, so it scores very well on training data but poorly on new data. The tell-tale sign is a low training loss with a much higher validation loss. A model that is too simple and has high training loss describes the opposite problem, underfitting. Training speed is unrelated. Common cures include more data, regularisation (L1/L2, dropout), early stopping and simpler models.",
+      "confidence": "high",
+      "notes": ""
+    },
+    {
+      "n": 143,
+      "question": "What is the purpose of a validation set?",
+      "options": [
+        "Train the model",
+        "Tune hyperparameters without using test data",
+        "Final performance evaluation",
+        "Data augmentation"
+      ],
+      "answer": 1,
+      "domain": "ai_ml_dl",
+      "subtopic": "model-evaluation",
+      "difficulty": "beginner",
+      "style": "definition",
+      "concepts": [
+        "train/validation/test split",
+        "hyperparameter tuning",
+        "data leakage"
+      ],
+      "explanation": "Data is usually split three ways: the training set fits the model's weights, the validation set is used to compare models and choose hyperparameters (learning rate, tree depth, when to stop early), and the test set is used once at the end for an unbiased final score. Option C is the tempting trap: final evaluation is the test set's job. If you tuned on the test set, you would indirectly fit to it and your reported score would be over-optimistic. Validation data is never used to update weights or for augmentation.",
+      "confidence": "high",
+      "notes": ""
+    },
+    {
+      "n": 144,
+      "question": "Cross-validation is used to:",
+      "options": [
+        "Clean data",
+        "Select features",
+        "Normalise inputs",
+        "Estimate model performance on unseen data"
+      ],
+      "answer": 3,
+      "domain": "ai_ml_dl",
+      "subtopic": "model-evaluation",
+      "difficulty": "beginner",
+      "style": "definition",
+      "concepts": [
+        "k-fold cross-validation",
+        "generalisation estimate",
+        "variance of estimates"
+      ],
+      "explanation": "In $k$-fold cross-validation the data is split into $k$ parts; the model is trained $k$ times, each time holding out a different part for evaluation, and the $k$ scores are averaged. For example, 5-fold CV trains on 80% and tests on 20%, five times, so every example is used for evaluation exactly once. This gives a more reliable estimate of performance on unseen data than a single split. It can be *used inside* feature or model selection, but its purpose is estimation; it does not clean or normalise data.",
+      "confidence": "high",
+      "notes": "Option B (select features) is a common *use* of cross-validation (comparing feature subsets or models by their CV score), but the defining purpose asked for is estimating performance on unseen data, so D is clearly the intended answer.",
+      "caveat": "Option B (select features) is a common *use* of cross-validation (comparing feature subsets or models by their CV score), but the defining purpose asked for is estimating performance on unseen data, so D is clearly the intended answer."
+    },
+    {
+      "n": 145,
+      "question": "Principal Component Analysis (PCA) is used for:",
+      "options": [
+        "Classification",
+        "Clustering",
+        "Dimensionality reduction",
+        "Regression"
+      ],
+      "answer": 2,
+      "domain": "ai_ml_dl",
+      "subtopic": "unsupervised",
+      "difficulty": "beginner",
+      "style": "definition",
+      "concepts": [
+        "PCA",
+        "dimensionality reduction",
+        "variance and principal components"
+      ],
+      "explanation": "PCA finds new orthogonal axes (principal components) along which the data varies the most, then keeps only the top few, reducing many correlated features to a smaller set while preserving most of the variance. For example, 100 pixel features might be compressed to 10 components that keep about 90% of the variance. It is unsupervised: it ignores labels, so it is not a classifier or regressor by itself, and it does not assign points to groups like clustering does. It is often used before other models or to visualise high-dimensional data in 2-D.",
+      "confidence": "high",
+      "notes": ""
+    },
+    {
+      "n": 146,
+      "question": "In K-means, how do you choose K?",
+      "options": [
+        "Always use K=2",
+        "K = number of features",
+        "Domain knowledge or elbow method",
+        "K = number of samples"
+      ],
+      "answer": 2,
+      "domain": "ai_ml_dl",
+      "subtopic": "unsupervised",
+      "difficulty": "beginner",
+      "style": "definition",
+      "concepts": [
+        "choosing K",
+        "elbow method",
+        "inertia (within-cluster sum of squares)"
+      ],
+      "explanation": "There is no fixed formula, so K is chosen using domain knowledge (e.g. a shop wants 3 customer tiers) or data-driven methods. In the elbow method you run K-means for $K = 1, 2, 3, \\dots$, plot the inertia (sum of squared distances from points to their centroids), and pick the K where the curve bends and adding clusters stops giving big improvements; the silhouette score is another option. Setting K equal to the number of samples makes inertia 0 but each point is its own cluster, which is useless. The number of features has nothing to do with how many groups exist in the data.",
+      "confidence": "high",
+      "notes": ""
+    },
+    {
+      "n": 147,
+      "question": "What is the bias-variance tradeoff?",
+      "options": [
+        "Bias and variance always increase together",
+        "Bias equals variance",
+        "Simpler models have high bias, complex models have high variance",
+        "No relationship between them"
+      ],
+      "answer": 2,
+      "domain": "ai_ml_dl",
+      "subtopic": "ml-fundamentals",
+      "difficulty": "intermediate",
+      "style": "definition",
+      "concepts": [
+        "bias",
+        "variance",
+        "model complexity",
+        "under/overfitting"
+      ],
+      "explanation": "A model's expected error can be split into $\\text{bias}^2 + \\text{variance} + \\text{noise}$. Bias is error from overly simple assumptions (a straight line fit to a curve, i.e. underfitting); variance is error from being too sensitive to the particular training sample (a very deep tree, i.e. overfitting). As complexity increases, bias typically falls while variance rises, so they move in *opposite* directions, which is the \"tradeoff\". The goal is the complexity that minimises their total, so options A, B and D all misstate the relationship.",
+      "confidence": "high",
+      "notes": ""
+    },
+    {
+      "n": 148,
+      "question": "L1 regularisation (Lasso) tends to:",
+      "options": [
+        "Produce dense models",
+        "Have no effect",
+        "Only work for classification",
+        "Produce sparse models (many zero weights)"
+      ],
+      "answer": 3,
+      "domain": "ai_ml_dl",
+      "subtopic": "training-regularisation",
+      "difficulty": "intermediate",
+      "style": "definition",
+      "concepts": [
+        "L1 regularisation",
+        "sparsity",
+        "feature selection"
+      ],
+      "explanation": "L1 regularisation adds $\\lambda \\sum_j |w_j|$ to the loss. Because the penalty's slope stays at $\\pm\\lambda$ no matter how small a weight is, it keeps pushing small weights all the way to exactly zero, producing a sparse model that effectively performs feature selection. L2 (Ridge), by contrast, has slope $2\\lambda w$, which fades near zero, so it shrinks weights without zeroing them and gives dense models, which is the tempting mix-up in option A. Lasso is in fact a regression method, and L1 penalties work for both regression and classification.",
+      "confidence": "high",
+      "notes": ""
+    },
+    {
+      "n": 149,
+      "question": "L2 regularisation (Ridge) penalises:",
+      "options": [
+        "Sum of absolute weights",
+        "Number of parameters",
+        "Sum of squared weights",
+        "Training loss only"
+      ],
+      "answer": 2,
+      "domain": "ai_ml_dl",
+      "subtopic": "training-regularisation",
+      "difficulty": "beginner",
+      "style": "definition",
+      "concepts": [
+        "L2 regularisation",
+        "ridge regression",
+        "weight decay"
+      ],
+      "explanation": "Ridge adds $\\lambda \\sum_j w_j^2$ (the squared L2 norm of the weights) to the loss, so large weights are punished heavily and the model prefers small, spread-out weights. For example, weights $(3, -1)$ give a penalty of $\\lambda(9 + 1) = 10\\lambda$. The sum of *absolute* weights is the L1/Lasso penalty, the closest distractor. Penalising the count of non-zero parameters would be \"L0\", and \"training loss only\" means no regularisation at all. In neural networks the same idea is called weight decay.",
+      "confidence": "high",
+      "notes": ""
+    },
+    {
+      "n": 150,
+      "question": "In SVM (Support Vector Machine), what is the kernel trick?",
+      "options": [
+        "Reduces dimensionality",
+        "Speeds up training",
+        "Implicitly maps data to higher dimensions",
+        "Selects features"
+      ],
+      "answer": 2,
+      "domain": "ai_ml_dl",
+      "subtopic": "classification",
+      "difficulty": "intermediate",
+      "style": "definition",
+      "concepts": [
+        "kernel trick",
+        "feature space",
+        "non-linear decision boundary"
+      ],
+      "explanation": "Data that is not linearly separable in its original space may become separable in a higher-dimensional feature space $\\phi(x)$. The SVM algorithm only needs dot products between points, and a kernel function computes $K(x, z) = \\phi(x)^\\top \\phi(z)$ directly from the original inputs, so the mapping is never computed explicitly. For example, the polynomial kernel $K(x,z) = (x^\\top z)^2$ on 2-D inputs equals a dot product in a 3-D space of features $(x_1^2, \\sqrt{2}x_1x_2, x_2^2)$. The trick goes *up* in dimension, the opposite of dimensionality reduction, and it is about making non-linear boundaries possible cheaply rather than selecting features.",
+      "confidence": "high",
+      "notes": ""
+    }
+  ]
+}

@@ -1,0 +1,220 @@
+{
+  "slug": "generative-models",
+  "order": 31,
+  "part": "generative-ai",
+  "domain": "generative_ai",
+  "title": "Generative models: autoencoders, GANs and diffusion",
+  "tagline": "Machines that create new data",
+  "summary": "Generative versus discriminative models, autoencoders and VAEs with latent spaces, GANs and their training game, and diffusion models from forward noising to latent diffusion and classifier-free guidance.",
+  "prerequisites": [
+    "convolutional-networks",
+    "probability-and-statistics",
+    "large-language-models"
+  ],
+  "syllabus": [
+    "IOAI 2B6 Autoencoders",
+    "IOAI 3A7 Generating Images with GANs",
+    "IOAI 3A10 Diffusion Models",
+    "NOAI Generative AI: generative models, DDPM, Stable Diffusion, latent diffusion, classifier-free guidance",
+    "Generative vs discriminative models"
+  ],
+  "paper_subtopics": [
+    "generative-models",
+    "unsupervised",
+    "probability-statistics"
+  ],
+  "lessons": [
+    {
+      "slug": "generative-vs-discriminative",
+      "title": "Generative versus discriminative models",
+      "summary": "Modelling P(y | x) to classify versus modelling P(x) to generate new samples.",
+      "minutes": 14,
+      "objectives": [
+        "You can contrast P(y | x) with P(x) or P(x, y)",
+        "You can explain what sampling from a generative model means",
+        "You can name generative model families"
+      ],
+      "concepts": [
+        {
+          "name": "Boundary versus density",
+          "explain": "A discriminative model (like logistic regression) learns P(y | x), just enough to draw a boundary between classes. A generative model learns how the data itself is distributed, P(x) or P(x, y), so it can also create new, realistic examples by sampling.",
+          "analogy": "A discriminative model can tell real from fake Merlion photos; a generative model can draw a new Merlion.",
+          "visual": {
+            "component": "GenVsDiscToggle",
+            "kind": "interactive",
+            "shows": "The same 2D two-class dataset with either a discriminative decision boundary or generative density contours per class; a 'sample' button draws new points from the generative model.",
+            "interaction": "Toggle views; press sample; drag data points and refit.",
+            "aha": "Generative models capture the whole data shape, which is harder but lets them create."
+          }
+        },
+        {
+          "name": "Sampling from a learned distribution",
+          "explain": "Once a model has learned a distribution, generating means drawing random samples from it. Modern image generators map simple random noise to complex outputs through a learned network, so each random seed gives a new image.",
+          "analogy": "A machine that has learned what kaya toast should look like and can make endless slightly different slices.",
+          "visual": {
+            "component": "NoiseToSample",
+            "kind": "interactive",
+            "shows": "A grid of random-noise vectors mapped by a fixed small generator into simple synthetic shapes, with the seed displayed.",
+            "interaction": "Change the seed; nudge one noise dimension with a slider and watch the output change smoothly.",
+            "aha": "Generation is a learned transformation from noise to data."
+          }
+        }
+      ],
+      "code": "runnable",
+      "checkpoint_focus": [
+        "Discriminative learns boundaries",
+        "Generative learns the data distribution",
+        "Sampling new data",
+        "Examples of each"
+      ]
+    },
+    {
+      "slug": "autoencoders-and-vaes",
+      "title": "Autoencoders and variational autoencoders",
+      "summary": "Compressing data through a bottleneck and reconstructing it, latent spaces, denoising and anomaly detection, and VAEs that make latent spaces smooth enough to sample from.",
+      "minutes": 22,
+      "objectives": [
+        "You can describe encoder, bottleneck (latent) and decoder",
+        "You can explain reconstruction loss and the effect of bottleneck size",
+        "You can explain the VAE's mean/variance, reparameterisation and KL term",
+        "You can use autoencoders for denoising and anomaly detection"
+      ],
+      "concepts": [
+        {
+          "name": "Squeezing through a bottleneck",
+          "explain": "An autoencoder has an encoder that compresses the input into a small latent vector and a decoder that reconstructs the input from it, trained to minimise reconstruction error. A narrow bottleneck forces it to keep only the most important information, like a non-linear PCA. Inputs unlike the training data reconstruct badly, which flags anomalies.",
+          "analogy": "Describing a friend's face over the phone in 10 words so someone else can sketch it.",
+          "visual": {
+            "component": "AutoencoderBottleneck",
+            "kind": "interactive",
+            "shows": "Synthetic digit-like images, their reconstructions through a precomputed autoencoder, and reconstruction error, for several bottleneck sizes; an anomaly tab shows an unusual input's high error.",
+            "interaction": "Slide the bottleneck size; add noise to inputs (denoising mode); switch to the anomaly tab.",
+            "aha": "The bottleneck decides what the model is forced to remember."
+          }
+        },
+        {
+          "name": "VAEs make the latent space smooth",
+          "explain": "A plain autoencoder's latent space can have gaps where decoding gives garbage. A VAE's encoder outputs a mean and a standard deviation, samples z = μ + σ·ε (the reparameterisation trick keeps this differentiable), and adds a KL penalty that pulls the latent codes towards a standard normal. The result is a smooth latent space you can sample from and walk through.",
+          "analogy": "Organising a library so that similar books are always on neighbouring shelves with no empty gaps, so any shelf you visit has a sensible book.",
+          "visual": {
+            "component": "LatentInterpolator",
+            "kind": "interactive",
+            "shows": "A 2D latent map with encoded training examples as coloured points, and the decoded image at a draggable latent point; a toggle compares AE and VAE latent maps.",
+            "interaction": "Drag the latent point, including into gaps between clusters; draw an interpolation line between two points to see a morph strip.",
+            "aha": "A smooth, gap-free latent space is what turns an autoencoder into a generator."
+          }
+        }
+      ],
+      "code": "torch-shown",
+      "checkpoint_focus": [
+        "Undercomplete bottleneck forces compression",
+        "Reconstruction error flags anomalies",
+        "VAE: z = μ + σ·ε, loss = reconstruction + KL",
+        "Smooth latent space allows sampling and interpolation"
+      ]
+    },
+    {
+      "slug": "gans",
+      "title": "Generative adversarial networks",
+      "summary": "A generator and a discriminator locked in a game, how training proceeds, and failure modes like mode collapse.",
+      "minutes": 18,
+      "objectives": [
+        "You can describe the roles of generator and discriminator",
+        "You can describe the adversarial training loop",
+        "You can explain mode collapse and training instability",
+        "You can contrast GAN and diffusion sampling speed"
+      ],
+      "concepts": [
+        {
+          "name": "The forger and the detective",
+          "explain": "A GAN trains two networks against each other: the generator turns random noise into fake samples, and the discriminator tries to tell real from fake. The generator improves by fooling the discriminator, and the discriminator improves by catching it. At the ideal end point, fakes are indistinguishable from real data.",
+          "analogy": "A counterfeiter and a bank inspector: each gets better because the other does.",
+          "visual": {
+            "component": "GAN1DGame",
+            "kind": "animation",
+            "shows": "A 1D real-data distribution, the generator's current distribution, and the discriminator's 'probability real' curve, updating as training alternates between the two players.",
+            "interaction": "Play or step training; change the learning rates of each player; restart with a different seed.",
+            "aha": "The generator never sees real data directly; it learns only through the discriminator's feedback."
+          }
+        },
+        {
+          "name": "Mode collapse and instability",
+          "explain": "GAN training can fail: the generator may find a few outputs that fool the discriminator and produce only those (mode collapse), or the two players may oscillate without converging. Architectures like DCGAN and StyleGAN and careful tuning help, but GANs remain trickier to train than diffusion models, though they generate in a single fast forward pass.",
+          "analogy": "A street performer who discovers one trick the crowd loves and stops doing anything else.",
+          "visual": {
+            "component": "ModeCollapseToggle",
+            "kind": "interactive",
+            "shows": "A ring of 8 real-data clusters and generated samples that either cover all clusters or collapse onto one or two.",
+            "interaction": "Toggle a 'collapsing' training setting; step training; compare diversity metrics.",
+            "aha": "Fooling the judge is not the same as covering all of the real data."
+          }
+        }
+      ],
+      "code": "torch-shown",
+      "checkpoint_focus": [
+        "Two-player minimax game",
+        "Alternate D and G updates",
+        "Mode collapse",
+        "GANs sample in one forward pass"
+      ]
+    },
+    {
+      "slug": "diffusion-models",
+      "title": "Diffusion models",
+      "summary": "Gradually adding noise, learning to remove it, sampling step by step, latent diffusion (Stable Diffusion) and classifier-free guidance.",
+      "minutes": 24,
+      "objectives": [
+        "You can describe the forward (noising) and reverse (denoising) processes",
+        "You can explain that the network predicts the noise",
+        "You can explain why sampling is slower than GANs",
+        "You can describe latent diffusion and classifier-free guidance"
+      ],
+      "concepts": [
+        {
+          "name": "Forward noising",
+          "explain": "The forward process adds a little Gaussian noise to an image at each of many steps (often 1000) according to a schedule, until only noise remains. Thanks to a closed form, you can jump straight to any step t: x_t = √ᾱ_t·x₀ + √(1 − ᾱ_t)·ε. No learning happens here. DDPM (Denoising Diffusion Probabilistic Models) defines this forward process as a fixed Markov chain, where each step depends only on the previous one, and learns the reverse chain step by step.",
+          "analogy": "Gradually dissolving a sugar sculpture in water until only sweet water is left.",
+          "visual": {
+            "component": "ForwardNoising",
+            "kind": "interactive",
+            "shows": "A simple synthetic image at step t with its noise level, and the schedule curve ᾱ_t with a marker.",
+            "interaction": "Slide t from 0 to T; switch between linear and cosine schedules.",
+            "aha": "Noising is easy and fixed; all the learning is in undoing it."
+          }
+        },
+        {
+          "name": "Learning to denoise",
+          "explain": "A network (usually a U-Net) is trained to look at a noisy image x_t and the step t and predict the noise ε that was added. To generate, start from pure noise and repeatedly subtract a bit of predicted noise, stepping from t = T down to 0. Because this needs many network calls, sampling is slower than a GAN's single pass.",
+          "analogy": "A sculptor who starts with a rough block and, step by step, removes what does not belong.",
+          "visual": {
+            "component": "DenoiseStepper",
+            "kind": "animation",
+            "shows": "A cloud of 2D points starting as Gaussian noise and moving step by step onto a target shape (e.g. a spiral or the outline of a Merlion), with arrows for the predicted denoising direction at each step.",
+            "interaction": "Play or step through sampling; change the number of steps; reseed the starting noise.",
+            "aha": "Generation is many small denoising steps, each nudging samples towards the data."
+          }
+        },
+        {
+          "name": "Latent diffusion and guidance",
+          "explain": "Stable Diffusion runs diffusion in the small latent space of a VAE (not on full pixels), uses a U-Net with cross-attention to a text encoder's embeddings for conditioning, then decodes the final latent to an image. Classifier-free guidance combines conditional and unconditional noise predictions, ε = ε_uncond + w(ε_cond − ε_uncond); a larger w follows the prompt more closely but reduces diversity.",
+          "analogy": "Planning a mural on a small sketch pad (latent) before painting the full wall, while a client (the prompt) leans over your shoulder; guidance is how closely you obey them.",
+          "visual": {
+            "component": "LatentDiffusionGuidance",
+            "kind": "interactive",
+            "shows": "The pipeline diagram (text encoder, U-Net in latent space, VAE decoder) with tensor shapes, and a 2D toy where conditional samples sharpen and cluster as the guidance scale increases.",
+            "interaction": "Slide guidance scale w from 0 to 10; click pipeline components to see their role.",
+            "aha": "Working in a compressed latent space makes diffusion affordable, and guidance trades diversity for prompt-faithfulness."
+          }
+        }
+      ],
+      "code": "torch-shown",
+      "checkpoint_focus": [
+        "x_t = √ᾱ_t x₀ + √(1 − ᾱ_t) ε",
+        "Train to predict ε",
+        "Many reverse steps at sampling",
+        "Latent space via VAE, U-Net denoiser, text conditioning",
+        "CFG: ε_uncond + w(ε_cond − ε_uncond)"
+      ]
+    }
+  ]
+}

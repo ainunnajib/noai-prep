@@ -1,0 +1,271 @@
+import SplitStrategies from './visuals/splitting-and-leakage/SplitStrategies'
+import LeakTimeline from './visuals/splitting-and-leakage/LeakTimeline'
+import LeakageLab from './visuals/splitting-and-leakage/LeakageLab'
+import PipelineFolds from './visuals/splitting-and-leakage/PipelineFolds'
+
+Your model scores 98% in your notebook, then 60% once it meets real data. Usually the model did not get worse. **The test was broken**: it was split in the wrong way, or information from the answers sneaked into training. This lesson shows you how to build a fair test, and how to spot the leaks that NOAI questions love to hide.
+
+## The rule behind every split
+
+Recall the three parts from [Generalisation, overfitting and bias-variance](#/learn/ml-fundamentals/generalisation-and-overfitting). The <Term def="The rows the model learns its parameters (weights) from.">training set</Term> fits the model. The <Term def="Rows held back to compare models and choose hyperparameters. The model never learns its weights from them.">validation set</Term> is used to compare models and choose settings. The <Term def="Rows locked away until the very end and used once, for a final honest score.">test set</Term> is used once, at the end, for an honest final score. Typical sizes are 70/15/15 or 80/10/10.
+
+All three exist to answer one question: **how well will the model do on data it has never seen?** So every held-out row must be treated like future data. That gives one rule, and the whole lesson follows from it:
+
+<KeyIdea>
+
+Evaluate the model the way it will be used. Nothing about the validation or test rows (their values, their labels, or anything from after the moment of prediction) may influence any step of building the model.
+
+</KeyIdea>
+
+## Random, stratified and time-based splits
+
+<Analogy title="Picking teams, forecasting rain">
+
+When your CCA splits members into two practice teams fairly, you make sure each team gets the same mix of Sec 1s and Sec 4s; you do not leave it to luck. And when NEA tests a rain forecaster, it checks forecasts made *before* the rain fell: a forecaster who has already seen tomorrow's weather proves nothing.
+
+</Analogy>
+
+A **random split** (what `train_test_split` does by default) shuffles the rows and cuts. It is fine for most tabular data, but it fails in two common situations:
+
+- **Rare classes.** In a 50-row dataset where only 1 row in 10 is fraud, a random 20% validation set might get two fraud cases, or none. A <Term def="A split that keeps the proportion of each class the same in every part, e.g. 10% fraud in the whole data, in the training set and in the validation set.">stratified split</Term> samples each class separately so that every part keeps the same class proportions.
+- **Time order.** If the rows are events in time (sales, sensor readings, transactions), a random split puts some later rows into training and earlier ones into validation. The model trains on the future and is tested on the past. A <Term def="A split that trains on earlier data and validates on later data, mimicking how a deployed model predicts the future from the past.">time-based split</Term> trains on the earlier part and validates on the later part.
+
+<SplitStrategies />
+
+For a stratified split, if a fraction $p$ of all rows belong to a class, then each part of size $n_{\text{part}}$ gets about $p \times n_{\text{part}}$ rows of that class (rounded, because you cannot split a row).
+
+<Steps title="Why random splits fail rare classes">
+  <Step title="The data">
+    50 rows, of which 5 are the rare class. The validation set gets 10 rows (20%).
+  </Step>
+  <Step title="Stratified">
+    The rare share is $p = 5/50 = 10\%$, so validation gets $10\% \times 10 = 1$ rare row, every time.
+  </Step>
+  <Step title="Random: one rare row">
+    Each rare row lands in the training part with probability $40/50 = 0.8$.
+  </Step>
+  <Step title="Random: all five miss validation">
+    Roughly $0.8^5 = 0.8 \times 0.8 \times 0.8 \times 0.8 \times 0.8 \approx 0.33$. (The exact value is $0.31$; it is slightly less because the rows are drawn without replacement.)
+  </Step>
+  <Step title="Interpret">
+    About one random split in three has **no** rare case in validation at all, so you cannot even tell whether the model ever catches one.
+  </Step>
+</Steps>
+
+Try it with scikit-learn. The `stratify=y` argument is all it takes:
+
+<PyRunner packages={['numpy', 'scikit-learn']} code={`import numpy as np
+from sklearn.model_selection import train_test_split
+
+# 5 rare cases (1) among 50 rows
+y = np.array([1] * 5 + [0] * 45)
+# a dummy feature
+X = np.arange(50).reshape(-1, 1)
+
+for seed in range(6):
+    X_tr, X_val, y_tr, y_val = train_test_split(
+        X, y, test_size=10, random_state=seed)
+    X_tr, X_val, y_tr, y_val_s = train_test_split(
+        X, y, test_size=10, random_state=seed,
+        stratify=y)
+    print(f"seed {seed}: rare cases in validation:",
+          f"random {y_val.sum()}, stratified {y_val_s.sum()}")`} />
+
+<QuickCheck
+  id="data-and-features.splitting.qc-spam-count"
+  q="You have 1,000 emails, 3% of them spam, and make a stratified 80/20 train/validation split. How many spam emails are in the validation set?"
+  options={['6', '30', '24', '3']}
+  answer={0}
+  explain="The validation set has $20\% \times 1000 = 200$ emails, and stratifying keeps the 3% spam share: $0.03 \times 200 = 6$. 30 is the spam count in the whole dataset and 24 is the count in the training set."
+/>
+
+For time-ordered data, scikit-learn's `TimeSeriesSplit` makes several splits, each training on everything before a cut and validating on the block after it:
+
+```python
+import numpy as np
+from sklearn.model_selection import TimeSeriesSplit
+
+for train_idx, val_idx in TimeSeriesSplit(n_splits=3).split(np.arange(12)):
+    print("train", train_idx, "validate", val_idx)
+```
+
+```text
+train [0 1 2] validate [3 4 5]
+train [0 1 2 3 4 5] validate [6 7 8]
+train [0 1 2 3 4 5 6 7 8] validate [ 9 10 11]
+```
+
+A time-based split also catches a problem that a random split hides: the world changes. Customers, prices and fraud tricks in 2025 are not those of 2023. This is called <Term def="A change, over time, in the data a model sees (or in how inputs relate to labels), so that a model trained on old data performs worse on new data. It comes in two kinds, met in the problem-solving part: data drift (covariate shift), where the inputs change, and concept drift, where the rule linking inputs to labels changes.">distribution shift</Term>, and only validating on *later* data reveals it before your users do.
+
+<PastPaperQuestion paper="prelim2026" n={275} />
+
+<Mistake title="The same person on both sides of the split">
+
+If a dataset has several rows per patient, student or customer, a random split can put some of Ah Seng's X-rays in training and others in validation. The model then recognises *Ah Seng*, not the disease, and the score is inflated. Split by person instead (scikit-learn's `GroupShuffleSplit` and `GroupKFold`), and remove exact duplicate rows before splitting.
+
+</Mistake>
+
+## Leakage: when the answers sneak into training
+
+<Analogy title="The mock exam answer key">
+
+A classmate glimpses the answer key before the mock exam and scores 98%. The score says nothing about what they know, and in the real exam, with no key, they crash. A leaky model is that student.
+
+</Analogy>
+
+<Term def="Information that would not be available when the model is actually used (from validation or test rows, or from after the moment of prediction) getting into training. It makes evaluation scores look better than real performance.">Data leakage</Term> is any information that the model could not have at prediction time getting into training. It comes in two families.
+
+**1. Target leakage: a feature that gives the answer away.** Some columns are only known *after* the outcome, or are caused by it. Predicting card fraud with a column `refund_issued` (refunds happen because fraud was confirmed) is like predicting rain from "umbrellas were opened". The test is always the same: **was this value known at the moment the prediction is made?**
+
+<LeakTimeline />
+
+**2. Contamination: the held-out rows influence training.** Typical culprits:
+
+- fitting a scaler, an imputer, PCA or a feature selector on **all** rows before splitting;
+- **oversampling** (copying rare-class rows to balance the classes) before splitting, so copies of one row land on both sides; oversample only the training rows, after the split (more in [Imbalanced classes](#/learn/model-evaluation/imbalanced-data));
+- a random split of time-ordered data, or the same person or duplicate rows on both sides;
+- choosing models or settings by looking at the **test** set again and again.
+
+How much does each leak inflate the score? Explore below. The fraud data has 2,000 columns, most of them pure noise, which is common in real projects (and in [The curse of dimensionality](#/learn/ml-fundamentals/curse-of-dimensionality), which you met earlier).
+
+<LeakageLab />
+
+The size of a leak depends on **how much the leaky step learns from the held-out rows**. A scaler only learns a mean and a spread and never sees labels, so here it barely matters. Feature selection learns *which columns go with the labels*, using the validation labels: with 2,000 noisy columns, some match the validation labels by luck, so the report rises from 68% to 80% while reality stays at about 68%. A post-outcome feature is the label in disguise: the report says 91%, reality is 59%.
+
+<KeyIdea>
+
+For every number the model learns from, ask: *could I have known this at prediction time, without looking at the validation or test rows?* If not, it is leakage. A validation score that seems too good to be true usually is: hunt for leakage before you celebrate.
+
+</KeyIdea>
+
+## Fit on training rows, transform everything else
+
+Preprocessing steps in scikit-learn have two halves. `fit` **learns** something from data (a mean, a spread, which columns to keep); `transform` **applies** it. The rule: `fit` on the training rows only, then `transform` the training, validation and test rows with what was learned.
+
+<Steps title="How a test row leaks through a mean">
+  <Step title="The data">
+    A column has training values $2, 4, 6, 8$ and one training row with a blank. A test row has the value $20$. We fill the blank with the column mean.
+  </Step>
+  <Step title="Correct: fit on training rows">
+    Mean $= (2 + 4 + 6 + 8)/4 = 20/4 = 5$. The blank becomes 5.
+  </Step>
+  <Step title="Leaky: fit on all rows">
+    Mean $= (2 + 4 + 6 + 8 + 20)/5 = 40/5 = 8$. The blank becomes 8.
+  </Step>
+  <Step title="Spot the leak">
+    In the leaky version, a training row's value was partly decided by a test row. The model has learned from the test set before being tested on it.
+  </Step>
+</Steps>
+
+In code, the fix is just the order of two lines:
+
+```python
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import StandardScaler
+
+# WRONG: the scaler learns the mean and spread of the test rows too
+X_scaled = StandardScaler().fit_transform(X)
+X_train, X_test, y_train, y_test = train_test_split(X_scaled, y, test_size=0.2)
+
+# RIGHT: split first, fit on the training rows, only transform the test rows
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2)
+scaler = StandardScaler().fit(X_train)
+X_train_s = scaler.transform(X_train)
+X_test_s = scaler.transform(X_test)
+```
+
+The `fit_transform`-on-the-test-set bug from [Scaling, normalisation and standardisation](#/learn/data-and-features/scaling-and-normalisation) is the same mistake in another form: whatever `fit` learns must come from the training rows alone.
+
+<Mistake title="Oversampling, then splitting">
+
+To balance a rare class, people often copy its rows (oversampling). Do it **before** the split and identical copies of one row end up in both training and validation, so the model is "tested" on rows it has memorised and the score soars. Split first, then oversample the training rows only.
+
+</Mistake>
+
+## Pipelines: leak-proof by design
+
+Remembering the right order for every step is error-prone. A scikit-learn <Term def="An object that chains preprocessing steps and a model. pipe.fit(X, y) fits every step in order on the data it is given; pipe.predict or pipe.score only applies (transforms) them.">Pipeline</Term> chains the steps and the model into one object:
+
+```python
+from sklearn.pipeline import make_pipeline
+from sklearn.impute import SimpleImputer
+from sklearn.preprocessing import StandardScaler
+from sklearn.linear_model import LogisticRegression
+
+pipe = make_pipeline(
+    SimpleImputer(strategy='mean'),   # fill blanks with the column mean
+    StandardScaler(),                 # then standardise
+    LogisticRegression(),             # then the model
+)
+pipe.fit(X_train, y_train)        # every step learns from the training rows only
+print(pipe.score(X_val, y_val))   # validation rows are only transformed, never fitted on
+```
+
+The Pipeline matters most with <Term def="Splitting the data into k parts (folds). Each fold takes a turn as the validation set while the model trains on the other k − 1 folds; the k scores are averaged. You will study it in the model evaluation module.">k-fold cross-validation</Term>, which splits the data into $k$ folds and gives each fold one turn as the validation set. Pass the whole pipeline to `cross_val_score(pipe, X, y, cv=5)` and every step is refitted inside each round, on that round's training folds only:
+
+<PipelineFolds />
+
+In round 3, the leaky scaler has already seen the value 30, so it scales it to a modest $z = 4.19$. The Pipeline's scaler has not, so 30 comes out at $z = 17.30$: exactly as surprising as a new extreme value would be in real life.
+
+Here is the selection leak from the lab on data that is **pure noise**, where an honest model can only score about 0.5 (a coin flip):
+
+<PyRunner packages={['numpy', 'scikit-learn']} code={`import numpy as np
+from sklearn.feature_selection import SelectKBest, f_classif
+from sklearn.linear_model import LogisticRegression
+from sklearn.model_selection import cross_val_score
+from sklearn.pipeline import make_pipeline
+from sklearn.preprocessing import StandardScaler
+
+rng = np.random.default_rng(4)
+# 100 rows, 2,000 noise columns
+X = rng.normal(size=(100, 2000))
+# coin flips: an honest score is about 0.5
+y = rng.integers(0, 2, size=100)
+
+# SelectKBest keeps the 10 columns that look
+# most related to y.
+# Leaky: it picks them using ALL rows
+X_sel = SelectKBest(f_classif, k=10).fit_transform(X, y)
+leaky = cross_val_score(
+    LogisticRegression(), X_sel, y, cv=5).mean()
+
+# Correct: selection inside a Pipeline,
+# refitted in every fold
+pipe = make_pipeline(
+    StandardScaler(),
+    SelectKBest(f_classif, k=10),
+    LogisticRegression())
+honest = cross_val_score(pipe, X, y, cv=5).mean()
+
+print(f"leaky : {leaky:.2f}")
+print(f"honest: {honest:.2f}")`} />
+
+On our machine this prints `leaky : 0.77` and `honest: 0.49`. The leaky version "finds" a pattern in noise. Change the seed: the leaky score stays far above 0.5, while the honest one wobbles around it.
+
+The same logic applies to the test set itself. Every time you look at test scores and then change something, a little information about the test set leaks into your choices. Tune on validation data (or cross-validation), and touch the test set **once**.
+
+<ExamTip title="Spot-the-leak checklist">
+
+When a NOAI scenario reports a surprisingly high score, or a big gap between validation and real-world performance, run through these questions:
+
+1. Was anything **fitted or done before the split** (scaler, imputer, PCA, feature selection, oversampling of the rare class)?
+2. Is any feature **known only after the outcome** (refunds, treatments, follow-up calls)?
+3. Is the data **time-ordered but split randomly**?
+4. Can the **same person or a duplicate row** appear on both sides?
+5. Was the **test set used more than once** to make choices?
+
+And for splits: rare classes → `stratify=y`; time series → train on the past, validate on the future.
+
+</ExamTip>
+
+Next, [Derivatives are slopes](#/learn/calculus-and-gradient-descent/derivatives-as-slopes) starts the calculus behind training: with the data clean, scaled and fairly split, the question becomes how gradient descent finds the best weights, and the answer begins with the slope of the loss.
+
+<Takeaways>
+
+- Every held-out row must be treated like future data: nothing about it may influence any step of building the model.
+- Stratified splits keep class proportions ($p \times n_{\text{part}}$ rows per part); time-based splits train on the past and validate on the future; grouped splits keep each person on one side.
+- Target leakage is a feature that is not known at prediction time; contamination is preprocessing, duplicates or tuning that lets held-out rows influence training.
+- `fit` on training rows only, then `transform` everything. A Pipeline does this automatically, even inside cross-validation, but it cannot remove a leaky feature.
+- A suspiciously high validation score is a reason to hunt for leakage.
+
+</Takeaways>

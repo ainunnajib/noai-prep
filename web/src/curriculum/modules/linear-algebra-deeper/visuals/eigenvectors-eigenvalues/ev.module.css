@@ -1,0 +1,169 @@
+/* Local styles for the "Eigenvectors and eigenvalues" visuals. Colours come from theme tokens only. */
+
+.stack {
+  width: 100%;
+  display: grid;
+  gap: 0.75rem;
+  justify-items: center;
+  min-width: 0;
+}
+
+/* two panels side by side, stacked on phones */
+.panels {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 0.75rem 1rem;
+  width: 100%;
+  align-items: start;
+}
+.panelsNarrow {
+  grid-template-columns: minmax(0, 1fr);
+}
+.panel {
+  display: grid;
+  justify-items: center;
+  gap: 0.4rem;
+  min-width: 0;
+}
+.panelTitle {
+  font-weight: 750;
+  font-size: var(--step--1);
+  color: var(--ink);
+  text-align: center;
+  line-height: 1.35;
+}
+
+/* status line under a plot */
+.status {
+  width: 100%;
+  max-width: 34rem;
+  padding: 0.5rem 0.8rem;
+  border-radius: var(--radius-m);
+  border: 1.5px solid var(--rule);
+  background: var(--surface-2);
+  color: var(--ink);
+  font-size: var(--step--1);
+  line-height: 1.5;
+  text-align: center;
+}
+.statusGood {
+  border-color: var(--viz-3);
+  background: color-mix(in srgb, var(--viz-3) 14%, var(--surface));
+}
+.statusBad {
+  border-color: var(--viz-neg);
+  background: color-mix(in srgb, var(--viz-neg) 12%, var(--surface));
+}
+.statusWarn {
+  border-color: var(--viz-2);
+  background: color-mix(in srgb, var(--viz-2) 12%, var(--surface));
+}
+
+/* a 2×2 block of sliders laid out like the matrix entries */
+.matSliders {
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 0.35rem 1.1rem;
+  width: 100%;
+  max-width: 30rem;
+  padding: 0.35rem 0.9rem;
+}
+.matSliders::before,
+.matSliders::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 7px;
+  border: 2px solid var(--ink-3);
+}
+.matSliders::before {
+  left: 0;
+  border-right: none;
+}
+.matSliders::after {
+  right: 0;
+  border-left: none;
+}
+
+.row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem 1rem;
+  width: 100%;
+}
+.formula {
+  font-size: var(--step--1);
+  color: var(--ink-2);
+  text-align: center;
+  line-height: 1.6;
+}
+.c1 {
+  color: var(--viz-1);
+  font-weight: 750;
+}
+.c2 {
+  color: var(--viz-2);
+  font-weight: 750;
+}
+.c3 {
+  color: var(--viz-3);
+  font-weight: 750;
+}
+.c4 {
+  color: var(--viz-4);
+  font-weight: 750;
+}
+.c5 {
+  color: var(--viz-5);
+  font-weight: 750;
+}
+.muted {
+  color: var(--ink-3);
+}
+.mono {
+  font-family: var(--font-mono);
+  font-weight: 650;
+  white-space: nowrap;
+}
+.small {
+  font-size: 0.82rem;
+  color: var(--ink-2);
+}
+.tick {
+  color: var(--viz-pos);
+  font-weight: 800;
+}
+.chipRow {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.35rem;
+}
+.chip {
+  padding: 0.12rem 0.55rem;
+  border-radius: 999px;
+  border: 1.5px solid var(--rule);
+  background: var(--surface-2);
+  color: var(--ink-2);
+  font-size: 0.8rem;
+  font-weight: 650;
+}
+.chipOn {
+  border-color: var(--viz-3);
+  color: var(--ink);
+  background: color-mix(in srgb, var(--viz-3) 16%, var(--surface));
+}
+/* chips that are real buttons (jump to that stage) */
+.chipBtn {
+  font: inherit;
+  font-size: 0.8rem;
+  font-weight: 650;
+  cursor: pointer;
+}
+.chipBtn:hover {
+  border-color: var(--accent);
+}

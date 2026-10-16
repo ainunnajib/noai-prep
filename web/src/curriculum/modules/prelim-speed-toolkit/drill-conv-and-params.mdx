@@ -1,0 +1,161 @@
+import { PRELIM } from '../../../data/facts'
+import WindowExplorer from './visuals/drill-conv-and-params/WindowExplorer'
+import ConvDrill from './visuals/drill-conv-and-params/ConvDrill'
+import ParamComplexityDrill from './visuals/drill-conv-and-params/ParamComplexityDrill'
+
+Deep-learning questions look as if they need a calculator: "how many parameters?", "what size comes out?", "how does the cost grow?". In the Prelim you have no calculator and about {PRELIM.secondsPerQuestion} seconds. The good news is that almost all of them come from **two conv formulas and a dozen parameter and cost formulas**. This lesson drills each one until it is automatic; the next lesson, [Speed drills: shapes and code traps](#/learn/prelim-speed-toolkit/drill-shapes-and-code), does the same for tensor shapes and code reading.
+
+You have met every idea here before, in the [convolution](#/learn/convolutional-networks/padding-stride-shapes), [attention](#/learn/attention-and-transformers/multi-head-attention), [LoRA](#/learn/large-language-models/fine-tuning-and-lora), [normalisation](#/learn/training-deep-networks/initialisation-and-normalisation), [curvature](#/learn/calculus-and-gradient-descent/curvature-convexity), [schedules](#/learn/training-deep-networks/learning-rate-warmup-schedules) and [Big-O](#/learn/algorithms-and-complexity/big-o) lessons. Here the aim is speed: the same arithmetic in under 20 seconds, done the same way every time.
+
+## Conv arithmetic: two formulas
+
+<Analogy title="Bus fares you know by heart">
+
+The first time you take a new bus route you check the fare. By the hundredth trip you just tap your card: you know it is the same as always. Conv arithmetic should feel like that. You are not working anything out; you are recognising a fare you have paid a hundred times.
+
+</Analogy>
+
+A convolution layer slides a small square window, the <Term def="The small grid of learnt weights (k × k for each input channel) that slides across the image. Also called a filter.">kernel</Term>, across an image. Three settings decide how many places it can land:
+
+- **kernel size $k$**: the window is $k \times k$ pixels;
+- <Term def="Extra rows and columns of zeros added around the edge of the input, so the window can also sit over the border.">padding</Term> **$p$**: $p$ rings of zeros around the edge;
+- <Term def="How many pixels the window jumps each time it moves.">stride</Term> **$s$**: how far the window jumps each move.
+
+### Formula 1: the output size
+
+$$
+n_\text{out} = \left\lfloor \frac{n + 2p - k}{s} \right\rfloor + 1
+$$
+
+- $n$ is the input height (or width; the same formula applies to each side).
+- $n + 2p$ is the width after padding: $p$ zeros on the left **and** $p$ on the right.
+- Subtracting $k$ leaves the room the window can travel; dividing by $s$ counts how many jumps fit.
+- $\lfloor \; \rfloor$ means **round down**: a jump that would push the window off the edge is not taken.
+- The $+1$ counts the starting position, before any jump.
+
+In words: **the output size is the number of places the window fits.**
+
+<WindowExplorer />
+
+### Formula 2: the parameter count
+
+$$
+\text{parameters} = (k \cdot k \cdot C_\text{in} + 1) \cdot C_\text{out}
+$$
+
+- $C_\text{in}$ is the number of input <Term def="The separate layers of numbers stacked at each pixel: 3 for an RGB photo (red, green, blue), or the number of filters of the previous conv layer.">channels</Term>. One filter covers **all** of them, so it holds $k \cdot k \cdot C_\text{in}$ weights.
+- $+1$ is that filter's single bias.
+- $C_\text{out}$ is the number of filters, which is also the number of output channels.
+
+Notice what is **missing**: the image size $n$. The same filter is reused at every position, so a 3 × 3 conv has the same number of parameters on a 32 × 32 image as on a 1024 × 1024 one.
+
+| Layer | Shortcut |
+| --- | --- |
+| $k = 3$, $p = 1$, $s = 1$ ("same" padding) | size unchanged |
+| $p = \frac{k-1}{2}$ and stride $s$ | $\lceil n / s \rceil$ (divide, round **up**) |
+| $p = 0$, $s = 1$ | $n - k + 1$ |
+| `nn.MaxPool2d(2)` | $\lfloor n/2 \rfloor$, channels unchanged, **0** parameters |
+| $1 \times 1$ conv | size unchanged, $(C_\text{in} + 1)\,C_\text{out}$ parameters |
+
+<KeyIdea>
+
+Size: $\lfloor (n + 2p - k)/s \rfloor + 1$, the number of places the window fits. Parameters: $(k \cdot k \cdot C_\text{in} + 1) \cdot C_\text{out}$, and the image size never appears.
+
+</KeyIdea>
+
+<Steps title="A 32 × 32 colour image through three layers">
+  <Step title="Conv2d(3, 16, kernel_size=5) on (3, 32, 32)">
+    Size: $\lfloor (32 + 0 - 5)/1 \rfloor + 1 = 27 + 1 = 28$, so $(16, 28, 28)$. Parameters: one filter is $5 \cdot 5 \cdot 3 = 75$ weights $+ 1$ bias $= 76$; times 16 filters: $76 \times 16 = 760 + 456 = 1216$.
+  </Step>
+  <Step title="MaxPool2d(2)">
+    Halve the size, keep the channels: $(16, 14, 14)$. No parameters.
+  </Step>
+  <Step title="Conv2d(16, 32, kernel_size=3, padding=1)">
+    Same padding with stride 1, so the size stays 14: $(32, 14, 14)$. Parameters: $3 \cdot 3 \cdot 16 = 144$, plus 1 is $145$; $145 \times 32 = 145 \times 30 + 145 \times 2 = 4350 + 290 = 4640$.
+  </Step>
+</Steps>
+
+For the big multiplications, split the smaller number into tens and units and add the two easy products: $145 \times 32 = 145 \times 30 + 145 \times 2 = 4350 + 290 = 4640$.
+
+<ConvDrill />
+
+<Mistake>
+
+The four slips the drill catches most: forgetting the $+1$; rounding up instead of down; adding $p$ instead of $2p$; and, for parameters, forgetting either the bias or the $C_\text{in}$. If two options differ by exactly $C_\text{out}$, the setter is testing the bias.
+
+</Mistake>
+
+The parameter formula also explains a classic "why" question. Two stacked $3 \times 3$ convs see the same $5 \times 5$ patch as one $5 \times 5$ conv. With $C$ channels in and out (ignoring biases), the stack costs $2 \times 9C^2 = 18C^2$ weights, against $25C^2$ for the single big kernel, and it adds an extra <Term def="An activation function such as ReLU between two layers. Without one, two stacked linear layers collapse into a single linear layer.">nonlinearity</Term> in between.
+
+<PastPaperQuestion paper="prelim2026" n={204} />
+
+## A dozen formulas for everything else
+
+<Analogy title="A cheat sheet you no longer need">
+
+Some students write a formula sheet the night before a test and then never look at it in the hall, because writing it fixed everything in memory. This section is that sheet for deep learning. The drill afterwards is how you stop needing it.
+
+</Analogy>
+
+**Parameters.** Most counts below are "the weights, plus one bias per output"; Embedding, LoRA, the norms and the parameter-free layers are the exceptions, explained on their lines.
+
+- `nn.Linear(in, out)`: $\text{in} \cdot \text{out} + \text{out}$. The weight matrix, plus one bias per output.
+- `nn.Conv2d(C_in, C_out, k)`: $(k^2 C_\text{in} + 1)\,C_\text{out}$. One $k \times k \times C_\text{in}$ filter plus a bias, per output channel.
+- `nn.Embedding(V, d)`: $V \cdot d$. A lookup table with one row of $d$ numbers per token, and no bias.
+- `nn.MultiheadAttention(d, h)`: $4d^2 + 4d$. Four $d \times d$ projections ($W_Q, W_K, W_V, W_O$), each with $d$ biases.
+- <Term def="Low-Rank Adaptation: fine-tune a big model by freezing each weight matrix W and training a small correction B·A, where B is d × r and A is r × k with a small rank r.">LoRA</Term> with rank $r$ on a $d \times k$ matrix: $r(d + k)$. You train $B$ ($d \times r$) and $A$ ($r \times k$) instead of $W$.
+- `nn.LayerNorm(d)` and `nn.BatchNorm2d(C)`: $2d$ and $2C$. A scale $\gamma$ and a shift $\beta$ per feature.
+- ReLU, pooling, dropout, flatten: $0$. They apply fixed rules; there is nothing to learn.
+
+Two of these deserve a closer look.
+
+- **Multi-head attention:** the number of heads $h$ does not appear. The heads *split* the $d$ dimensions between them (8 heads of 64 when $d = 512$), so the four projection matrices are $d \times d$ whatever $h$ is.
+- **LoRA:** for one $4096 \times 4096$ matrix and $r = 8$, LoRA trains $8 \times (4096 + 4096) = 65{,}536$ numbers instead of $4096^2 = 16{,}777{,}216$: exactly 256 times fewer.
+
+**Costs.** <Term def="A way to describe how the work grows with the size of the input, ignoring constant factors. O(n²) means doubling n roughly quadruples the work.">Big-O</Term> notation says how the work grows as the inputs grow.
+
+| Operation | Cost | Consequence |
+| --- | --- | --- |
+| $(n \times m)$ matrix times $(m \times p)$ matrix | $O(nmp)$ | $np$ entries, each a dot product of length $m$ |
+| attention scores $QK^T$, $n$ tokens of width $d$ | $O(n^2 d)$ | double the context, **four times** the work |
+| <Term def="The p × p table of all second derivatives of the loss with respect to the p parameters: how the slope in each direction changes along every other direction.">Hessian</Term> of a model with $p$ parameters (the $n$ of the curvature lesson) | store $O(p^2)$, invert $O(p^3)$ | why deep learning avoids <Term def="An optimiser that uses the Hessian to jump straight towards the minimum in one big step, instead of taking many small gradient steps.">Newton's method</Term> |
+| brute-force $k$-NN, one query | $O(nd)$ | fast to train, slow to predict |
+| binary search / sorting $n$ items | $O(\log n)$ / $O(n \log n)$ | a million items: about 20 comparisons |
+
+**Learning-rate schedules.** A <Term def="A rule that changes the learning rate during training, usually starting high and ending low.">schedule</Term> changes the learning rate $\eta$ as training goes on. The cosine schedule over $T$ steps is
+
+$$
+\eta_t = \eta_\text{min} + \tfrac{1}{2}\,(\eta_\text{max} - \eta_\text{min})\left(1 + \cos\frac{\pi t}{T}\right)
+$$
+
+where $t$ is the current step. You never need the cosine of anything awkward, because exam questions ask about three points: at $t = 0$, $\cos 0 = 1$ gives $\eta_\text{max}$; at the **midpoint** $t = T/2$, $\cos\frac{\pi}{2} = 0$ gives $\frac{\eta_\text{max} + \eta_\text{min}}{2}$; at the **end**, $\cos \pi = -1$ gives $\eta_\text{min}$. Linear warm-up over $W$ steps is simply $\eta_t = \eta \cdot t / W$, and step decay multiplies by $\gamma$ after every $k$ epochs: $\eta_t = \eta_0 \, \gamma^{\lfloor t/k \rfloor}$.
+
+<Steps title="Multi-head attention with d = 512 and 8 heads, no calculator">
+  <Step title="Square d using powers of two">
+    $512 = 2^9$, so $512^2 = 2^{18} = 262{,}144$.
+  </Step>
+  <Step title="Four projection matrices">
+    $4 \times 262{,}144 = 1{,}048{,}576$ weights.
+  </Step>
+  <Step title="Four bias vectors">
+    $4 \times 512 = 2048$, so the total is $1{,}048{,}576 + 2048 = 1{,}050{,}624$. The 8 heads change nothing.
+  </Step>
+</Steps>
+
+<ParamComplexityDrill />
+
+<ExamTip>
+
+In 2026 these formulas came up mostly as **"why"** questions: why stacks of 3 × 3 convs (fewer parameters), why long contexts are hard ($O(n^2)$ attention), why not Newton's method ($O(p^3)$ Hessian), why LoRA is cheap ($r(d + k)$). If you know the formula, the reason is already in it, and you can strike every option that names a different one.
+
+</ExamTip>
+
+<PastPaperQuestion paper="prelim2026" n={74} />
+
+<Takeaways>
+
+- Conv size: $\lfloor (n + 2p - k)/s \rfloor + 1$, the number of places the window fits. Conv parameters: $(k \cdot k \cdot C_\text{in} + 1) \cdot C_\text{out}$, with no image size in it.
+- Parameter counts: Linear $\text{in} \cdot \text{out} + \text{out}$; Embedding $V d$; multi-head attention $4d^2 + 4d$ whatever the heads; LoRA $r(d + k)$; norms $2d$; ReLU, pooling and dropout 0.
+- Costs: matrix product $O(nmp)$, attention $O(n^2 d)$, Hessian $O(p^3)$. Cosine schedule: the midpoint is the average of max and min, the end is min.
+
+</Takeaways>

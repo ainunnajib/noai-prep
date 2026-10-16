@@ -1,0 +1,42 @@
+/*
+  Region shading for the classify visuals. Light mode keeps the tints soft so the marks stand out;
+  dark mode needs stronger tints, or orange-on-navy and blue-on-navy both turn into muddy navy.
+*/
+.vars {
+  --afl-pass-bg: color-mix(in srgb, var(--viz-2) 20%, var(--surface));
+  --afl-fail-bg: color-mix(in srgb, var(--viz-1) 17%, var(--surface));
+}
+@media (prefers-color-scheme: dark) {
+  :global(:root:not([data-theme='light'])) .vars {
+    --afl-pass-bg: color-mix(in srgb, var(--viz-2) 34%, var(--surface));
+    --afl-fail-bg: color-mix(in srgb, var(--viz-1) 30%, var(--surface));
+  }
+}
+:global(:root[data-theme='dark']) .vars {
+  --afl-pass-bg: color-mix(in srgb, var(--viz-2) 34%, var(--surface));
+  --afl-fail-bg: color-mix(in srgb, var(--viz-1) 30%, var(--surface));
+}
+
+/* wrong-answer rings: blink three times when they appear, then stay solid */
+.blink {
+  animation: afl-blink 1.1s ease-in-out 3;
+}
+@keyframes afl-blink {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.15;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .blink {
+    animation: none;
+  }
+}
+
+/* the kNN marker keeps its accessible name, but its built-in text label is replaced by one that flips sides */
+.hideDragText text {
+  display: none;
+}

@@ -1,0 +1,246 @@
+{
+  "slug": "ml-systems-and-tradeoffs",
+  "order": 34,
+  "part": "problem-solving",
+  "domain": "problem_solving",
+  "title": "ML systems and trade-offs",
+  "tagline": "Designing models for the real world",
+  "summary": "The ML lifecycle, deployment and monitoring for drift, what fills GPU memory and how to feed and scale training, counting the compute cost of ML operations, and choosing and compressing models under latency, memory and accuracy constraints.",
+  "prerequisites": [
+    "debugging-and-diagnosis",
+    "attention-and-transformers",
+    "algorithms-and-complexity"
+  ],
+  "syllabus": [
+    "NOAI Problem Solving: System Design, Optimisation",
+    "ML pipelines, orchestration, ETL",
+    "Data, code and model versioning, model registry, reproducibility",
+    "Monitoring, data drift, concept drift, retraining",
+    "GPU memory, mixed precision, gradient accumulation, distributed data parallel, quantisation and distillation",
+    "Complexity of matrix multiplication, k-NN, attention and convolution; FLOP counting"
+  ],
+  "paper_subtopics": [
+    "ml-system-design",
+    "optimisation-tradeoffs",
+    "algorithms-complexity",
+    "data-preprocessing"
+  ],
+  "lessons": [
+    {
+      "slug": "lifecycle-and-deployment",
+      "title": "The ML lifecycle, deployment and monitoring",
+      "summary": "From problem framing to monitoring in production: the lifecycle loop, batch versus real-time serving, and catching data and concept drift.",
+      "minutes": 24,
+      "objectives": [
+        "You can describe the stages of the ML lifecycle and why it loops",
+        "You can choose batch or real-time serving for a scenario",
+        "You can tell data drift from concept drift and choose a monitoring signal",
+        "You can list what must be versioned to reproduce a model (data, code, config, seed, weights)"
+      ],
+      "concepts": [
+        {
+          "name": "The lifecycle loop",
+          "explain": "Real ML is a loop: collect and clean data, engineer features, train, evaluate, deploy, monitor, and retrain when performance drops. MLOps applies software-engineering discipline to this loop, automating pipelines so each step is repeatable.",
+          "analogy": "Running a hawker stall: buy ingredients, cook, serve, watch what customers say, adjust the recipe, repeat daily.",
+          "visual": {
+            "component": "MLLifecycleLoop",
+            "kind": "interactive",
+            "shows": "A circular diagram of lifecycle stages; clicking a stage reveals its inputs, outputs, typical tools and common failure points.",
+            "interaction": "Click stages; toggle 'manual' versus 'automated pipeline' to see time and error-risk estimates change.",
+            "aha": "Training is one small stage of a continuous loop."
+          }
+        },
+        {
+          "name": "Batch versus real-time serving",
+          "explain": "Batch inference scores many inputs on a schedule (nightly recommendations), which is cheap and simple. Real-time inference answers each request within milliseconds (fraud checks at payment), which requires low-latency models and always-on infrastructure. For serving, PyTorch models are often exported, for example with TorchScript (torch.jit.trace records the operations of one example run and misses data-dependent branches, while torch.jit.script compiles the code including its control flow) or ONNX, and may be quantised to int8 for speed.",
+          "analogy": "A school canteen preparing set lunches in advance versus a zi char stall cooking each order on demand.",
+          "visual": {
+            "component": "ServingModeCompare",
+            "kind": "interactive",
+            "shows": "Two pipelines with request timelines, latency and cost readouts for a chosen scenario.",
+            "interaction": "Choose scenarios (fraud check, weekly report, ride-hailing ETA); toggle the serving mode.",
+            "aha": "The latency requirement of the use case decides the serving design."
+          }
+        },
+        {
+          "name": "The drift dashboard",
+          "explain": "After deployment, true labels often arrive weeks later, so teams monitor what they can see immediately: input feature distributions, the distribution of predictions (e.g. approval rate) and system metrics such as latency. Significant shifts trigger investigation and retraining. When labels are delayed, a proxy such as the approval rate is the earliest warning: an error rate computed on the few labels that have arrived can look steady while the decisions being made collapse.",
+          "analogy": "A shop owner who cannot see profits until month-end watches daily foot traffic and what customers buy as early warnings.",
+          "visual": {
+            "component": "DriftMonitor",
+            "kind": "interactive",
+            "shows": "A dashboard with weekly charts of an input feature's distribution, the prediction rate and (delayed) error rate, with alert thresholds.",
+            "interaction": "Slide through weeks; inject a gradual or sudden drift; adjust the alert threshold.",
+            "aha": "Input and prediction distributions are early warning signs when labels are slow."
+          }
+        },
+        {
+          "name": "Versioning for reproducibility",
+          "explain": "To reproduce or audit a model (for example 'show us exactly the model that flagged transaction X in week 3'), you need the exact data snapshot, code version, configuration and random seed, and the stored model weights. Model registries and experiment trackers record these together.",
+          "analogy": "A recipe is only reproducible if you record the ingredients' batch, the method version and the oven settings, not just the dish's name.",
+          "visual": {
+            "component": "VersionTimeline",
+            "kind": "interactive",
+            "shows": "A weekly timeline of data snapshots, code commits and trained models; selecting a past model shows which artefacts are needed and flags missing ones.",
+            "interaction": "Toggle which artefacts are tracked and try to 'reproduce week 3'.",
+            "aha": "A model is only reproducible if every ingredient was versioned."
+          }
+        }
+      ],
+      "code": "none",
+      "checkpoint_focus": [
+        "Lifecycle stages and MLOps",
+        "Batch vs online serving trade-offs",
+        "Data drift vs concept drift; delayed labels",
+        "Experiment tracking, model registry, CI/CD and orchestration of ETL and training pipelines"
+      ]
+    },
+    {
+      "slug": "compute-and-memory-tradeoffs",
+      "title": "Compute and memory trade-offs in training",
+      "summary": "What fills GPU memory, how batch size, precision and accumulation trade speed for memory, and scaling across GPUs.",
+      "minutes": 20,
+      "objectives": [
+        "You can explain activation checkpointing and its compute cost",
+        "You can choose the best fix for an out-of-memory error with the least cost to throughput",
+        "You can explain data loading bottlenecks",
+        "You can explain data-parallel training and the linear learning-rate scaling rule"
+      ],
+      "concepts": [
+        {
+          "name": "Choosing the cheapest out-of-memory fix",
+          "explain": "Building on the memory budget from the PyTorch module (weights, gradients, optimiser states and activations), the practical question is which fix costs least. Mixed precision usually saves memory and speeds training up on Tensor Cores. Gradient accumulation keeps the effective batch but runs more, smaller steps. Activation (gradient) checkpointing stores only some activations and recomputes the rest in the backward pass, saving most activation memory for roughly one extra forward pass of compute. Shrinking the batch without accumulation is free in memory terms but changes the optimisation and BatchNorm statistics. A typical best trade-off for a ResNet-50 at batch 128 on 16 GB is 4 × 32 accumulation with checkpointing or mixed precision.",
+          "analogy": "A hawker's limited counter space: utensils (weights) are fixed, but the number of plates being prepared at once (batch) decides how crowded it gets.",
+          "visual": {
+            "component": "OOMFixTradeoffs",
+            "kind": "interactive",
+            "shows": "A memory bar against a 16 GB line and a throughput meter for an out-of-memory ResNet-50 configuration, with fix cards (mixed precision, accumulation, checkpointing, smaller batch, freezing) that change both when applied.",
+            "interaction": "Apply fixes in any order and compare memory saved against throughput and batch statistics lost; a leaderboard records the cheapest combination that fits.",
+            "aha": "Every out-of-memory fix trades memory for something else (speed, batch statistics or accuracy), so pick the one whose cost you can afford."
+          }
+        },
+        {
+          "name": "Feeding the GPU",
+          "explain": "A GPU sits idle if data loading or CPU preprocessing cannot keep up, or if tensors are copied back and forth between CPU and GPU every step. More data-loader workers, pinned memory and keeping work on the GPU raise utilisation.",
+          "analogy": "A super-fast chef who keeps waiting for the kitchen helper to bring ingredients.",
+          "visual": {
+            "component": "DataPipelineBottleneck",
+            "kind": "animation",
+            "shows": "A timeline of CPU loading and GPU compute per step, with idle gaps highlighted and a utilisation percentage.",
+            "interaction": "Slide the number of workers and the preprocessing cost; toggle unnecessary CPU-GPU copies.",
+            "aha": "Throughput is limited by the slowest stage, which is often not the GPU."
+          }
+        },
+        {
+          "name": "Data-parallel training",
+          "explain": "With several GPUs, each holds a copy of the model and processes a different slice of the batch; gradients are averaged across GPUs before the update. The effective batch size multiplies, so the learning rate is often scaled up proportionally with a warm-up, though very large batches can hurt accuracy.",
+          "analogy": "Several examiners marking different stacks of scripts, then meeting to agree on the marking adjustments.",
+          "visual": {
+            "component": "DataParallelDiagram",
+            "kind": "animation",
+            "shows": "Four GPU boxes receiving batch slices, computing gradients and averaging them (all-reduce) before a synchronised update, with effective batch and suggested learning rate.",
+            "interaction": "Change the number of GPUs and per-GPU batch size; toggle LR scaling.",
+            "aha": "More GPUs mean bigger effective batches, which need learning-rate adjustment."
+          }
+        }
+      ],
+      "code": "none",
+      "checkpoint_focus": [
+        "Checkpointing trades compute for memory",
+        "Mixed precision and gradient accumulation vs smaller batch",
+        "Data loader workers and GPU utilisation",
+        "DDP and effective batch size, LR scaling, warm-up"
+      ]
+    },
+    {
+      "slug": "cost-of-ml",
+      "title": "The computational cost of ML operations",
+      "summary": "Counting the work in matrix multiplication, dense and conv layers, k-NN, trees and attention, at training and at inference.",
+      "minutes": 18,
+      "objectives": [
+        "You can compute the multiply-adds of a matrix product (m×n)(n×p)",
+        "You can compare training and prediction costs of k-NN, trees and linear models",
+        "You can estimate the cost of attention and convolution layers"
+      ],
+      "concepts": [
+        {
+          "name": "FLOP counting",
+          "explain": "Multiplying an (m × n) matrix by an (n × p) one takes m·n·p multiply-adds. A dense layer from 1024 to 1024 on a batch of 32 costs about 32 × 1024 × 1024 ≈ 33.5 million. A conv layer costs about H_out·W_out·k²·C_in·C_out, and self-attention about T²·d for the score matrix.",
+          "analogy": "Estimating how long the school cleaners need by multiplying rooms × desks per room × seconds per desk.",
+          "visual": {
+            "component": "FLOPCounter",
+            "kind": "interactive",
+            "shows": "A layer chooser (dense, conv, attention) with sliders for its dimensions, the formula with numbers substituted, and bars for parameters versus multiply-adds.",
+            "interaction": "Choose a layer type and adjust its sizes; compare two layers side by side.",
+            "aha": "Parameters and compute are different: a conv layer has few parameters but lots of compute, and attention's cost grows with T²."
+          }
+        },
+        {
+          "name": "Training cost versus prediction cost",
+          "explain": "k-NN has no training cost but each prediction compares against all n stored points (O(nd)); a linear model trains with gradient descent but predicts in O(d); a decision tree predicts in O(depth). Deployment constraints often care most about prediction cost and memory.",
+          "analogy": "A student who never studies but must flip through the whole textbook for every question (k-NN), versus one who studied and answers instantly.",
+          "visual": {
+            "component": "ComplexityComparator",
+            "kind": "interactive",
+            "shows": "Training time and per-prediction time for k-NN, linear model, tree and small neural net as dataset size grows, on log axes.",
+            "interaction": "Slide dataset size and number of features; toggle between training and prediction views.",
+            "aha": "The cheapest model to train is not always the cheapest to run."
+          }
+        }
+      ],
+      "code": "snippet",
+      "checkpoint_focus": [
+        "Matmul O(mnp)",
+        "k-NN predict O(nd) per query",
+        "Attention O(T²d)",
+        "Conv layer cost H·W·k²·C_in·C_out",
+        "Newton's O(n³)"
+      ]
+    },
+    {
+      "slug": "designing-ml-solutions",
+      "title": "Designing an ML solution under constraints",
+      "summary": "Framing the problem, picking a baseline and a model family for the data type, and trading accuracy against latency, size and cost with quantisation and distillation.",
+      "minutes": 20,
+      "objectives": [
+        "You can match data types to strong default models (tabular → gradient boosting, images → pretrained CNN/ViT, text → pretrained Transformer)",
+        "You can choose a metric and baseline for a business problem",
+        "You can choose compression techniques for edge deployment",
+        "You can reason about accuracy-latency-cost trade-offs"
+      ],
+      "concepts": [
+        {
+          "name": "The model chooser",
+          "explain": "Good design starts with framing: what decision is made, what metric reflects its cost, and what simple baseline must be beaten. Strong defaults are gradient-boosted trees for tabular data, pretrained CNNs or ViTs for images, and pretrained Transformers for text and audio; constraints like latency, privacy or a tiny device then narrow the choice. No model is best for every problem (the \"no free lunch\" idea), which is why you compare candidates against a baseline on your own validation data.",
+          "analogy": "Choosing transport in Singapore: MRT for a long trip, bus for a short one, walking for next door, depending on time, cost and distance.",
+          "visual": {
+            "component": "ModelChooser",
+            "kind": "interactive",
+            "shows": "Toggles for data type, dataset size, latency budget and deployment target, leading to a recommended approach with reasons and a baseline to beat.",
+            "interaction": "Set constraints; compare the recommendation with your own guess; view the trade-offs.",
+            "aha": "The data type and constraints, not the newest model, should drive the design."
+          }
+        },
+        {
+          "name": "Compression and the trade-off frontier",
+          "explain": "Quantisation stores weights in fewer bits (e.g. 8-bit integers instead of 32-bit floats), cutting size about 4× with a small accuracy loss; pruning removes unimportant weights; distillation trains a small 'student' to mimic a large 'teacher'. Candidate models form a frontier of accuracy against latency or size, and requirements pick a point on it.",
+          "analogy": "Packing for a budget flight: compress clothes (quantise), leave out extras (prune), or borrow a compact travel kit designed after the full one (distil).",
+          "visual": {
+            "component": "ParetoFrontier",
+            "kind": "interactive",
+            "shows": "A scatter of candidate models by latency and accuracy with the Pareto frontier drawn, and a quantisation panel showing size and error against bit width.",
+            "interaction": "Drag the latency budget line; slide quantisation bits from 32 to 2.",
+            "aha": "There is no single best model, only the best one for your constraints."
+          }
+        }
+      ],
+      "code": "none",
+      "checkpoint_focus": [
+        "Problem framing and metric choice",
+        "Default models by data type",
+        "Quantisation, pruning, distillation",
+        "Pareto trade-offs"
+      ]
+    }
+  ]
+}

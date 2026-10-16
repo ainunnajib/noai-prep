@@ -1,0 +1,159 @@
+import MeanIoUCalculator from './visuals/task-mean-iou/MeanIoUCalculator'
+import MIoURunner from './visuals/task-mean-iou/MIoURunner'
+import SelfCheckAudit from './visuals/task-mean-iou/SelfCheckAudit'
+
+The second half of 2026 Task 2 (10 marks) is a metric: the *OrbitalVision* intern also "deleted the evaluation code", so you must re-implement **mean Intersection over Union** (mIoU) in PyTorch, with scikit-learn and torchmetrics banned. The function is about a dozen lines, but one of the notebook's own self-check cells expects the wrong number.
+
+<Analogy title="Marking a colouring worksheet one colour at a time">
+
+A teacher marks a colouring worksheet against the answer key, one colour at a time. For red: how much area did *both* the pupil and the key colour red, compared with the area that *either* of them coloured red? Then the same for blue, then green, and the average is the mark. If neither the pupil nor the key used purple anywhere, purple says nothing about the pupil's work, so the teacher leaves it out of the average instead of awarding it full marks or zero.
+
+</Analogy>
+
+The notebook also sets two rules that cost marks if you ignore them: no loops over pixels or batches, and skip a class whose union is 0. This lesson builds the function, lets you run a NumPy twin of it right here, and shows what to do when a test disagrees with the written instructions.
+
+## The formula on one line
+
+Fix one class $c$, say Forest. Let $P_c$ be the set of pixels the model **predicted** as $c$ and $T_c$ the pixels that are **truly** $c$. Then
+
+$$
+\text{IoU}_c = \frac{|P_c \cap T_c|}{|P_c \cup T_c|} = \frac{TP}{TP + FP + FN}
+$$
+
+The bars $|\cdot|$ mean "the number of pixels in". The top, the <Term def="The pixels in both sets: predicted as the class AND truly that class.">intersection</Term>, counts pixels where prediction and truth agree on $c$. The bottom, the <Term def="The pixels in at least one of the sets: predicted as the class OR truly that class, or both.">union</Term>, counts every pixel that either of them calls $c$. In confusion-matrix words, for this one class, $TP$ (true positives) are correct $c$ pixels, $FP$ (false positives) are pixels wrongly predicted as $c$, and $FN$ (false negatives) are $c$ pixels the model missed. **Mean IoU** averages $\text{IoU}_c$ over the classes, and the task's rule is to **leave out any class whose union is 0**: a class that appears in neither map has $\text{IoU} = 0/0$, which is undefined.
+
+Why not just count correct pixels? The notebook's own example: on a map that is 90% Forest, a lazy model that always says "Forest" gets **90% pixel accuracy**. Its mIoU is $(0 + 0.90)/2 = 0.45$: Urban has intersection 0 (it never predicts Urban), and Forest has intersection 90 and union 100. Accuracy rewards ignoring the rare class; IoU does not, because it never counts the correctly ignored pixels. ([Segmentation metrics](#/learn/vision-tasks/segmentation-metrics) covers IoU, Dice and this trap in more depth.)
+
+## From the formula to tensor code: masks and sums
+
+Each set becomes a <Term def="A tensor of True/False values with the same shape as the label map, e.g. pred == 1 is True exactly where the prediction says class 1.">boolean mask</Term>. `pred_flat == cls` is a tensor that is `True` wherever the prediction says `cls`. Then `p & t` (and) is `True` where both are, `p | t` (or) where at least one is, and `.sum()` counts the `True`s, because `True` counts as 1. Before that, `reshape(-1)` flattens the `(B, H, W)` maps into one long row of pixels, so a single comparison handles every image in the batch at once. That is what the task means by <Term def="Doing a calculation with whole-tensor operations (comparisons, &, |, sum) instead of a Python for loop over individual elements. Much faster, and required by the task.">vectorised</Term>: the only Python loop is over the 2 classes, never over pixels or images.
+
+<MeanIoUCalculator />
+
+<Steps title="The notebook's 2 × 2 self-check by hand">
+  <Step title="Flatten">
+    `pred = [[0, 0], [1, 1]]` becomes `[0, 0, 1, 1]`, and `true = [[0, 1], [1, 1]]` becomes `[0, 1, 1, 1]`.
+  </Step>
+  <Step title="Class 0 (Urban)">
+    `p = [T, T, F, F]`, `t = [T, F, F, F]`. Both True only at position 0: intersection 1. At least one True at positions 0 and 1: union 2. $\text{IoU}_0 = 1/2 = 0.5$.
+  </Step>
+  <Step title="Class 1 (Forest)">
+    `p = [F, F, T, T]`, `t = [F, T, T, T]`. Intersection: positions 2 and 3, so 2. Union: positions 1, 2 and 3, so 3. $\text{IoU}_1 = 2/3 \approx 0.667$.
+  </Step>
+  <Step title="Average">
+    Both unions are above 0, so both classes count: $(0.5 + 0.667)/2 = 0.5833$, the value the self-check expects.
+  </Step>
+</Steps>
+
+<KeyIdea>
+
+For each class: `p = pred == c`, `t = true == c`, intersection `(p & t).sum()`, union `(p | t).sum()`. Skip the class if the union is 0, otherwise keep `intersection / union`. Average what you kept. Masks plus sums implement almost any overlap metric.
+
+</KeyIdea>
+
+<QuickCheck
+  q="For the class Forest, the prediction marks 5 pixels, the target marks 4 pixels, and 3 pixels are marked in both. What is the IoU for Forest?"
+  options={['0.5', '0.6', '0.75', '0.667']}
+  answer={0}
+  explain="Union = 5 + 4 − 3 = 6 (adding the two counts counts the 3 shared pixels twice), so IoU = 3/6 = 0.5. 0.6 is 3/5 (only the prediction), 0.75 is 3/4 (only the target), and 0.667 is the Dice score 2 × 3/(5 + 4) = 6/9, which is not the IoU."
+/>
+
+## The exam answer in PyTorch
+
+You wrote this function in [Segmentation metrics](#/learn/vision-tasks/segmentation-metrics) and checked the same cases, including the 0.375 that the notebook calls a failure. Here it is again in the docstring's exact order, followed by the real output of the notebook's two self-check cells:
+
+```python
+def calculate_miou(pred_mask, true_mask, num_classes=2):
+    pred_flat = pred_mask.reshape(-1)          # (B, H, W) -> (B*H*W,)
+    true_flat = true_mask.reshape(-1)
+    ious = []
+    for cls in range(num_classes):             # loop over CLASSES only
+        p = (pred_flat == cls)                 # bool tensor: predicted cls
+        t = (true_flat == cls)                 # bool tensor: truly cls
+        intersection = (p & t).sum().item()    # both say cls  (a Python int)
+        union = (p | t).sum().item()           # either says cls
+        if union == 0:                         # in neither map: skip, avoid 0/0
+            continue
+        ious.append(intersection / union)
+    if len(ious) == 0:                         # no class to average over
+        return 0.0
+    return sum(ious) / len(ious)               # a Python float
+```
+
+```text
+Calculated mIoU: 0.5833
+Expected mIoU:   0.5833
+✅ Metric Check Passed!
+mIoU with missing class: 0.3750
+Expected: Only class 0 IoU counted (should be 0.75)
+❌ Missing class handling failed
+```
+
+The first check passes. The second one "fails", and that is not a bug in this function: the last section of this lesson shows that the cell itself is wrong. The docstring uses `.view(-1)` to flatten; `reshape(-1)` does the same job and also works on non-contiguous tensors (for example after a `transpose`), where `.view` raises an error.
+
+<Mistake title="Two more ways to lose the 10 marks">
+
+The slips from Segmentation metrics (dividing before checking the union, `and` / `or` instead of `&` / `|`, looping over pixels) cost marks here too. The notebook adds two more:
+
+- **Forgetting the empty list.** If every class is skipped, `sum([]) / len([])` is another `ZeroDivisionError`. Return `0.0` (the official solution's choice) when `ious` is empty.
+- **Importing a ready-made metric** from `sklearn` or `torchmetrics`. Both are explicitly banned in this task, so the whole point of the part would be lost.
+
+</Mistake>
+
+## Rehearse in NumPy, then translate
+
+PyTorch does not run in the browser, but NumPy does, and the logic is identical. Run the twin below with the notebook's test cases plus a batch of two images, then break it on purpose: delete the `if union == 0` check and watch test 3 print `nan`, or change `&` to `and` and read the error.
+
+<MIoURunner />
+
+The batch example is worth checking by hand: flattening both $(2, 2, 2)$ arrays gives 8 pixels each, and both classes have intersection 3 and union 5, so the mean is $(0.6 + 0.6)/2 = 0.6$. One flatten, no loop over the batch.
+
+## When a self-check disagrees with the specification
+
+The notebook's extra cell, "Missing Class Handling", uses
+
+$$
+\text{pred} = \begin{bmatrix} 0 & 0 \\ 0 & 1 \end{bmatrix}, \qquad \text{true} = \begin{bmatrix} 0 & 0 \\ 0 & 0 \end{bmatrix}
+$$
+
+and expects **0.75**, with the comment "Class 1: Union = 0 (doesn't exist in target) → Should be skipped". Check that claim in 30 seconds by hand:
+
+<Steps title="Re-computing the missing-class check">
+  <Step title="Class 0">
+    Predicted at 3 pixels, true at all 4: intersection 3, union 4, $\text{IoU}_0 = 0.75$.
+  </Step>
+  <Step title="Class 1">
+    Predicted at 1 pixel (bottom right), true at none. Intersection 0, but union **1**, not 0. So the written rule does **not** skip it: $\text{IoU}_1 = 0/1 = 0$.
+  </Step>
+  <Step title="Average">
+    $(0.75 + 0)/2 = 0.375$. The cell's 0.75 would need class 1 to be skipped, and its union is not 0.
+  </Step>
+</Steps>
+
+So the comment is wrong: a class that is missing from the **target** but predicted somewhere has a union of 1 or more, and scoring it 0 is exactly right, because the model raised a false alarm. The notebook blurs the two ideas in one phrase, "If union == 0 (class doesn't exist in target), skip it". The value 0.75 comes from a different convention, averaging only classes present in the ground truth. Compare the conventions:
+
+<SelfCheckAudit />
+
+The audit settles it. The precise instruction ("Check if union == 0 BEFORE dividing", "If Union == 0 … skip this class") gives 0.375; the official solution uses that rule and also prints "Missing class handling failed"; and the grader's test (stored in the notebook's otter metadata, not shown in any cell), a class absent from **both** maps giving 1.0, passes under that rule. The "absent class scores 0" convention would even fail the grader's test (0.5 instead of 1.0).
+
+<PastPaperQuestion paper="final2026" n={13} />
+
+<ExamTip title="When a test and the instructions disagree">
+
+1. Spend 30 seconds recomputing the test's example by hand on scrap paper.
+2. Re-read the **precise** rule in the task (the docstring's algorithm and the bold instructions), not a loose comment.
+3. Implement the written rule. Do not twist your code to pass a self-check that contradicts it: self-check cells are not the grade, and here the official solution itself fails the check.
+4. Optionally add one comment, such as `# spec: skip only if union == 0; the missing-class cell expects 0.75 but the rule gives 0.375`, then move on.
+
+Part 2 should take about 15 minutes: write the function, run both self-checks, and check that it returns a plain Python `float`.
+
+</ExamTip>
+
+<Takeaways>
+
+- $\text{IoU}_c = \dfrac{|P_c \cap T_c|}{|P_c \cup T_c|} = \dfrac{TP}{TP + FP + FN}$; mean IoU averages over the classes whose union is not 0.
+- Code: flatten with `reshape(-1)`, loop over classes only, `p = pred == c`, `t = true == c`, `(p & t).sum().item()`, `(p | t).sum().item()`; `continue` when the union is 0; return `0.0` for an empty list, otherwise the average as a Python float.
+- A class that is absent from the target but predicted has union ≥ 1 and correctly scores 0; only a class in **neither** map is skipped.
+- The notebook's missing-class cell expects 0.75, but the written rule gives 0.375 (the official solution agrees). When a check contradicts the specification, verify by hand and follow the specification.
+
+</Takeaways>

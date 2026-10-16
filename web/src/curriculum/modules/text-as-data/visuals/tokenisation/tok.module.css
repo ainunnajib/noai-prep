@@ -1,0 +1,324 @@
+/* Shared styles for the tokenisation visuals: token chips, strips and small grids. */
+
+.field {
+  width: 100%;
+  display: grid;
+  gap: 0.3rem;
+  align-content: start;
+}
+.fieldLabel {
+  font-size: var(--step--1);
+  font-weight: 700;
+  color: var(--ink-2);
+}
+.input {
+  width: 100%;
+  font-family: var(--font-mono);
+  font-size: 0.9rem;
+  padding: 0.45rem 0.6rem;
+  border-radius: 8px;
+  border: 1.5px solid var(--rule);
+  background: var(--surface-2);
+  color: var(--ink);
+  min-width: 0;
+}
+.input:focus-visible {
+  outline: 3px solid var(--accent);
+  outline-offset: 1px;
+}
+.textarea {
+  composes: input;
+  resize: vertical;
+  line-height: 1.45;
+}
+
+.presets {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  align-items: center;
+  width: 100%;
+  font-size: var(--step--1);
+  color: var(--ink-3);
+}
+
+/* ---------- token strips ---------- */
+.strips {
+  width: 100%;
+  display: grid;
+  gap: 0.75rem;
+}
+.strip {
+  display: grid;
+  gap: 0.3rem;
+  padding: 0.55rem 0.6rem 0.65rem;
+  border-radius: 10px;
+  background: var(--surface-2);
+  border: 1px solid var(--rule);
+}
+.stripHead {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 0.2rem 0.75rem;
+  font-size: var(--step--1);
+  color: var(--ink-2);
+}
+.stripName {
+  font-weight: 800;
+  color: var(--ink);
+}
+.stripStats {
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+}
+.bad {
+  color: var(--viz-neg);
+  font-weight: 700;
+}
+.tokens {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 8px;
+  align-items: flex-start;
+}
+.group {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 2px;
+}
+.chip {
+  display: inline-grid;
+  justify-items: center;
+  font-family: var(--font-mono);
+  font-size: 13px;
+  line-height: 1.25;
+  padding: 2px 5px;
+  border-radius: 5px;
+  color: var(--ink);
+  border: 1.5px solid transparent;
+  white-space: pre;
+}
+.chipSub {
+  font-size: 11px;
+  color: var(--ink-3);
+  line-height: 1.1;
+}
+.unk {
+  background: color-mix(in srgb, var(--viz-neg) 16%, var(--surface));
+  border-color: var(--viz-neg);
+  font-weight: 700;
+}
+.special {
+  background: color-mix(in srgb, var(--viz-5) 22%, var(--surface));
+  border-color: color-mix(in srgb, var(--viz-5) 60%, var(--surface));
+  font-weight: 700;
+}
+.pad {
+  background: var(--surface-3);
+  color: var(--ink-3);
+}
+.fresh {
+  border-color: var(--viz-2);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--viz-2) 30%, transparent);
+  font-weight: 700;
+}
+
+/* ---------- BPE stepper ---------- */
+.twoCol {
+  width: 100%;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 0.9rem;
+}
+.twoColNarrow {
+  grid-template-columns: minmax(0, 1fr);
+}
+.panel {
+  display: grid;
+  gap: 0.4rem;
+  align-content: start;
+  min-width: 0;
+}
+.panelTitle {
+  font-size: 0.8rem;
+  font-weight: 800;
+  color: var(--ink-2);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.corpusRow {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+.count {
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  color: var(--ink-3);
+  min-width: 2.6rem;
+}
+.message {
+  width: 100%;
+  margin: 0;
+  padding: 0.5rem 0.7rem;
+  border-radius: 8px;
+  background: var(--highlight-soft);
+  color: var(--highlight-ink);
+  font-size: var(--step--1);
+  line-height: 1.45;
+}
+.rules {
+  margin: 0;
+  padding-left: 1.4rem;
+  font-family: var(--font-mono);
+  font-size: 0.82rem;
+  color: var(--ink);
+  display: grid;
+  gap: 2px;
+}
+.rules li.ruleNew {
+  color: color-mix(in srgb, var(--viz-2) 65%, var(--ink));
+  font-weight: 700;
+}
+
+/* ---------- padding grids ---------- */
+.gridScroll {
+  width: 100%;
+  overflow-x: auto;
+  padding-bottom: 2px;
+}
+.gridTable {
+  display: grid;
+  gap: 3px;
+  align-items: stretch;
+  margin: 0 auto;
+  width: max-content;
+}
+.rowLabel {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--ink-3);
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  padding-right: 4px;
+  white-space: nowrap;
+}
+.colLabel {
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  color: var(--ink-3);
+  text-align: center;
+}
+.cell {
+  display: grid;
+  place-items: center;
+  align-content: center;
+  border-radius: 5px;
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+  line-height: 1.15;
+  color: var(--ink);
+  background: color-mix(in srgb, var(--viz-1) 15%, var(--surface));
+  border: 1.5px solid transparent;
+  overflow: hidden;
+  min-height: 34px;
+  padding: 0 1px;
+}
+.cellWord {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.cellId {
+  font-size: 11px;
+  color: var(--ink-3);
+}
+.cellAbbr {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+.cellPad {
+  /* hatched, so padding stands out from real tokens in both light and dark mode */
+  background: repeating-linear-gradient(
+    135deg,
+    var(--surface-3) 0 4px,
+    color-mix(in srgb, var(--rule) 80%, var(--surface-3)) 4px 6px
+  );
+  color: var(--ink-3);
+}
+.cellSpecial {
+  background: color-mix(in srgb, var(--viz-5) 24%, var(--surface));
+  border-color: color-mix(in srgb, var(--viz-5) 65%, var(--surface));
+}
+.cellCut {
+  background: transparent;
+  border: 1.5px dashed var(--viz-neg);
+  color: var(--ink-3);
+  text-decoration: line-through;
+}
+.cellOne {
+  background: color-mix(in srgb, var(--viz-3) 30%, var(--surface));
+  font-weight: 700;
+  font-size: 13px;
+}
+.cellZero {
+  background: var(--surface-3);
+  color: var(--ink-3);
+  font-size: 13px;
+}
+.cellIgnore {
+  background: color-mix(in srgb, var(--viz-neg) 12%, var(--surface));
+  color: var(--viz-neg);
+  font-weight: 700;
+}
+.cellMissing {
+  border: 2px solid var(--viz-neg);
+}
+.scrollHint {
+  margin: -0.3rem 0 0;
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--ink-2);
+  text-align: right;
+}
+.legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem 0.9rem;
+  font-size: 0.78rem;
+  color: var(--ink-2);
+  justify-content: center;
+}
+.swatch {
+  display: inline-block;
+  width: 0.85rem;
+  height: 0.85rem;
+  border-radius: 3px;
+  vertical-align: -0.12rem;
+  margin-right: 0.3rem;
+}
+.warn {
+  width: 100%;
+  margin: 0;
+  padding: 0.45rem 0.7rem;
+  border-radius: 8px;
+  font-size: var(--step--1);
+  background: var(--bad-soft);
+  color: var(--ink);
+  border-left: 4px solid var(--viz-neg);
+}
+.ok {
+  width: 100%;
+  margin: 0;
+  padding: 0.45rem 0.7rem;
+  border-radius: 8px;
+  font-size: var(--step--1);
+  background: var(--ok-soft);
+  color: var(--ink);
+  border-left: 4px solid var(--viz-pos);
+}

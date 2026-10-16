@@ -1,0 +1,287 @@
+import HuBERTMaskedUnits from './visuals/speech-models/HuBERTMaskedUnits'
+import WhisperFlow from './visuals/speech-models/WhisperFlow'
+import AudioLLMDiagram from './visuals/speech-models/AudioLLMDiagram'
+import SpeechModelPicker from './visuals/speech-models/SpeechModelPicker'
+
+Meet the three families of pretrained models that read sound: **HuBERT** learns what speech sounds like from audio with no transcripts, **Whisper** writes down what was said in about a hundred languages, and **audio LLMs** such as Qwen-Audio and Voxtral answer questions about any sound. Each reuses an idea you already know: BERT's masked prediction, the encoder-decoder Transformer and the GPT-style decoder (a very large one is called a large language model, or LLM; the next module, [How LLMs are built](#/learn/large-language-models/how-llms-are-built), covers them). Spotting that reuse is the key to this lesson. IOAI 2026 set an audio task, "Find the Order": put the shuffled turns of a spoken dialogue back in order.
+
+## Why learn from audio without labels?
+
+Transcribed speech is expensive: writing down one hour of audio carefully takes a person several hours. Untranscribed audio is everywhere, in podcasts, radio and videos. <Term def="Learning from data without human labels, by inventing a prediction task whose answers come from the data itself, such as hiding part of the input and predicting it.">Self-supervised learning</Term> makes raw data its own teacher: hide part of the input and train the model to predict it. [BERT](#/learn/pretrained-models-text-speech/bert-and-gpt) did this with words. HuBERT does it with sound.
+
+## HuBERT: BERT for sound
+
+<Analogy title="Learning a language from the radio">
+
+Imagine learning the sounds of Tamil by listening to hours of Tamil radio, with no subtitles and no teacher. You would soon notice the same sounds coming back again and again, and you could guess a syllable drowned out by static from the sounds around it. HuBERT learns speech in exactly this way.
+
+</Analogy>
+
+BERT's masked-word game needs a vocabulary: the model picks the hidden word from a list of about 30,000 tokens. Speech has no such list. A waveform is a smooth stream of numbers, and no two people say "makan" with the same numbers. **HuBERT** (Hidden-Unit BERT, from Facebook AI, now Meta, in 2021) first invents a vocabulary, then plays BERT's game with it:
+
+1. **Frames.** A small 1-D CNN turns 16 kHz audio into one vector every 20 ms (50 per second).
+2. **Hidden units.** Each frame is described by simple features (39 <Term def="Mel-frequency cepstral coefficients: about 13 numbers that summarise the shape of one frame's log-mel spectrum, often stored together with how fast they change (13 × 3 = 39 numbers).">MFCCs</Term>), and [k-means](#/learn/unsupervised-learning/k-means) sorts the frames into 100 clusters. A frame's cluster number is its "word", called a **hidden unit**.
+3. **Mask.** About 8% of frames are picked as starting points and the 10 frames from each start are hidden, roughly half of the audio. Hidden frames are replaced by a learned [MASK] vector.
+4. **Predict.** A BERT-style Transformer encoder reads the whole sequence and, for each hidden frame, gives a probability to each of the 100 units.
+5. **Repeat.** After training, the frames are clustered again using the model's own, much richer features (500 clusters this time), and a new model is trained on these better targets.
+
+<HuBERTMaskedUnits />
+
+The training loss is the [cross-entropy](#/learn/classification/softmax-and-multiclass) of the hidden frames' units:
+
+$$
+\mathcal{L} = -\frac{1}{|M|} \sum_{t \in M} \ln p\left(z_t \mid \tilde{X}\right)
+$$
+
+- $M$ is the set of masked frame positions, and $|M|$ is how many there are.
+- $z_t$ is the hidden unit of frame $t$ (its k-means cluster number): the right answer.
+- $\tilde{X}$ is the input with the masked frames swapped for [MASK].
+- $p(z_t \mid \tilde{X})$ is the probability the model gives the right unit, from a softmax over all units. Taking $-\ln$ and averaging means the loss is small only when the model is confident and right on the hidden frames.
+
+Only masked frames are scored. A visible frame's unit can be read straight off the frame itself, so it teaches nothing; a hidden frame can only be guessed from its neighbours, which forces the model to learn how speech flows, like a language model for sounds. And the clusters do not need to be "correct" <Term def="The basic sounds a language is built from, such as the /k/, /a/ and /t/ in 'cat'.">phonemes</Term>. They only need to be **consistent**, so that the same sound always gets the same unit. To predict them well, the model still has to learn the structure of speech.
+
+<KeyIdea>
+
+**HuBERT = BERT's masked prediction applied to audio frames**, with k-means cluster numbers ("hidden units") as the vocabulary. It needs no transcripts, and the trained encoder gives a rich vector for every 20 ms of speech.
+
+</KeyIdea>
+
+Here is the heart of HuBERT's training step in PyTorch, with random numbers standing in for real features (a 2-layer Transformer instead of HuBERT's 12):
+
+```python
+import math
+import torch
+import torch.nn as nn
+import torch.nn.functional as F
+
+torch.manual_seed(8)
+T, D, K = 50, 768, 100               # frames (1 s), vector size, units
+feats = torch.randn(1, T, D)         # CNN features: one vector per 20 ms
+units = torch.randint(0, K, (1, T))  # k-means unit of every frame = targets
+
+starts = torch.rand(1, T) < 0.08     # ~8% of frames start a masked span
+mask = torch.zeros(1, T, dtype=torch.bool)
+for s in starts.nonzero()[:, 1]:
+    mask[0, s:s + 10] = True         # hide 10 frames from each start
+print("masked frames:", mask.sum().item(), "of", T)
+
+mask_emb = nn.Parameter(torch.randn(D))               # learned [MASK] vector
+x = torch.where(mask.unsqueeze(-1), mask_emb, feats)  # [MASK] where hidden
+
+layer = nn.TransformerEncoderLayer(D, nhead=12, batch_first=True)
+encoder = nn.TransformerEncoder(layer, num_layers=2)
+head = nn.Linear(D, K)               # a score for each of the K units
+logits = head(encoder(x))
+print("logits:", tuple(logits.shape))
+loss = F.cross_entropy(logits[mask], units[mask])     # masked frames only
+print("loss:", round(loss.item(), 2))
+print("ln(100):", round(math.log(100), 2))
+```
+
+```text
+masked frames: 26 of 50
+logits: (1, 50, 100)
+loss: 4.55
+ln(100): 4.61
+```
+
+`logits[mask]` keeps only the 26 hidden frames, so the loss ignores the rest. An untrained model guesses evenly among 100 units, and $-\ln(1/100) = \ln 100 \approx 4.61$, which is why the first loss sits near 4.6. Training pushes it down.
+
+**Using HuBERT afterwards.** Throw away the unit-prediction head and keep the encoder. For a label per clip (emotion, speaker, keyword), average the frame vectors into one clip vector and train a small linear layer on top. For speech recognition, add a layer that predicts a letter for every frame and fine-tune with a <Term def="Connectionist temporal classification: a loss that lets a model output a letter or a 'blank' for every frame and then merges repeats, so it can learn from transcripts without knowing exactly when each letter was spoken.">CTC loss</Term>. Its cousin **wav2vec 2.0** (2020, from the same lab) is used in exactly the same ways. It also hides spans of frames, but instead of fixed k-means units it learns its own targets during training and must pick the right one out of a line-up of distractors (a <Term def="A loss that rewards the model for scoring the true answer higher than a set of wrong 'distractor' answers, rather than predicting a class number directly.">contrastive loss</Term>).
+
+<QuickCheck
+  q="Why does HuBERT compute its loss only on the masked frames?"
+  options={['Visible frames give their own answer away; only hidden ones force the model to use context', 'Unmasked frames get no k-means unit, so there is no target to compare them with', 'Scoring every frame would turn the model into a text generator instead of an audio encoder', 'Unmasked frames are kept aside to train the speech recognition head in a later stage']}
+  answer={0}
+  explain="Every frame has a unit (k-means labels all of them), so a target exists. But predicting a visible frame's unit is trivial, because the answer is in the input itself. Hiding frames turns the task into guessing from context, which is what builds useful speech representations, exactly as in BERT."
+/>
+
+## Whisper: speech recognition as translation
+
+<Analogy title="The court stenographer">
+
+A stenographer listens to a recording and types it out. Before starting, they are told two things: which language is being spoken, and whether to type it word for word or translate it into English. Whisper's decoder receives exactly those instructions as special tokens.
+
+</Analogy>
+
+**Whisper** (OpenAI, 2022) is an [encoder-decoder Transformer](#/learn/pretrained-models-text-speech/encoder-decoder-models), like a translation model whose "source sentence" is a spectrogram. The original Whisper was trained on **680,000 hours** of audio paired with transcripts collected from the internet (large-v3 later used about 5 million hours). Those labels are plentiful but imperfect, which is called <Term def="Learning from labels that are plentiful but imperfect, such as subtitles found on the web, instead of a small set of carefully checked labels.">weak supervision</Term>. So unlike HuBERT, Whisper does learn from transcripts. The pipeline:
+
+1. Cut or pad the audio to a **30-second** chunk at 16 kHz: 480,000 samples.
+2. Turn it into an **80 × 3,000 log-mel spectrogram** (25 ms windows every 10 ms), as in [Sound as data: waveforms and spectrograms](#/learn/pretrained-models-text-speech/audio-as-data); large-v3 and large-v3-turbo use 128 mel rows instead of 80.
+3. **Encoder:** two 1-D convolutions (width 3; the second has [stride](#/learn/convolutional-networks/padding-stride-shapes) 2) halve the time axis to **1,500** positions, sinusoidal position codes are added, and Transformer blocks process them. Out come 1,500 vectors, one per 20 ms. A **1-D convolution** is the [convolution](#/learn/convolutional-networks/convolution) you know from images, but its filter slides along one axis only: time. The 80 mel bands play the role of an image's colour channels, so each filter covers all 80 bands across 3 neighbouring frames.
+4. **Decoder:** generates text tokens one at a time. Each block has causal self-attention over the tokens so far, plus **cross-attention**, whose queries come from the text and whose keys and values come from the 1,500 audio vectors.
+5. **Special tokens** start every output: `<|startoftranscript|>`, a language token such as `<|ms|>`, a task token (`<|transcribe|>` or `<|translate|>`) and `<|notimestamps|>`. The output ends with `<|endoftext|>`.
+
+<WhisperFlow />
+
+Cross-attention is the [attention formula](#/learn/attention-and-transformers/scaled-dot-product-attention) you know, with the queries and the keys/values coming from different places:
+
+$$
+\text{CrossAttn} = \text{softmax}\!\left(\frac{Q K^T}{\sqrt{d_k}}\right) V
+$$
+
+$$
+\begin{aligned}
+Q &= H_\text{text}\, W_Q \\
+K &= H_\text{audio}\, W_K \\
+V &= H_\text{audio}\, W_V
+\end{aligned}
+$$
+
+$H_\text{text}$ holds one vector per text token so far, and $H_\text{audio}$ holds the 1,500 encoder vectors. Each text token gets a row of 1,500 attention weights that add up to 1, saying which moments of audio to read. Whisper's word-level timestamps are worked out from these weights.
+
+<Steps title="Shapes through Whisper (tiny model, width 384)">
+  <Step title="Audio">
+    30 s × 16,000 = 480,000 samples.
+  </Step>
+  <Step title="Log-mel">
+    80 mel rows × 3,000 frames (one per 10 ms): shape `(1, 80, 3000)` with a batch of 1.
+  </Step>
+  <Step title="Convolutions">
+    Conv 1 (kernel 3, padding 1) maps 80 channels to 384 and keeps the length at 3,000. Conv 2 (kernel 3, padding 1, stride 2) follows the output-size rule $\lfloor (n + 2p - k)/s \rfloor + 1$ from [Padding, stride and shapes](#/learn/convolutional-networks/padding-stride-shapes): $\lfloor (3000 + 2 - 3)/2 \rfloor + 1 = 1500$. Shape `(1, 384, 1500)`.
+  </Step>
+  <Step title="Encoder blocks">
+    Transposed to `(1, 1500, 384)`: 1,500 positions, each a 384-number vector. Attention keeps the shape.
+  </Step>
+  <Step title="Decoder">
+    With $T$ text tokens so far, the cross-attention weights form a $T \times 1500$ grid, and the decoder outputs a score for every word piece in its vocabulary (nearly 52,000) for the next token.
+  </Step>
+</Steps>
+
+```python
+import torch
+import torch.nn as nn
+import torch.nn.functional as F
+
+mel = torch.randn(1, 80, 3000)          # (batch, mel bands, frames) = 30 s
+conv1 = nn.Conv1d(80, 384, kernel_size=3, padding=1)
+conv2 = nn.Conv1d(384, 384, kernel_size=3, stride=2, padding=1)
+x = F.gelu(conv2(F.gelu(conv1(mel))))
+print(x.shape)                          # stride 2 halves the time axis
+x = x.permute(0, 2, 1)                  # (batch, positions, d_model)
+print(x.shape)
+```
+
+```text
+torch.Size([1, 384, 1500])
+torch.Size([1, 1500, 384])
+```
+
+Whisper comes in five sizes, all with the same design: tiny (39M parameters, width 384), base (74M, 512), small (244M, 768), medium (769M, 1,024) and large (1.55B, 1,280). Since 2024 there is also **large-v3-turbo** (809M): a large encoder with only 4 decoder layers, for faster transcription.
+
+<QuickCheck
+  q="A 12-second voice note is given to Whisper. How many vectors does its encoder output?"
+  options={['1,500', '600', '1,200', '3,000']}
+  answer={0}
+  explain="Whisper pads every input to 30 s, so the log-mel is always 80 × 3,000 and the stride-2 convolution always leaves 1,500 positions. Scaling by the clip length (12 s at 50 per second = 600) is the trap. 3,000 is the number of log-mel frames before the stride-2 convolution."
+/>
+
+<Mistake>
+
+Three common slips. The task token `<|translate|>` always means **into English**: Whisper cannot translate English into Malay. The language token names the language **spoken**, not the language you want out. And every input is padded to a full 30-second window, so a 2-second clip takes as much *encoder* computation as a 30-second one (the decoder's cost grows with the number of words written). Whisper can also invent text on long silences or noise, a "hallucination" worth checking for.
+
+</Mistake>
+
+## Audio LLMs: giving a language model ears
+
+Whisper writes down what was said, but it cannot answer "Does the speaker sound annoyed?" or "What is that beeping in the background?". Audio LLMs can.
+
+<Analogy title="A writer, a pair of ears and an interpreter">
+
+Picture a brilliant writer who has read everything but has never heard a sound. Give them a pair of ears (an audio encoder) and an interpreter (the projector) who turns what the ears pick up into words the writer understands. Now the writer can answer questions about any recording.
+
+</Analogy>
+
+An audio LLM joins three parts:
+
+1. A pretrained **audio encoder**, usually Whisper's encoder: 1,500 vectors per 30 s of sound.
+2. A small, newly trained **projector** (or adapter): an MLP that maps audio vectors into the LLM's embedding space, so each becomes an "audio token" that looks to the LLM like a word embedding. Voxtral first glues 4 neighbouring vectors together, which cuts 50 vectors per second to 12.5 tokens per second.
+3. A pretrained **decoder-only LLM**, which reads the audio tokens and the text prompt as one sequence and writes the answer one token at a time.
+
+**Qwen-Audio** (Alibaba, 2023) pairs a Whisper-large-v2 encoder with the Qwen-7B LLM; **Qwen2-Audio** (2024) is its improved successor. **Voxtral** (Mistral AI, 2025) uses a Whisper-large-v3-based encoder with Mistral LLMs (3B and 24B parameters) and fits about 40 minutes of audio into a 32,768-token context.
+
+<AudioLLMDiagram />
+
+The projector really is small. Here it is in PyTorch, with Voxtral-style shapes and a 4,096-wide LLM:
+
+```python
+import torch
+import torch.nn as nn
+
+enc = torch.randn(1, 1500, 1280)        # audio encoder output for 30 s
+x = enc.reshape(1, 375, 4 * 1280)       # glue 4 neighbouring frames together
+projector = nn.Sequential(nn.Linear(5120, 4096), nn.GELU(), nn.Linear(4096, 4096))
+audio_tokens = projector(x)
+print(audio_tokens.shape)
+
+prompt = torch.randn(1, 12, 4096)       # embeddings of a 12-token text question
+seq = torch.cat([audio_tokens, prompt], dim=1)
+print(seq.shape)
+print(sum(p.numel() for p in projector.parameters()))
+```
+
+```text
+torch.Size([1, 375, 4096])
+torch.Size([1, 387, 4096])
+37756928
+```
+
+The `reshape` works because the 1,500 vectors sit one after another in memory, so each new row of 5,120 numbers is 4 consecutive frames side by side. About 38 million parameters is roughly 0.5% of a 7-billion-parameter LLM. That is why a common recipe trains in two stages: first **only the projector** learns, on speech–text pairs, while the encoder and the LLM stay frozen (they are expensive and already good). Then the LLM is fine-tuned too, often with [LoRA](#/learn/large-language-models/fine-tuning-and-lora), on audio question-and-answer data. Recipes vary: Qwen-Audio, for example, trained its audio encoder in the first stage while keeping the LLM frozen.
+
+<KeyIdea>
+
+**Audio LLM = pretrained audio encoder + small trained projector + pretrained LLM.** The projector turns sound into tokens that the LLM can read next to text. Vision-language models use the same recipe with an image encoder.
+
+</KeyIdea>
+
+<PastPaperQuestion paper="prelim2026" n={246} />
+
+<QuickCheck
+  q="An audio LLM makes 12.5 audio tokens per second of sound. How many audio tokens does a 2-minute voice message use?"
+  options={['1,500', '6,000', '25', '3,000']}
+  answer={0}
+  explain="2 minutes = 120 s, and $120 \times 12.5 = 1{,}500$ tokens. 6,000 would be the 50-per-second rate of the encoder before the projector groups 4 frames together; 25 forgets to convert minutes to seconds."
+/>
+
+## Choosing and running a speech model
+
+Choose by the output you need: a label, the words, or an open answer. Match each job below to the model family whose output fits it.
+
+<SpeechModelPicker />
+
+With the Hugging Face `transformers` library (introduced in [Using and fine-tuning models with Hugging Face](#/learn/pretrained-models-text-speech/hugging-face-in-practice)), each family is a few lines. The pipeline loads the audio, resamples it to 16 kHz, runs the model and post-processes the output:
+
+```python
+from transformers import pipeline
+
+# speech -> text with Whisper; returns a dict like {"text": "..."}
+asr = pipeline("automatic-speech-recognition", model="openai/whisper-small")
+print(asr("voice_note.wav")["text"])
+
+# Malay speech -> English text: set the language and task tokens
+print(asr("mesyuarat.wav", generate_kwargs={"language": "malay", "task": "translate"})["text"])
+
+# a label per clip with a fine-tuned HuBERT; returns [{"label": ..., "score": ...}, ...]
+clf = pipeline("audio-classification", model="superb/hubert-base-superb-er")
+print(clf("caller.wav")[0])             # the most likely emotion and its probability
+```
+
+These calls need real audio files, so no output is shown.
+
+<ExamTip>
+
+Prelim questions on speech models test **matching**: HuBERT ↔ self-supervised masked prediction of k-means units; Whisper ↔ encoder-decoder, log-mel input, 680,000 hours of weakly labelled audio (original version), transcribe or translate into English; audio LLM ↔ audio encoder + projector + LLM. Keep these numbers ready: 16 kHz, 30 s windows, 80 × 3,000 log-mel (128 × 3,000 in large-v3), 1,500 encoder positions, 20 ms per HuBERT or Whisper encoder frame. If an option says HuBERT "needs transcripts" or Whisper is "decoder-only", it is a trap.
+
+</ExamTip>
+
+Audio LLMs rest on the large language model inside them. The next module, [How LLMs are built](#/learn/large-language-models/how-llms-are-built), shows how a GPT-style decoder is pretrained at scale, instruction-tuned and turned into a chatbot.
+
+<Takeaways>
+
+- **HuBERT** clusters 20 ms audio frames with k-means to make "hidden units", masks spans of frames and trains a Transformer to predict the hidden units, so it learns speech with no transcripts. Use its encoder with a small head for classification, or with CTC for recognition.
+- **Whisper** is an encoder-decoder: 30 s of audio → 80 × 3,000 log-mel (128 rows in large-v3) → conv (stride 2) → 1,500 encoder vectors → a decoder that writes text, cross-attending to the audio.
+- Whisper's special tokens choose the **language** spoken and the **task**: transcribe, or translate into English.
+- **Audio LLMs** (Qwen-Audio, Voxtral) put audio tokens from a Whisper-style encoder, passed through a small trained projector, next to text tokens in an LLM.
+- Choose by output: a label per clip → encoder + head; the words said → Whisper; an open-ended answer about the sound → audio LLM.
+
+</Takeaways>

@@ -1,0 +1,215 @@
+{
+  "slug": "backpropagation",
+  "order": 21,
+  "part": "deep-learning",
+  "domain": "ai_ml_dl",
+  "title": "Backpropagation by hand and in NumPy",
+  "tagline": "How networks learn from errors",
+  "summary": "Computational graphs, the backward pass as repeated chain rule, vanishing and exploding gradients, and a complete neural network trained from scratch in NumPy with gradient checking.",
+  "prerequisites": [
+    "neural-networks"
+  ],
+  "syllabus": [
+    "IOAI 2A2 Gradient Descent",
+    "IOAI 2A3 Backpropagation",
+    "NOAI Mathematics: chain rule, computational graphs and automatic differentiation",
+    "Vanishing/exploding gradients, residual connections",
+    "Gradient checking with finite differences"
+  ],
+  "paper_subtopics": [
+    "neural-networks",
+    "calculus",
+    "training-regularisation",
+    "numpy"
+  ],
+  "lessons": [
+    {
+      "slug": "computational-graphs",
+      "title": "Computational graphs",
+      "summary": "Breaking any calculation into small nodes so that values flow forward and gradients flow backward.",
+      "minutes": 15,
+      "objectives": [
+        "You can draw a computational graph for a small expression",
+        "You can compute the forward values",
+        "You can write each node's local derivative"
+      ],
+      "concepts": [
+        {
+          "name": "Calculations as graphs",
+          "explain": "Any formula, like L = (wx + b − y)², can be drawn as a graph of simple operations (multiply, add, subtract, square). The forward pass evaluates nodes left to right; each node also knows its local derivative with respect to its inputs.",
+          "analogy": "A recipe written as a flowchart: chop, then fry, then mix; each step only needs to know about its own inputs.",
+          "visual": {
+            "component": "GraphBuilderForward",
+            "kind": "interactive",
+            "shows": "A node-and-edge graph of the expression with values filling in as the forward pass proceeds.",
+            "interaction": "Edit inputs w, x, b, y; choose expressions from a menu; step the forward pass.",
+            "aha": "Big formulas are just chains of tiny operations, each easy to differentiate."
+          }
+        },
+        {
+          "name": "Local gradient rules",
+          "explain": "Each operation has a simple local rule: an add node passes the gradient unchanged to both inputs; a multiply node sends each input the gradient times the other input; a square node multiplies by 2 × its input. Backprop only ever uses these local rules.",
+          "analogy": "Each station on a relay only needs to know how to pass the baton to the next runner.",
+          "visual": {
+            "component": "GateRulesCards",
+            "kind": "interactive",
+            "shows": "Cards for add, multiply, max, square and sigmoid gates showing an upstream gradient arriving and how it is split to the inputs.",
+            "interaction": "Edit the inputs and upstream gradient on each card; the outgoing gradients update.",
+            "aha": "'Add distributes, multiply swaps, max routes': three patterns cover most of backprop."
+          }
+        }
+      ],
+      "code": "none",
+      "checkpoint_focus": [
+        "Nodes and edges",
+        "Forward evaluation",
+        "Local derivatives of +, ×, square, sigmoid"
+      ]
+    },
+    {
+      "slug": "backprop-step-by-step",
+      "title": "Backprop step by step",
+      "summary": "Running the backward pass through a small network, multiplying local gradients, and summing where paths branch.",
+      "minutes": 22,
+      "objectives": [
+        "You can compute gradients for a two-layer network by hand",
+        "You can explain why gradients add where a value is used twice",
+        "You can relate backprop to the chain rule"
+      ],
+      "concepts": [
+        {
+          "name": "The backward pass",
+          "explain": "Starting from dL/dL = 1 at the loss, move backwards through the graph: at each node multiply the incoming (upstream) gradient by the local derivative and pass it to the node's inputs. When a value feeds several nodes, its gradients from each path are added.",
+          "analogy": "Tracing blame for a late project backwards: each person's share is their manager's share times how much they contributed.",
+          "visual": {
+            "component": "BackpropStepper",
+            "kind": "stepper",
+            "shows": "A graph for a single neuron with squared loss; after the forward pass, each backward step lights one edge and shows 'upstream × local = gradient', ending with ∂L/∂w and ∂L/∂b.",
+            "interaction": "Step forward and backward; edit values; switch to a graph where x is used twice to see gradients sum.",
+            "aha": "Backprop is the chain rule applied mechanically, one edge at a time."
+          }
+        },
+        {
+          "name": "Gradients through a network",
+          "explain": "In an MLP, the gradient for a weight equals the upstream gradient at its output neuron times the activation feeding into it. Gradients flowing back through a layer are multiplied by the transposed weight matrix and the activation's derivative.",
+          "analogy": "Water flowing back through a pipe network: the amount through each pipe depends on its width (weight) and on the valve (activation derivative).",
+          "visual": {
+            "component": "NetGradientFlow",
+            "kind": "animation",
+            "shows": "A NeuralNet diagram of a 2-3-2 network where, after a forward pass, a backward wave colours each weight by gradient magnitude and sign.",
+            "interaction": "Play the backward wave; change the target output; switch activations to see where gradients shrink.",
+            "aha": "Weights connected to strongly active inputs and large errors get the biggest updates."
+          }
+        }
+      ],
+      "code": "snippet",
+      "checkpoint_focus": [
+        "Backward pass order",
+        "Upstream × local",
+        "Gradient accumulation at branches",
+        "Weight gradient = upstream × input activation"
+      ]
+    },
+    {
+      "slug": "vanishing-and-exploding-gradients",
+      "title": "Vanishing and exploding gradients",
+      "summary": "Why gradients shrink or blow up in deep networks and the fixes: ReLU, good initialisation, normalisation, residual connections and clipping.",
+      "minutes": 18,
+      "objectives": [
+        "You can explain vanishing gradients as a product of small factors",
+        "You can explain exploding gradients and NaN losses",
+        "You can match fixes (ReLU, He init, BatchNorm, residuals, clipping) to problems"
+      ],
+      "concepts": [
+        {
+          "name": "Gradient size by layer",
+          "explain": "The gradient at an early layer is a product of one factor per later layer (weights times activation derivatives). With sigmoid (derivative at most 0.25) or small weights, it shrinks exponentially with depth; with large weights it grows exponentially. Early layers then learn far too slowly or training blows up.",
+          "analogy": "A whisper passed down a 20-person line fades to nothing; a shout amplified by each person becomes deafening.",
+          "visual": {
+            "component": "GradientDepthBars",
+            "kind": "interactive",
+            "shows": "Bars for gradient norm at each of up to 30 layers on a log scale, recomputed for a randomly initialised deep network.",
+            "interaction": "Choose the activation, the weight-initialisation scale and the depth; toggle residual connections and BatchNorm.",
+            "aha": "Gradient health depends on activation, initialisation and architecture together, and each fix targets one cause."
+          }
+        },
+        {
+          "name": "Residual connections as a highway",
+          "explain": "A residual connection adds a layer's input to its output: y = x + F(x). In the backward pass the '+ x' path passes gradient straight through unchanged, so even very deep networks keep a strong signal to early layers. This is the key idea of ResNet.",
+          "analogy": "An expressway that bypasses all the traffic lights: even if local roads are jammed, traffic still gets through.",
+          "visual": {
+            "component": "ResidualHighway",
+            "kind": "animation",
+            "shows": "A stack of 20 blocks with and without skip arrows; a pulse of gradient travels backward and its brightness fades in the plain stack but not in the residual stack.",
+            "interaction": "Toggle skips; change depth; play the pulse.",
+            "aha": "The identity path keeps gradients alive, which is why residual networks can be hundreds of layers deep."
+          }
+        }
+      ],
+      "code": "snippet",
+      "checkpoint_focus": [
+        "Sigmoid derivative ≤ 0.25 compounded",
+        "Weight scale and depth",
+        "Residual connections give a gradient highway",
+        "Gradient clipping for explosions"
+      ]
+    },
+    {
+      "slug": "network-from-scratch",
+      "title": "A neural network from scratch in NumPy",
+      "summary": "Implementing the forward pass, loss, backward pass and update for a small classifier, and verifying gradients numerically.",
+      "minutes": 25,
+      "objectives": [
+        "You can implement forward and backward passes for a one-hidden-layer network in NumPy",
+        "You can write a training loop that reduces loss",
+        "You can check analytic gradients with finite differences"
+      ],
+      "concepts": [
+        {
+          "name": "The training cycle",
+          "explain": "Every training step does four things: forward pass (predictions), loss, backward pass (gradients), update (gradient descent). For softmax with cross-entropy the gradient at the logits is simply p − y, which makes the backward pass compact.",
+          "analogy": "The cycle of a CCA training session: perform, get scored, review what went wrong, adjust, repeat.",
+          "visual": {
+            "component": "TrainingCycleLoop",
+            "kind": "animation",
+            "shows": "A circular four-stage diagram linked to the code lines for each stage and a decision boundary on a 2D dataset that improves with each loop.",
+            "interaction": "Play or step loops; pause on a stage to see the corresponding NumPy code and array shapes.",
+            "aha": "All of deep learning training is this four-step loop, repeated."
+          }
+        },
+        {
+          "name": "The backward pass in matrix form",
+          "explain": "For a batch X of shape (N, D): Z1 = X W1 + b1, A1 = ReLU(Z1), Z2 = A1 W2 + b2, P = softmax(Z2). Going backwards: dZ2 = (P − Y)/N; dW2 = A1ᵀ dZ2; db2 = dZ2.sum(axis=0); dA1 = dZ2 W2ᵀ; dZ1 = dA1 * (Z1 > 0); dW1 = Xᵀ dZ1; db1 = dZ1.sum(axis=0). Two rules write most of it for you: every gradient has the same shape as the thing it is the gradient of, and a weight gradient is (layer input)ᵀ times (upstream gradient), with biases summed over the batch.",
+          "analogy": "Packing for a return trip: every item you brought out (each forward array) comes back in the same suitcase slot (same shape) on the way home.",
+          "visual": {
+            "component": "BackwardShapeTrace",
+            "kind": "stepper",
+            "shows": "The seven backward lines for a network with N = 4 examples, D = 3 features, H = 5 hidden units and K = 2 classes, each with its shape annotation (for example dW1 = X.T @ dZ1: (3, 4) @ (4, 5) → (3, 5)) and a small heat map of the resulting array.",
+            "interaction": "Step line by line; change N, D, H or K and watch every shape update; inject a bug (drop a transpose, forget the ReLU mask, forget the /N) and see which shape check or gradient check fails.",
+            "aha": "Matching each gradient's shape to its parameter's shape writes most of the backward pass for you."
+          }
+        },
+        {
+          "name": "Gradient checking",
+          "explain": "To test your backward pass, nudge one weight by a tiny ε, recompute the loss, and estimate the derivative as (L(w + ε) − L(w − ε))/(2ε). It should closely match your analytic gradient; a big mismatch means a bug. Use the central difference with ε around 1e-5 in float64: a larger ε adds truncation error from curvature, and a smaller one adds rounding error from subtracting nearly equal numbers. PyTorch's torch.autograd.gradcheck does exactly this.",
+          "analogy": "Checking your mental sum with a quick estimate: if they disagree wildly, something is off.",
+          "visual": {
+            "component": "GradCheckMeter",
+            "kind": "interactive",
+            "shows": "For each parameter, the analytic gradient, the numerical estimate and their relative error on a log scale, with a pass/fail threshold.",
+            "interaction": "Slide ε from 1e-1 to 1e-10 to see error fall then rise again (floating-point round-off); inject a bug into the backward code to see checks fail.",
+            "aha": "Numerical gradients are slow but reliable referees for your hand-written backprop."
+          }
+        }
+      ],
+      "code": "runnable",
+      "checkpoint_focus": [
+        "Shapes of W, b and activations in a batch",
+        "Softmax + cross-entropy gradient = p − y",
+        "Training loop order",
+        "Finite-difference gradient checking",
+        "dW = inputᵀ @ upstream; db = upstream.sum(axis=0); ReLU mask (Z1 > 0)"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,155 @@
+.code {
+  margin: 0;
+  padding: 0.5rem 0;
+  width: 100%;
+  box-sizing: border-box;
+  background: var(--surface-2);
+  border-radius: 8px;
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  line-height: 1.55;
+  color: var(--ink);
+  overflow-x: auto;
+}
+
+.line {
+  display: block;
+  padding: 0 0.75rem;
+  white-space: pre;
+  border-left: 3px solid transparent;
+}
+
+.lineOn {
+  background: var(--highlight-soft);
+  border-left-color: var(--highlight);
+}
+
+.lineDim {
+  opacity: 0.45;
+}
+
+.comment {
+  color: var(--ink-3);
+}
+
+.narr {
+  width: 100%;
+  box-sizing: border-box;
+  min-height: 3.2em;
+  padding: 0.5rem 0.75rem;
+  border-radius: 8px;
+  background: var(--accent-soft);
+  color: var(--ink);
+  font-size: 0.88rem;
+  line-height: 1.45;
+}
+
+.err {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 0.5rem 0.7rem;
+  border-radius: 8px;
+  background: var(--bad-soft);
+  color: var(--bad);
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  font-weight: 700;
+  overflow-wrap: anywhere;
+}
+
+.ok {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 0.5rem 0.7rem;
+  border-radius: 8px;
+  background: var(--ok-soft);
+  color: var(--ok);
+  font-size: 0.85rem;
+  font-weight: 700;
+}
+
+.gradPanel {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.4rem 0.6rem;
+  width: 100%;
+}
+
+.gradChip {
+  font-family: var(--font-mono);
+  font-size: 0.82rem;
+  padding: 0.25rem 0.55rem;
+  border-radius: 8px;
+  border: 1.5px solid var(--rule);
+  background: var(--surface);
+  color: var(--ink-3);
+  transition: background-color 0.3s ease, border-color 0.3s ease;
+}
+
+.gradChipOn {
+  border-color: var(--viz-2);
+  background: color-mix(in srgb, var(--viz-2) 14%, var(--surface));
+  color: var(--ink);
+  font-weight: 700;
+}
+
+.row {
+  width: 100%;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem 0.9rem;
+}
+
+.mono {
+  font-family: var(--font-mono);
+}
+
+.note {
+  width: 100%;
+  font-size: 0.85rem;
+  color: var(--ink-2);
+}
+
+.log {
+  margin: 0;
+  padding: 0.5rem 0.75rem;
+  width: 100%;
+  box-sizing: border-box;
+  background: var(--surface-2);
+  border-radius: 8px;
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  line-height: 1.5;
+  color: var(--ink);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.logErr {
+  color: var(--bad);
+  font-weight: 700;
+}
+
+.logOut {
+  color: var(--ink-2);
+}
+
+/* Segmented controls with long options: on phones, a tidy grid of equal chips instead of lumpy pills */
+@media (max-width: 560px) {
+  .segGrid {
+    width: 100%;
+  }
+
+  .segGrid :global(.segmented-track) {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(7rem, 1fr));
+    border-radius: 12px;
+  }
+
+  .segGrid :global(.segmented-opt) {
+    border-radius: 9px;
+    padding: 0.3rem 0.4rem;
+  }
+}

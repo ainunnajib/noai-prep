@@ -1,0 +1,261 @@
+/* Styles for the decoding-and-sampling visuals. Colours come only from theme tokens. */
+
+.wrap {
+  width: 100%;
+  display: grid;
+  gap: 0.85rem;
+  min-width: 0;
+}
+
+.prompt {
+  font-size: 0.86rem;
+  color: var(--ink-2);
+  background: var(--surface-2);
+  border: 1px solid var(--rule);
+  border-radius: 9px;
+  padding: 0.45rem 0.65rem;
+  overflow-wrap: anywhere;
+}
+.prompt b {
+  color: var(--ink);
+}
+.blank {
+  display: inline-block;
+  min-width: 3.2rem;
+  border-bottom: 2px dashed var(--viz-2);
+  color: var(--ink-3);
+  text-align: center;
+}
+
+.formula {
+  font-size: 0.86rem;
+  color: var(--ink-2);
+  text-align: center;
+}
+
+/* ---------- probability rows ---------- */
+.rows {
+  display: grid;
+  grid-template-columns: max-content minmax(0, 1fr) 3.4rem;
+  align-items: center;
+  gap: 0.28rem 0.55rem;
+  width: 100%;
+  font-size: 0.84rem;
+}
+.rowLabel {
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  color: var(--ink-2);
+  white-space: nowrap;
+}
+.rowLabelStrong {
+  color: var(--ink);
+  font-weight: 800;
+}
+.track {
+  position: relative;
+  height: 0.95rem;
+  background: var(--surface-2);
+  border-radius: 4px;
+}
+.fill {
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  border-radius: 4px;
+  transition: width 0.2s ease;
+}
+.ghost {
+  position: absolute;
+  top: -3px;
+  bottom: -3px;
+  width: 2px;
+  background: var(--viz-ink);
+  opacity: 0.55;
+}
+.val {
+  font-family: var(--font-mono);
+  text-align: right;
+  color: var(--ink);
+  font-size: 0.8rem;
+}
+.valMuted {
+  color: var(--ink-3);
+}
+.legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem 1rem;
+  font-size: 0.74rem;
+  color: var(--ink-3);
+}
+.legend span {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+.swatch {
+  display: inline-block;
+  width: 0.9rem;
+  height: 0.55rem;
+  border-radius: 2px;
+}
+.tick {
+  display: inline-block;
+  width: 2px;
+  height: 0.8rem;
+  background: var(--viz-ink);
+  opacity: 0.55;
+}
+
+/* ---------- samples ---------- */
+.samples {
+  display: grid;
+  gap: 0.3rem;
+}
+.sampleHead {
+  font-size: 0.78rem;
+  font-weight: 800;
+  color: var(--ink-2);
+}
+.sample {
+  font-size: 0.82rem;
+  color: var(--ink-3);
+  overflow-wrap: anywhere;
+}
+.sample b {
+  color: var(--ink);
+  background: color-mix(in srgb, var(--viz-2) 22%, var(--surface));
+  border-radius: 4px;
+  padding: 0 0.25rem;
+}
+
+/* ---------- top-k / top-p ---------- */
+.twoCols {
+  display: grid;
+  grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr);
+  gap: 1rem;
+  width: 100%;
+}
+@media (max-width: 640px) {
+  .twoCols {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+.colTitle {
+  font-size: 0.8rem;
+  font-weight: 800;
+  color: var(--ink-2);
+  margin-bottom: 0.35rem;
+}
+.cut {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.7rem;
+  font-weight: 800;
+  color: var(--viz-neg);
+  margin: 0.05rem 0;
+}
+.cut::before,
+.cut::after {
+  content: '';
+  flex: 1;
+  border-top: 2px dashed var(--viz-neg);
+}
+.dropped {
+  opacity: 0.4;
+}
+.cum {
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  color: var(--ink-3);
+  text-align: right;
+}
+.rows4 {
+  display: grid;
+  grid-template-columns: max-content minmax(0, 1fr) 3rem 3.1rem;
+  align-items: center;
+  gap: 0.28rem 0.5rem;
+  width: 100%;
+  font-size: 0.84rem;
+}
+.note {
+  font-size: 0.78rem;
+  color: var(--ink-2);
+  margin: 0;
+}
+.note b {
+  color: var(--ink);
+}
+
+/* ---------- beam tree ---------- */
+.treeWrap {
+  width: 100%;
+  min-width: 0;
+}
+.tree {
+  display: block;
+  width: 100%;
+  height: auto;
+  overflow: visible;
+  font-family: var(--font-body);
+}
+.beamList {
+  display: grid;
+  gap: 0.25rem;
+  font-size: 0.82rem;
+}
+.beamItem {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.1rem 0.6rem;
+  align-items: baseline;
+  padding: 0.2rem 0.45rem;
+  border-radius: 6px;
+  background: var(--surface-2);
+}
+.beamBest {
+  background: color-mix(in srgb, var(--viz-pos) 18%, var(--surface));
+  font-weight: 700;
+}
+.beamSeq {
+  flex: 1 1 11rem;
+  color: var(--ink);
+  min-width: 0;
+}
+.beamNums {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 0 0.5rem;
+  margin-left: auto;
+}
+.summary {
+  display: grid;
+  gap: 0.3rem;
+  width: 100%;
+  font-size: 0.82rem;
+  color: var(--ink-2);
+}
+.summary b {
+  color: var(--ink);
+}
+.summary .mono {
+  font-family: var(--font-mono);
+  color: var(--ink);
+  white-space: nowrap;
+}
+.beamNum {
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  color: var(--ink-2);
+  text-align: right;
+  white-space: nowrap;
+}
+
+/* beat .prose paragraph margins */
+.wrap p.note {
+  margin: 0;
+}

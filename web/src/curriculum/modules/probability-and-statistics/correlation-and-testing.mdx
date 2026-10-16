@@ -1,0 +1,258 @@
+import CorrelationScatter from './visuals/correlation-and-testing/CorrelationScatter'
+import PValueTail from './visuals/correlation-and-testing/PValueTail'
+import ErrorTradeoff from './visuals/correlation-and-testing/ErrorTradeoff'
+
+Data science keeps asking two questions. **Do these two things move together?** (Is revision time linked to quiz scores?) And **is this difference real, or just luck?** (Is the new model really 2% better, or did it get an easy test set?) Covariance and correlation answer the first; hypothesis tests and p-values answer the second.
+
+## Moving together: covariance
+
+Suppose four students report how many hours they revised and their quiz score out of 10:
+
+| student | A | B | C | D |
+| --- | --- | --- | --- | --- |
+| hours revised, $x$ | 1 | 3 | 5 | 7 |
+| quiz score, $y$ | 4 | 2 | 8 | 6 |
+
+More revision *tends* to go with higher scores, but not perfectly. To measure the trend, compare each student with the average. The <Term def="The average of the products (x − x̄)(y − ȳ). Positive when two variables tend to be above or below their means together, negative when one tends to be high while the other is low.">covariance</Term> turns this into a number:
+
+$$
+\operatorname{Cov}(X, Y) = \frac{1}{n} \sum_{i=1}^{n} (x_i - \bar{x})(y_i - \bar{y})
+$$
+
+Here $n$ is the number of points and $\bar{x}$, $\bar{y}$ ("x-bar", "y-bar") are the means. Each product is positive when point $i$ is on the same side of both means, and negative when it is on opposite sides. The covariance averages these products: positive means "they tend to rise together", negative means "when one is high the other tends to be low", and 0 means no straight-line trend.
+
+<Steps title="Covariance of the four students">
+  <Step title="Means">
+    $\bar{x} = (1 + 3 + 5 + 7)/4 = 16/4 = 4$ hours, and $\bar{y} = (4 + 2 + 8 + 6)/4 = 20/4 = 5$ marks.
+  </Step>
+  <Step title="Deviations from the means">
+    $x - \bar{x}$: $-3, -1, 1, 3$. $\quad y - \bar{y}$: $-1, -3, 3, 1$.
+  </Step>
+  <Step title="Multiply in pairs">
+    $(-3)(-1) = 3$, $(-1)(-3) = 3$, $(1)(3) = 3$, $(3)(1) = 3$. All four are positive: every student is on the same side of both means.
+  </Step>
+  <Step title="Average the products">
+    $\operatorname{Cov}(X, Y) = \dfrac{3 + 3 + 3 + 3}{4} = 3$ hour·marks.
+  </Step>
+</Steps>
+
+Notice the units: hours times marks. Covariance carries the units of **both** variables, which is its big weakness. And the covariance of a variable with *itself* averages $(x_i - \bar{x})^2$, so $\operatorname{Cov}(X, X)$ is just the **variance**.
+
+<PastPaperQuestion paper="prelim2026" n={63} />
+
+## Correlation: covariance without the units
+
+Measure the same revision times in **minutes** instead of hours. Every $x - \bar{x}$ becomes 60 times bigger, so the covariance becomes $3 \times 60 = 180$, though nothing about the students changed. The size of a covariance tells you little about how *strong* the relationship is.
+
+The fix is to divide by both standard deviations. That gives the (Pearson) <Term def="Pearson's correlation coefficient r = Cov(X, Y) / (σx σy). A unit-free number from −1 to 1 measuring how close the points are to a straight line.">correlation coefficient</Term>:
+
+$$
+r = \frac{\operatorname{Cov}(X, Y)}{\sigma_X \, \sigma_Y}
+$$
+
+- $\sigma_X$ and $\sigma_Y$ are the standard deviations of $X$ and $Y$ (also dividing by $n$).
+- Rescaling $X$ by a positive factor multiplies $\operatorname{Cov}(X, Y)$ and $\sigma_X$ by that same factor, which cancels, so $r$ has **no units**. (A negative factor flips the sign of $r$.)
+- $r$ always lies between $-1$ and $+1$: $r = 1$ means all points lie on a rising straight line, $r = -1$ on a falling one, and $r = 0$ means no straight-line trend.
+
+For the four students, both variances are $(9 + 1 + 1 + 9)/4 = 5$, so $\sigma_X = \sigma_Y = \sqrt{5}$ and
+
+$$
+r = \frac{3}{\sqrt{5} \times \sqrt{5}} = \frac{3}{5} = 0.6
+$$
+
+whether you measure in hours *or* in minutes.
+
+<CorrelationScatter />
+
+<KeyIdea>
+
+Covariance tells you the **direction** of a linear relationship but its size depends on the units. Correlation divides out both standard deviations, giving a unit-free number from −1 to 1 that measures how tightly the points hug a **straight line**.
+
+</KeyIdea>
+
+<Mistake title="r = 0 does not mean 'unrelated'">
+
+Correlation only detects *straight-line* relationships. In the hill shape above, revision time almost fixes the score, yet $r = 0$, because the rising left half cancels the falling right half. Always look at the scatter plot: a single outlier can also create or destroy a correlation.
+
+</Mistake>
+
+<QuickCheck
+  id="probability-and-statistics.correlation-and-testing.qc1"
+  q="The correlation between students' heights (in metres) and their masses (in kg) is $0.7$. You convert every height to centimetres. What is the new correlation?"
+  options={['70', '0.7', '0.007', '7']}
+  answer={1}
+  explain="Correlation is unit-free: multiplying every height by 100 multiplies both the covariance and $\sigma_X$ by 100, and the factors cancel. 70 wrongly scales $r$ like a covariance; 0.007 divides by 100 instead; 7 multiplies by 10, which matches no part of the calculation."
+/>
+
+Try it in NumPy. Careful: `np.cov` divides by $n - 1$ unless you pass `bias=True`, which divides by $n$ as in our formula. For the correlation the choice cancels out.
+
+<PyRunner packages={['numpy']} code={`import numpy as np
+
+hours = np.array([1, 3, 5, 7])   # revision time
+score = np.array([4, 2, 8, 6])   # quiz score out of 10
+minutes = hours * 60
+
+# bias=True divides by n, like our formula
+print("cov, hours:  ", np.cov(hours, score, bias=True)[0, 1])
+print("cov, minutes:", np.cov(minutes, score, bias=True)[0, 1])
+print("r, hours:    ", np.corrcoef(hours, score)[0, 1].round(3))
+print("r, minutes:  ", np.corrcoef(minutes, score)[0, 1].round(3))
+print("cov(x, x):", np.cov(hours, hours, bias=True)[0, 1])
+print("var(x):   ", hours.var())`} />
+
+## Correlation is not causation
+
+<Analogy title="Ice cream and drowning">
+
+Across a year, days with high ice-cream sales also have more drownings. The correlation is strong and real. But ice cream does not make people drown: **hot weather** drives both. More people buy ice cream *and* more people go swimming.
+
+</Analogy>
+
+A hidden third variable that drives both, like the hot weather, is called a <Term def="A hidden variable that affects both variables you are comparing, creating a correlation between them even though neither causes the other.">confounder</Term>. A correlation between $X$ and $Y$ can come from $X$ causing $Y$, from $Y$ causing $X$ (reverse causation), from a confounder causing both, or from pure coincidence, especially when you search through many variables.
+
+The reliable way to show causation is an **experiment**: randomly assign who gets the treatment (say, a new revision app), so confounders are spread evenly between the groups. In tech this is an **A/B test**.
+
+<Note title="Why this matters for AI">
+
+Models learn correlations, not causes. A famous failure: an image classifier that "recognised" cows mostly by the green grass behind them, because cows and grass always appeared together in its training photos, so a cow on a beach fooled it.
+
+</Note>
+
+## Real effect or luck? Hypothesis tests
+
+Your friend's coin lands heads **62 times in 100 tosses**. Is the coin biased, or did a fair coin just get lucky? A fair coin rarely gives exactly 50 heads, so how far from 50 is "too far to be luck"?
+
+<Analogy title="Innocent until proven guilty">
+
+A court assumes the accused is innocent and convicts only if the evidence would be very unlikely for an innocent person. Weak evidence gives "not guilty", which is **not** the same as proving innocence. A hypothesis test works the same way, with "no effect" playing the innocent party.
+
+</Analogy>
+
+<Steps title="A hypothesis test, step by step">
+  <Step title="State the null hypothesis">
+    The <Term def="The 'nothing interesting is going on' assumption that a test tries to find evidence against, e.g. 'the coin is fair' or 'the new model is no better'. Written H₀.">null hypothesis</Term> $H_0$ is the boring, no-effect story: the coin is fair, $P(\text{heads}) = 0.5$. The <Term def="What you suspect instead of the null hypothesis, e.g. 'the coin is biased'. Written H₁ (or Hₐ).">alternative hypothesis</Term> $H_1$ is what you suspect: the coin is biased.
+  </Step>
+  <Step title="Choose the significance level α">
+    Before looking at the data, decide how rare a result must be to convince you. The usual choice is the <Term def="The threshold α (often 0.05) chosen before the test: reject H₀ if the p-value is at or below α. It is also the probability of rejecting H₀ when H₀ is true.">significance level</Term> $\alpha = 0.05$ (5%). (This $\alpha$ is not the learning rate $\alpha$ from the [Σ lesson](#/learn/maths-foundations/sigma-notation-and-subscripts); in a hypothesis test $\alpha$ always means the significance level.)
+  </Step>
+  <Step title="Work out what luck looks like">
+    Suppose $H_0$ is true. Then the number of heads is $\text{Binomial}(100, 0.5)$, with mean $np = 50$ and standard deviation $\sqrt{np(1 - p)} = \sqrt{25} = 5$, and by the Central Limit Theorem it is approximately normal. This is the **null distribution**.
+  </Step>
+  <Step title="Compute the p-value">
+    The <Term def="The probability, assuming the null hypothesis is true, of getting a result at least as extreme as the one actually observed.">p-value</Term> is the probability, **if $H_0$ is true**, of a result at least as extreme as the one observed. Here "at least as extreme" means 12 or more away from 50: 62 or more heads, or 38 or fewer. That probability is about $0.021$.
+  </Step>
+  <Step title="Decide">
+    $p = 0.021 \le \alpha = 0.05$, so we **reject $H_0$**: a fair coin would do this only about 2% of the time. The result is <Term def="A result is statistically significant when its p-value is at or below the chosen significance level α, so the null hypothesis is rejected.">statistically significant</Term>. Had $p$ been above $0.05$ we would **fail to reject** $H_0$, which is weaker than proving the coin fair.
+  </Step>
+</Steps>
+
+<PValueTail />
+
+<KeyIdea>
+
+A p-value is a **tail area under the null distribution**: how often pure luck, with no real effect, would give data at least as extreme as yours. Reject $H_0$ when it is at or below the $\alpha$ you chose in advance.
+
+</KeyIdea>
+
+<Mistake title="Three things a p-value is not">
+
+With $p = 0.021$ it is tempting to say "there is a 2.1% chance the coin is fair" or "a 97.9% chance the result is real". Both are wrong: the p-value is calculated *assuming* $H_0$ is true, so it cannot be the probability that $H_0$ is true. It is also not the size of the effect: a tiny, useless difference can have a tiny p-value if the sample is huge.
+
+</Mistake>
+
+<PastPaperQuestion paper="prelim2026" n={62} />
+
+**One-tailed or two-tailed?** If you only care whether the coin favours heads, $H_1$ is $P(\text{heads}) > 0.5$ and only the upper tail counts: $p = P(62 \text{ or more heads}) \approx 0.010$, half the two-tailed value. Choose the tails *before* seeing the data; switching afterwards to get a smaller p is cheating.
+
+<ExamTip title="Estimate p with a z-score">
+
+Without a calculator, use a z-score under the null distribution, then the 68-95-99.7 rule. For 62 heads, $z = (62 - 50)/5 = 2.4$. About 95% of a normal lies within $z = \pm 2$, so the two tails beyond hold about 5%; since $2.4 > 2$, $p < 0.05$ and we reject $H_0$. Exactly 60 heads ($z = 2$) is the borderline: its exact p-value is $0.057$, just above 0.05.
+
+</ExamTip>
+
+<Reveal label="Check it in code: simulation and SciPy">
+
+Simulate 100,000 experiments with a fair coin and count how often luck alone is at least as extreme as 62 heads:
+
+<PyRunner packages={['numpy']} code={`import numpy as np
+
+rng = np.random.default_rng(0)
+# 100,000 experiments of 100 tosses of a FAIR coin
+heads = rng.binomial(n=100, p=0.5, size=100_000)
+
+observed = 62
+extreme = np.abs(heads - 50) >= abs(observed - 50)
+print("p-value, two-tailed:", extreme.mean())
+print("p-value, one-tailed:", (heads >= observed).mean())`} />
+
+SciPy gives the exact p-values, including one for a correlation:
+
+```python
+from scipy import stats
+
+result = stats.binomtest(62, n=100, p=0.5)   # two-sided by default
+print(round(result.pvalue, 4))
+
+r, p = stats.pearsonr([1, 3, 5, 7], [4, 2, 8, 6])
+print(round(r, 3), round(p, 3))
+```
+
+```text
+0.021
+0.6 0.4
+```
+
+The four students' correlation of 0.6 has $p = 0.4$: with only four data points, luck produces a correlation that strong 40% of the time, so it is **not** significant.
+
+</Reveal>
+
+<QuickCheck
+  id="probability-and-statistics.correlation-and-testing.qc2"
+  q="A test of whether a new study app raises scores gives $p = 0.20$. Which interpretation is correct?"
+  options={["There is a 20% chance that the app has no real effect at all on the students' scores", "There is an 80% chance that the app really does raise the students' scores", 'If the app had no effect, results at least this extreme would occur 20% of the time', "On average, the app raises each student's score by about 0.20 standard deviations"]}
+  answer={2}
+  explain="A p-value is computed assuming $H_0$ (no effect) is true: it is the chance of data at least this extreme under $H_0$. It is not the probability that $H_0$ is true or false, and it says nothing directly about the size of the effect. With $p = 0.20 > 0.05$ we would not reject $H_0$."
+/>
+
+## Two ways to be wrong: Type I and Type II errors
+
+A test's decision can be wrong in two different ways:
+
+| | $H_0$ is actually true (coin fair) | $H_0$ is actually false (coin biased) |
+| --- | --- | --- |
+| **Reject $H_0$** | **Type I error**: false positive | correct: a true discovery |
+| **Do not reject $H_0$** | correct | **Type II error**: false negative |
+
+- A <Term def="Rejecting the null hypothesis when it is actually true: a false positive or false alarm. Its probability is α.">Type I error</Term> is a **false positive**: announcing an effect that is not there. Its probability is the significance level $\alpha$, since a true $H_0$ lands in the rejection region only $\alpha$ of the time (or slightly less for whole-number counts like heads).
+- A <Term def="Failing to reject the null hypothesis when it is actually false: a false negative or missed detection. Its probability is written β.">Type II error</Term> is a **false negative**: a real effect slips past you. Its probability is called $\beta$, and $1 - \beta$, the chance of catching a real effect, is the test's <Term def="The probability that a test rejects H₀ when H₀ is false, i.e. 1 − β. Bigger samples and bigger effects give more power.">power</Term>.
+
+<Analogy title="The over-eager smoke alarm">
+
+A smoke alarm tests $H_0$: "there is no fire". Too sensitive (a large $\alpha$) and it shrieks every time someone fries prata: false alarms, Type I errors. Too relaxed (a small $\alpha$) and it may stay silent during a real fire: a Type II error. One knob cannot remove both.
+
+</Analogy>
+
+<ErrorTradeoff />
+
+The visual uses a one-tailed test ("the coin favours heads") and the normal approximation. With 100 tosses of a coin that truly lands heads 60% of the time and $\alpha = 0.05$, the test misses the bias about 36% of the time ($\beta \approx 0.36$). Tightening to $\alpha = 0.01$ cuts false alarms but raises $\beta$ to about 0.63. Only **more data** helps on both fronts: with 400 tosses and $\alpha = 0.05$, $\beta$ drops below 0.01, because both curves narrow like $1/\sqrt{n}$ (the CLT again).
+
+One warning follows from $\alpha$: test 20 useless features at $\alpha = 0.05$ and you should *expect* $20 \times 0.05 = 1$ "significant" result by luck alone.
+
+<PastPaperQuestion paper="prelim2026" n={60} />
+
+<ExamTip title="Remember which is which">
+
+Think of the boy who cried wolf. First the villagers believe him when there is **no** wolf: a false positive, **Type I**. Later they ignore him when there **is** a wolf: a false negative, **Type II**. For a spam filter with $H_0$ "this email is fine", sending a real email to spam is Type I; letting spam into your inbox is Type II.
+
+</ExamTip>
+
+Next, the [pandas module](#/learn/pandas-and-plotting/dataframes-and-selection) puts these statistics to work on real tables: `describe()`, `groupby`, cleaning and plots.
+
+<Takeaways>
+
+- Covariance $\frac1n\sum (x_i - \bar{x})(y_i - \bar{y})$ gives the direction of a linear relationship but depends on units; $\operatorname{Cov}(X, X) = \operatorname{Var}(X)$.
+- Correlation $r = \operatorname{Cov}(X, Y)/(\sigma_X \sigma_Y)$ is unit-free, lies in $[-1, 1]$ and detects only straight-line patterns. It is not causation: look for confounders.
+- The p-value is the probability, assuming $H_0$ is true, of data at least as extreme as observed (not the probability that $H_0$ is true). Reject $H_0$ when $p \le \alpha$.
+- Type I error = rejecting a true $H_0$ (false positive, probability $\alpha$); Type II error = missing a real effect (false negative, probability $\beta$). Lowering $\alpha$ raises $\beta$; more data lowers both.
+
+</Takeaways>

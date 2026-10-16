@@ -1,0 +1,364 @@
+import OOMFixTradeoffs from './visuals/compute-and-memory-tradeoffs/OOMFixTradeoffs'
+import CheckpointingStepper from './visuals/compute-and-memory-tradeoffs/CheckpointingStepper'
+import DataPipelineBottleneck from './visuals/compute-and-memory-tradeoffs/DataPipelineBottleneck'
+import DataParallelDiagram from './visuals/compute-and-memory-tradeoffs/DataParallelDiagram'
+
+A training run can waste your time in two ways: it crashes with `CUDA out of memory`, or it runs while the expensive GPU sits idle most of the time. Both have standard fixes, and every fix trades something away: speed, memory, or a change to how the model learns. Knowing the price of each fix is what NOAI's optimisation and trade-off questions test, and it decides how much you can train in a timed IOAI task.
+
+<Analogy title="A hawker's counter">
+
+A hawker's counter is a fixed size. The woks and utensils (the weights, gradients and optimiser state) always take the same space. What crowds the counter is how many plates are being prepared at once (the batch). You could cook fewer plates at a time, use smaller plates, or wash and reuse plates during the rush, but each choice costs you something: time, or how the food comes out.
+
+</Analogy>
+
+## A quick recap: what fills GPU memory
+
+From [the PyTorch module](#/learn/pytorch/devices-and-common-errors): during a training step the GPU holds the **weights**, their **gradients**, the **optimiser state** (one extra number per weight for SGD with momentum, two for Adam), and the **activations**, the outputs of every layer that autograd keeps for the backward pass. Here is how that splits when you fine-tune a ResNet-50 on 224×224 images at batch 128:
+
+<Figure title="Where the memory goes: ResNet-50 at batch 128 (GB)" caption="The weights, gradients and momentum together take about a third of a gigabyte. The activations need more than ten times everything else combined, so they decide whether the run fits on a 16 GB GPU.">
+  <Bars
+    max={16}
+    ariaLabel="GPU memory in GB: CUDA itself 1.00, weights, gradients and momentum 0.31, activations at batch 128 15.36"
+    data={[
+      { label: 'CUDA itself', value: 1.0, color: 'var(--viz-muted)' },
+      { label: 'weights, gradients, momentum', value: 0.31, color: 'var(--viz-1)' },
+      { label: 'activations (128 images)', value: 15.36, color: 'var(--viz-2)', strong: true },
+    ]}
+  />
+</Figure>
+
+In symbols, with $P$ parameters in 32-bit floats (4 bytes each), batch size $B$ and $A$ bytes of activations per example:
+
+$$
+M \approx \underbrace{4P}_{\text{weights}} + \underbrace{4P}_{\text{gradients}} + \underbrace{4P}_{\text{momentum}} + \underbrace{B \cdot A}_{\text{activations}}
+$$
+
+Here $M$ is the memory needed, written for SGD with momentum (Adam adds another $4P$). The first three terms are fixed; only the last one grows with the batch. For the ResNet-50 ($P \approx 25.6$ million), the fixed part is $12 \times 25.6$ million bytes $\approx 0.31$ GB, while the activations are roughly $0.12$ GB per image, so a batch of 128 needs about $15.4$ GB of activations alone. Add about 1 GB that <Term def="NVIDIA's software for running programs on its GPUs. PyTorch uses it whenever a tensor is on a 'cuda' device, and it reserves some GPU memory for itself.">CUDA</Term> itself uses and the total, about $16.7$ GB, does not fit on a 16 GB GPU.
+
+## Every out-of-memory fix has a price
+
+Two words first. <Term def="How much training work gets done per second, usually counted in examples (images) processed per second.">Throughput</Term> is examples processed per second. A <Term def="A slice of a batch small enough to fit in memory. Several micro-batches can be run one after another and their gradients added up.">micro-batch</Term> is a slice of a batch small enough to fit in memory. Now the five standard fixes and what each one costs:
+
+- **Mixed precision.** Do most of the maths and store the activations in 16-bit numbers (FP16 or BF16) instead of 32-bit, while keeping a 32-bit "master" copy of the weights for the update. Activation memory roughly halves, and GPUs with <Term def="Special units on modern NVIDIA GPUs that multiply small matrices of 16-bit numbers very fast. Mixed precision is what lets training use them.">Tensor Cores</Term> run 16-bit matrix maths much faster. Price: a small numerical risk, handled automatically (see below).
+- **Gradient accumulation.** Run $k$ micro-batches one after another, add up their gradients (dividing each loss by $k$, so the sum becomes an average), and only then take one optimiser step. The update is the same as one big batch, but only one micro-batch's activations are in memory. Price: slightly slower, because small micro-batches keep the GPU less busy, and <Term def="Batch normalisation: a layer that rescales its inputs using the mean and spread of the current batch, so a smaller batch gives noisier statistics.">BatchNorm</Term> layers compute their statistics from the micro-batch only.
+- **Activation checkpointing** (also called gradient checkpointing). Keep only some activations and **recompute** the rest during the backward pass. Price: extra compute, about one more forward pass. The results are identical.
+- **A smaller batch, without accumulation.** Saves memory at about the same small speed cost as accumulation, but it **changes the optimisation**: noisier gradients, so the learning rate needs retuning, and smaller BatchNorm batches.
+- **Freezing the early layers** (when fine-tuning a pretrained model). No gradients, optimiser state or saved activations for the frozen front part, and less backward work. Price: those layers cannot adapt to your data, which can cost accuracy.
+
+Two things that look like fixes but are not: `torch.cuda.empty_cache()` only hands back memory that PyTorch has cached but is not using, and `pin_memory` speeds up copying data to the GPU without saving any GPU memory.
+
+<OOMFixTradeoffs />
+
+<KeyIdea>
+
+Every out-of-memory fix trades memory for something else: **mixed precision** for a little numerical care, **accumulation** for a little speed and BatchNorm statistics, **checkpointing** for about one extra forward pass, **a smaller batch** for a changed optimisation, **freezing** for accuracy. Pick the one whose price you can afford.
+
+</KeyIdea>
+
+<Steps title="Fixing ResNet-50 at batch 128 on a 16 GB GPU">
+  <Step title="The problem">
+    Fixed part $0.31$ GB, CUDA about $1$ GB, activations $128 \times 0.12 = 15.36$ GB. Total about $16.7$ GB: out of memory.
+  </Step>
+  <Step title="Mixed precision">
+    Activations halve to about $7.7$ GB (plus a $0.05$ GB 16-bit copy of the weights), total about $9.0$ GB. It fits, and with Tensor Cores it is faster, not slower.
+  </Step>
+  <Step title="Accumulation: 4 micro-batches of 32">
+    Only 32 images' activations at once: $32 \times 0.12 = 3.84$ GB, total about $5.2$ GB. Each update still averages over $4 \times 32 = 128$ images, so the learning rate and schedule stay the same.
+  </Step>
+  <Step title="Checkpointing">
+    Keeping roughly 30% of the activations (a checkpoint every few layers) gives $0.3 \times 15.36 \approx 4.6$ GB, total about $5.9$ GB, at about 25% lower throughput (the checkpointing section below shows why).
+  </Step>
+  <Step title="Batch 32 with no accumulation">
+    Also about $5.2$ GB, but each update now averages only 32 images: a different training recipe that needs a retuned learning rate.
+  </Step>
+  <Step title="Verdict">
+    By these numbers the cheapest fixes are mixed precision (it fits and is faster on Tensor Cores) or accumulation alone (it fits at the same effective batch). Add checkpointing only if memory is still short.
+  </Step>
+</Steps>
+
+<PastPaperQuestion paper="prelim2026" n={285} />
+
+### How mixed precision stays accurate
+
+This is taught in full in [Gradient clipping, mixed precision and accumulation](#/learn/training-deep-networks/stability-and-scale); here is the short version. A 16-bit float (FP16) cannot hold very small numbers: anything below about $6 \times 10^{-8}$ becomes exactly 0, and some gradients are that small. **Loss scaling** multiplies the loss by a big number such as 65,536 before `backward()`, so the gradients are large enough to survive, then divides them back before the optimiser step. In PyTorch, `torch.autocast` runs the matrix maths in 16 bits while the weights stay 32-bit, and a `GradScaler` does the loss scaling for you. The newer **BF16** format has FP32's range (with fewer digits of precision), so it needs no loss scaling.
+
+<PastPaperQuestion paper="prelim2026" n={289} />
+
+## Activation checkpointing up close
+
+Why does checkpointing cost "about one forward pass"? A training step does a forward pass, then a backward pass that costs about **twice** as much (each layer must compute gradients for both its input and its weights: two matrix products instead of one). Call the forward pass 1 unit: a step is $1 + 2 = 3$ units. Recomputing the dropped activations adds about 1 more unit, so a step costs about 4 units instead of 3, and throughput falls to about $\tfrac{3}{4}$ of what it was: roughly 33% more compute, 25% fewer images per second.
+
+The memory saving depends on how often you keep a <Term def="In activation checkpointing: an activation that is kept during the forward pass so that the activations after it can be recomputed from it later. (Not the same as saving a model checkpoint to disk.)">checkpoint</Term>. Split a chain of $n$ layers into segments of $s$ layers and keep only the output at the end of each segment. During the backward pass, take the segments from last to first: recompute the $s - 1$ activations inside a segment from the checkpoint before it, back-propagate through the segment, and free them.
+
+$$
+\text{peak memory} = \underbrace{\frac{n}{s}}_{\text{kept}} + \underbrace{(s - 1)}_{\text{recomputed}}
+$$
+
+$$
+\text{extra work} = \frac{n}{s}(s - 1) = n - \frac{n}{s}
+$$
+
+Memory is counted in units of one layer's activations: $n/s$ checkpoints are kept, plus the $s - 1$ activations of the one segment being recomputed. Extra work is counted in layer forwards: each of the $n/s$ segments recomputes $s - 1$ layers. Without checkpointing the peak is $n$ and there is no extra work.
+
+<CheckpointingStepper />
+
+<Steps title="16 layers, a checkpoint every 4">
+  <Step title="Checkpoints">
+    $n/s = 16/4 = 4$ activations are kept during the forward pass.
+  </Step>
+  <Step title="One segment at a time">
+    While back-propagating a segment, its other $s - 1 = 3$ activations are recomputed and held.
+  </Step>
+  <Step title="Peak">
+    $4 + 3 = 7$ units instead of 16: a 56% saving.
+  </Step>
+  <Step title="Price">
+    $16 - 4 = 12$ extra layer-forwards, which is $12/16 = 0.75$ of one forward pass.
+  </Step>
+  <Step title="The best spacing">
+    The two terms $n/s$ and $s$ balance when $s \approx \sqrt{n}$, giving a peak of about $2\sqrt{n}$. For $n = 100$ layers: $s = 10$, peak $10 + 9 = 19$ units instead of 100.
+  </Step>
+</Steps>
+
+PyTorch does the bookkeeping for you, and the gradients come out exactly the same:
+
+```python
+import torch
+import torch.nn as nn
+from torch.utils.checkpoint import checkpoint_sequential
+
+torch.manual_seed(0)
+model = nn.Sequential(*[
+    nn.Sequential(nn.Linear(64, 64), nn.Tanh()) for _ in range(16)
+])
+x = torch.randn(8, 64)
+
+# 1. normal backward: every layer's activations are stored
+model(x).sum().backward()
+g_normal = model[0][0].weight.grad.clone()
+model.zero_grad()
+
+# 2. checkpointed: keep 4 segment inputs and
+#    recompute the rest during backward
+out = checkpoint_sequential(model, 4, x, use_reentrant=False)
+out.sum().backward()
+g_ckpt = model[0][0].weight.grad.clone()
+
+print("same gradients:", torch.allclose(g_normal, g_ckpt))
+print("largest difference:", (g_normal - g_ckpt).abs().max().item())
+```
+
+```text
+same gradients: True
+largest difference: 0.0
+```
+
+<QuickCheck
+  q="A team turns on activation checkpointing for a model that was just running out of memory. What should they expect?"
+  options={[
+    'Much less activation memory, and each training step about a third slower to compute',
+    'Much less activation memory, and slightly different final weights because activations are approximated',
+    'Each training step faster, because fewer activations are written to GPU memory',
+    'Weights saved to disk at regular intervals, so training can resume after a crash',
+  ]}
+  answer={0}
+  explain="Checkpointing keeps only some activations and recomputes the others in the backward pass: about one extra forward pass, so a step costs about 4 units of work instead of 3. The recomputed values are exact, so the weights are the same. Saving a model to disk to resume training is also called 'checkpointing', but it is a different idea."
+/>
+
+<ExamTip>
+
+"Best throughput–memory trade-off" questions want the fix that **keeps the training recipe** (same effective batch, same learning rate) at the smallest, most predictable speed cost. In the 2026 Prelim, a question with exactly the ResNet-50, batch 128, 16 GB set-up keyed "gradient accumulation (4 × 32) with gradient checkpointing". The reasoning behind that key: it is the option guaranteed to fit at the same effective batch on any GPU, with no numerical risk, while mixed precision only halves the activations and its speed-up needs Tensor Cores. So if the options are exactly these, pick accumulation with checkpointing, even though mixed precision is a strong real-world choice.
+
+</ExamTip>
+
+<PastPaperQuestion paper="prelim2026" n={274} />
+
+<ExamTip title="Read the constraint words">
+
+Words like "same convergence", "any GPU" or "no accuracy risk" point to recipe-preserving fixes (accumulation, checkpointing); "fastest" or "Tensor Core GPU" points to mixed precision.
+
+</ExamTip>
+
+## Feeding the GPU
+
+<Analogy title="The chef and the kitchen helper">
+
+A super-fast chef can cook a dish in one minute, but the kitchen helper needs four minutes to wash and chop the ingredients for it. The chef spends three minutes out of every four waiting. Hiring a faster chef changes nothing; hiring three more helpers does.
+
+</Analogy>
+
+Before the GPU can train on a batch, the CPU must read the images from disk, decode them, augment them (crop, flip, colour jitter) and stack them into a tensor, which is then copied to the GPU. If that takes longer than the GPU's maths, the GPU waits. PyTorch's `DataLoader` can prepare batches in parallel with <Term def="Background CPU processes started by a DataLoader (set with num_workers) that each prepare batches while the GPU trains on earlier ones.">worker processes</Term>:
+
+```python
+# num_workers=4: 4 CPU processes prepare batches in the background
+# pin_memory=True: keeps batches in memory the GPU can copy from directly,
+# so copies are faster
+loader = DataLoader(dataset, batch_size=32, shuffle=True,
+                    num_workers=4, pin_memory=True)
+for x, y in loader:
+    x = x.to(device, non_blocking=True)  # start the copy without waiting for it
+    y = y.to(device, non_blocking=True)
+    ...
+```
+
+With `num_workers=0` (the default) the main process loads a batch, then the GPU trains on it, then the main process loads the next one: they take turns. (This assumes the loop waits for the GPU each step, for example to log `loss.item()`.) With $W$ workers loading in parallel, a new batch is ready every $T_\text{load}/W$ milliseconds, so in steady state
+
+$$
+\text{step time} = \max\!\left(\frac{T_\text{load}}{W},\ T_\text{GPU}\right)
+$$
+
+$$
+\text{GPU utilisation} = \frac{\text{GPU compute time}}{\text{step time}}
+$$
+
+where $T_\text{load}$ is the CPU time to prepare one batch with one worker and $T_\text{GPU}$ is the GPU's time per batch (copy plus compute). The step takes as long as the **slower** of the two stages.
+
+<DataPipelineBottleneck />
+
+<Steps title="Preparing a batch takes 200 ms; the GPU needs 5 ms to copy it and 50 ms to compute">
+  <Step title="0 workers">
+    They take turns: $200 + 55 = 255$ ms per step. The GPU computes for 50 of them: about 20% utilisation, $32 / 0.255 \approx 125$ images per second.
+  </Step>
+  <Step title="2 workers">
+    A batch is ready every $200/2 = 100$ ms, slower than the GPU's 55 ms. Step time 100 ms: 50% utilisation, 320 images per second.
+  </Step>
+  <Step title="4 workers">
+    A batch every $200/4 = 50$ ms, faster than the GPU needs. Step time 55 ms: $50/55 \approx 91\%$, about 580 images per second.
+  </Step>
+  <Step title="8 workers">
+    Still 55 ms: the GPU is now the bottleneck, and more workers only use more CPU and RAM.
+  </Step>
+</Steps>
+
+Here is the effect in real PyTorch on a 4-core laptop, with a dataset that spends 5 ms of CPU time on each image:
+
+```python
+import time
+import torch
+from torch.utils.data import Dataset, DataLoader
+
+class SlowImages(Dataset):
+    """Pretend each image takes 5 ms of CPU work."""
+    def __len__(self):
+        return 1024
+    def __getitem__(self, i):
+        # stand-in for JPEG decoding + augmentation
+        time.sleep(0.005)
+        return torch.randn(3, 32, 32), i % 10
+
+# needed so the worker processes can start safely
+# (required on Windows and macOS)
+if __name__ == "__main__":
+    for workers in [0, 2, 4]:
+        loader = DataLoader(SlowImages(), batch_size=32,
+                            num_workers=workers)
+        start = time.perf_counter()
+        for images, labels in loader:
+            pass  # the GPU work would go here
+        secs = time.perf_counter() - start
+        print(f"num_workers={workers}: {secs:.2f} s per epoch")
+```
+
+```text
+num_workers=0: 6.22 s per epoch
+num_workers=2: 3.46 s per epoch
+num_workers=4: 1.77 s per epoch
+```
+
+(Your times will differ; starting the worker processes costs a fraction of a second, which is why 4 workers give a bit less than a 4× speed-up.)
+
+The other common way to starve a GPU is to bounce data between GPU and CPU inside the loop. Calling `.item()`, `.cpu()` or `.numpy()` on a GPU tensor every step makes the CPU wait for the GPU, so log the loss every 100 steps instead and keep tensors on the GPU. To find where the time goes, measure it: `nvidia-smi` shows GPU utilisation and `torch.profiler` shows time per operation.
+
+The opposite problem also exists. With a tiny model or a very small batch there is too little work to keep the GPU busy, so the fixed costs (copying data, launching each operation) dominate, and a CPU can even be faster.
+
+<Mistake title="Buying a faster GPU for a slow input pipeline">
+
+If utilisation is low, a faster GPU just waits faster. Check the slowest stage first: more `num_workers`, `pin_memory=True`, cheaper or GPU-side augmentation, pre-decoded data, and no per-step `.item()` calls.
+
+</Mistake>
+
+<PastPaperQuestion paper="prelim2026" n={133} />
+
+## Scaling out: data-parallel training
+
+<Analogy title="Examiners marking in parallel">
+
+Four teachers mark a pile of 400 exam scripts: each takes 100. Before changing the marking scheme, they meet, compare what each found, agree on one adjustment, and all apply the same new scheme. The pile is done four times faster, and nobody ends up with a different scheme.
+
+</Analogy>
+
+With several GPUs, the most common approach is <Term def="Training with several GPUs where each holds a full copy of the model, processes a different slice of each batch, and the gradients are averaged before every update. In PyTorch: DistributedDataParallel (DDP).">data parallelism</Term> (PyTorch's `DistributedDataParallel`, or DDP):
+
+1. Every GPU holds a **full copy** of the model.
+2. Each batch is split: with $G$ GPUs and $b$ examples per GPU, the batch has $B = G \times b$ examples.
+3. Each GPU runs forward and backward on its own slice and gets its own gradient $g_1, \dots, g_G$.
+4. An <Term def="A communication step in which every GPU sends its gradients and every GPU receives the same combined result (here, the average).">all-reduce</Term> replaces every GPU's gradient by the average $\bar g = \frac{1}{G}(g_1 + \dots + g_G)$, which equals the gradient of the whole batch when the slices are the same size.
+5. Every GPU applies the same update $w \leftarrow w - \eta\,\bar g$, so the copies stay identical.
+
+This is not the same as **model parallelism**, which splits the *model* itself across GPUs because it is too big for one.
+
+The catch is the batch size. With 8 GPUs the <Term def="The number of examples whose gradients are averaged into one update: GPUs × examples per GPU × accumulation steps.">effective batch</Term> is 8 times bigger, so each <Term def="One full pass through the whole training set.">epoch</Term> has 8 times fewer updates. If each update stays the same size, the model moves 8 times less per epoch. The common remedy is the linear scaling rule from [Gradient clipping, mixed precision and accumulation](#/learn/training-deep-networks/stability-and-scale): when the batch grows by a factor $k$, multiply the learning rate $\eta$ by $k$,
+
+$$
+\eta_\text{new} = \eta_\text{base} \times \frac{B_\text{new}}{B_\text{base}},
+$$
+
+combined with a <Term def="Starting training with a small learning rate and raising it gradually over the first few hundred steps or epochs, so the early, unstable phase does not blow up.">warm-up</Term> (from [the schedules lesson](#/learn/training-deep-networks/learning-rate-warmup-schedules)): start from a small learning rate and ramp it up over the first few epochs, because a big learning rate on a freshly initialised model can blow up. The rule holds only up to a point: for very large batches the scaled rate becomes unstable, or accuracy drops, even with warm-up. The linear rule is the standard recipe for SGD with momentum; with Adam, a smaller increase (such as square-root scaling) is common.
+
+<DataParallelDiagram />
+
+<Steps title="Scaling a recipe from 1 GPU to 8">
+  <Step title="The tested recipe">
+    Batch 256 with learning rate 0.1.
+  </Step>
+  <Step title="The new set-up">
+    8 GPUs × 64 per GPU: $B = 8 \times 64 = 512$, which is $512/256 = 2$ times bigger.
+  </Step>
+  <Step title="Scale the learning rate">
+    $\eta = 0.1 \times 2 = 0.2$, reached after a warm-up of a few epochs.
+  </Step>
+  <Step title="Updates per epoch">
+    On 1.28 million images: $1{,}280{,}000 / 512 = 2{,}500$ updates per epoch instead of $5{,}000$ at batch 256, but each epoch runs on 8 GPUs at once.
+  </Step>
+</Steps>
+
+<QuickCheck
+  q="A model trains well on 1 GPU with batch 32 and learning rate 0.01. You move to 4 GPUs, 16 examples per GPU, and accumulate gradients over 2 micro-batches before each update. By the linear scaling rule, what learning rate should you use?"
+  options={['0.04', '0.02', '0.08', '0.01']}
+  answer={0}
+  explain="Effective batch $= 4 \times 16 \times 2 = 128$, which is $128/32 = 4$ times the original batch, so the learning rate becomes $0.01 \times 4 = 0.04$. Forgetting the accumulation gives $4 \times 16 = 64$ and 0.02; multiplying by GPUs × accumulation steps ($4 \times 2 = 8$) without noticing that each GPU's batch halved gives 0.08."
+/>
+
+In code, DDP is a wrapper plus a sampler that gives each GPU a different slice of the data (the script is launched once per GPU, for example with `torchrun --nproc_per_node=8 train.py`). Here `rank` is this process's GPU number (0 to 7); `nccl` is NVIDIA's library for sending gradients between GPUs; `dist` is `torch.distributed` and `DDP` is `DistributedDataParallel`.
+
+```python
+# once per process, at the start
+dist.init_process_group("nccl")
+# this GPU's full copy of the model
+model = DDP(model.to(rank), device_ids=[rank])
+# this GPU's slice of the data
+sampler = DistributedSampler(train_set)
+loader = DataLoader(train_set, batch_size=64, sampler=sampler)
+for epoch in range(num_epochs):
+    sampler.set_epoch(epoch)  # a different shuffle each epoch
+    for x, y in loader:
+        ...  # usual step: backward() also all-reduces the gradients
+```
+
+One thing is not shared: each GPU's BatchNorm layers still compute their statistics from its own $b$ examples, unless you convert them with `SyncBatchNorm`.
+
+<Mistake title="“8 GPUs make training 8 times faster, no other changes needed”">
+
+Without scaling the learning rate, an 8× bigger effective batch makes 8× fewer updates per epoch of the same size, so you need many more epochs and lose most of the speed-up. And averaging gradients across GPUs takes communication time, so real speed-ups are a little below 8×.
+
+</Mistake>
+
+<PastPaperQuestion paper="prelim2026" n={281} />
+
+<Takeaways>
+- GPU memory ≈ fixed (weights, gradients, optimiser state) + batch × activations; the activations usually decide whether a run fits.
+- Out-of-memory fixes and their prices: mixed precision (halves activations, faster on Tensor Cores; needs loss scaling with FP16), gradient accumulation (same update, slightly slower, BatchNorm sees micro-batches), checkpointing (about one extra forward pass, exact results), smaller batch (changes the optimisation), freezing (may cost accuracy).
+- Checkpointing every $s$ of $n$ layers: peak $n/s + (s-1)$ activations, best near $s = \sqrt{n}$.
+- A step takes as long as its slowest stage: raise `num_workers`, use `pin_memory`, and avoid per-step `.item()`/`.cpu()` calls when the GPU is waiting for data.
+- Data-parallel training: full model copy per GPU, gradients averaged by all-reduce, effective batch $= G \times b \times k$ (with $k$ accumulation steps); scale the learning rate linearly with the batch and warm it up, up to a limit.
+</Takeaways>

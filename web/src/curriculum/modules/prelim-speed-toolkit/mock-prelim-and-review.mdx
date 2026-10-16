@@ -1,0 +1,186 @@
+import { PRELIM, LINKS } from '../../../data/facts'
+import MockExamTimer from './visuals/mock-prelim-and-review/MockExamTimer'
+import ErrorLogSorter from './visuals/mock-prelim-and-review/ErrorLogSorter'
+import ScoreProjector from './visuals/mock-prelim-and-review/ScoreProjector'
+
+Drills sharpen one skill at a time. The Prelim tests all of them at once, against a clock, for {PRELIM.minutes} minutes. A **mock** is how you find out what happens when everything meets the clock, and the **review** afterwards is where you actually get better. This lesson shows you how to sit a mock properly, how to turn every mistake into a specific fix, and how to tell whether your scores are really going up.
+
+## Sit it like the real thing
+
+<Analogy title="A full dress rehearsal">
+
+Weeks before 9 August, the National Day Parade holds full dress rehearsals: the real start time, full costume, the real running order. Problems that never appear in a classroom run-through show up there: a costume change that takes too long, a segment that overruns by 40 seconds. A mock is your dress rehearsal for 19 February.
+
+</Analogy>
+
+A mock only tells you the truth if the conditions match the real Prelim. These are the rules:
+
+1. **{PRELIM.questions} questions in {PRELIM.minutes} minutes**, in one sitting, with no pauses and no "five more minutes".
+2. **{PRELIM.materials}** Put your phone in another room.
+3. **Run the two-pass plan** from the [pacing lesson](#/learn/prelim-speed-toolkit/pacing-and-elimination): write the checkpoint numbers (25, 50, 75, 100, 125, 150) in the corner of your scrap paper before you start.
+4. **Answer every question.** {PRELIM.marking}, so a blank is always the worst choice.
+5. **Use a desktop browser**, like the Google Form in your school lab. Try to sit your last mock on a Friday at 9:30 am, the real slot.
+6. **Mark it only at the end**, never question by question.
+
+Where to get a mock: this site's [Mock exam](#/mock) page builds a 150-question, 90-minute paper drawn evenly from the five domains, and can include real past-paper questions. AI Singapore's <a href={LINKS.selfAssessment}>self-assessment tool</a> is an interactive copy of the 2026 Prelim; its roughly 300 questions make two full-length mocks.
+
+Try the format at small scale first: ten questions at exactly the real pace.
+
+<MockExamTimer />
+
+<KeyIdea>
+
+A mock measures two things at once: what you know, and how fast you can use it. Only timed, closed-book conditions measure both; untimed practice measures only the first.
+
+</KeyIdea>
+
+<Mistake>
+
+Pausing a mock to check a formula, or quietly allowing yourself extra time. Your score then describes a different, easier exam, and you lose the most valuable data the mock gives you: where the time went.
+
+</Mistake>
+
+## The error log
+
+<Analogy title="Watching the match footage">
+
+A badminton player who loses a match does not just play more matches. They watch the footage and ask *why* each point was lost: footwork, a weak backhand, or tiredness in the third game. Each reason has a different training fix. Your mock mistakes work the same way.
+
+</Analogy>
+
+An <Term def="A list of every question you got wrong or only guessed right in a mock, with what happened and what kind of mistake it was.">error log</Term> is a list, kept after every mock, of each question you got wrong **or guessed** (a lucky guess hides a gap just as well as a wrong answer). For each one, write the question number and domain, your answer, the right answer, one line on what happened, and which of four types it was:
+
+| Type | The test | The fix |
+| --- | --- | --- |
+| **Knowledge gap** | At home, untimed and without notes, you still cannot do it | Study the lesson; re-test it after 3 days and after a week |
+| **Misread** | You can do it, but you answered a different question (a missed NOT, max for min, swapped numbers) | Read the question line first; circle the key word |
+| **Calculation slip** | Right method, wrong arithmetic (a sign, a $+1$, a dropped factor) | Speed drills; write every intermediate number |
+| **Time pressure** | You rushed it, or never reached it | Pacing: checkpoints, and cap-and-flag hard questions |
+
+Misreads and slips are both what people call "careless", but they need different fixes, so keep them apart.
+
+<Steps title="Classify a mistake: four checks">
+  <Step title="Enough time?">
+    If you rushed it to catch up, or never read it and guessed in the final sweep, it is **time pressure**. Stop here.
+  </Step>
+  <Step title="Can you do it now?">
+    Try it untimed and without notes. If you still cannot, it is a **knowledge gap**.
+  </Step>
+  <Step title="Answered what was asked?">
+    Compare your answer with the question line. If you answered a different question, it is a **misread**.
+  </Step>
+  <Step title="Otherwise">
+    The method was right and a number went wrong: a **calculation slip**.
+  </Step>
+</Steps>
+
+<ErrorLogSorter />
+
+<KeyIdea>
+
+Different mistakes need different fixes. Gaps need lessons, slips need drills, misreads need a reading routine, and time pressure needs pacing. Sitting more mocks fixes none of them on its own.
+
+</KeyIdea>
+
+### The review loop
+
+<Steps title="One cycle, every week or two">
+  <Step title="Sit">
+    A full mock under the rules above.
+  </Step>
+  <Step title="Log">
+    The same day: mark it, and log every wrong or guessed question with its type. This takes about 30 minutes.
+  </Step>
+  <Step title="Fix">
+    Work through the log by type: lessons for the gaps, drills for the slips, the reading routine for misreads, pacing for time.
+  </Step>
+  <Step title="Re-test">
+    Redo the logged questions after 3 days and again after a week, without looking at your notes. Remove an entry only when you get it right both times.
+  </Step>
+  <Step title="Compare">
+    At the next mock, check whether the type you worked on has shrunk. If it has not, change the fix, not just the amount of practice.
+  </Step>
+</Steps>
+
+Now try it on real questions. Give yourself **two minutes for all three**, then mark them and classify any miss.
+
+<PastPaperQuestion paper="prelim2026" n={34} />
+
+<PastPaperQuestion paper="prelim2026" n={88} />
+
+<PastPaperQuestion paper="prelim2026" n={258} />
+
+<Reveal label="What each wrong answer would say in your log">
+
+- **Q34 (the sigmoid's derivative):** if you did not have $\sigma'(x) = \sigma(x)(1 - \sigma(x))$ as an anchor, that is a **knowledge gap**: see [derivative rules](#/learn/calculus-and-gradient-descent/derivative-rules). If you knew it but picked $-\sigma(x)$ or $e^{-x}$ while rushing, it is a **calculation slip**: you differentiated one piece instead of the whole function.
+- **Q88 (`zip`):** choosing `[1, 2, 'a', 'b']` mixes `zip` up with `+`, a **misread** of what the code does. Choosing the nested lists means you knew it pairs items but not that it gives an iterator of tuples: a small **knowledge gap**, see [iteration tools](#/learn/python-toolkit/iteration-tools).
+- **Q258 (50 patients, 100 biomarkers):** this is a long scenario of the kind that filled the end of the 2026 paper. If you ran short of time on it, log **time pressure**. If you chose class imbalance or feature scaling with time to spare, it is a **knowledge gap** about overfitting when features outnumber samples: see [the curse of dimensionality](#/learn/ml-fundamentals/curse-of-dimensionality).
+
+</Reveal>
+
+<QuickCheck
+  q="After three mocks, your error log shows 9 Maths misses, and 7 of them are calculation slips. What should you do next?"
+  options={['Re-study every Maths lesson from the start, since slips show weak understanding', 'Sit more full mocks: enough practice fixes every kind of mistake', 'Plan to skip Maths questions on the day to save time for other domains', 'Daily timed arithmetic drills, writing down every intermediate number']}
+  answer={3}
+  explain="Slips mean the method is known but the execution fails, so the fix is execution practice: drills with written steps. Re-studying the lessons treats a knowledge gap you do not have, and more mocks repeat the slips without training them away. Skipping a whole domain throws away about a fifth of the marks."
+/>
+
+## Tracking progress: score projection
+
+<Analogy title="Your 2.4 km timings before NAPFA">
+
+Before a NAPFA test, you might time your 2.4 km run every week. One slow run after a late night does not mean you are getting worse, and one fast run on a cool morning does not mean you are ready. It is the trend over several weeks that tells you whether the training is working.
+
+</Analogy>
+
+Mock scores behave the same way, for a reason you can calculate. Think of each question as a coin that lands "right" with probability $p$, your true accuracy. Over 150 such coins, the score varies from sitting to sitting with a <Term def="A measure of how far values typically fall from their average. For bell-shaped (normal) data, about 95% of values land within 2 standard deviations of the average.">standard deviation</Term> of
+
+$$
+\text{SD} = \sqrt{150 \, p \, (1 - p)}
+$$
+
+- $150$ is the number of questions;
+- $p$ is the chance you get any one question right, and $1 - p$ the chance you get it wrong;
+- the square root turns the spread of all those coin flips into marks.
+
+<Steps title="How much can one mock wobble?">
+  <Step title="Pick a true accuracy">
+    Say $p = 0.6$, so your true level is $0.6 \times 150 = 90$ marks.
+  </Step>
+  <Step title="Multiply">
+    $150 \times 0.6 \times 0.4 = 36$.
+  </Step>
+  <Step title="Take the square root">
+    $\sqrt{36} = 6$. About 95% of sittings land within $2 \times 6 = 12$ marks of 90: anywhere from 78 to 102, from chance alone.
+  </Step>
+</Steps>
+
+So never judge your preparation by one mock. A drop of 6 marks is noise. Judge the trend line through four or more mocks: a slope that stays negative over several weeks, or a drop of more than about 17 marks between two mocks (one mock wobbles by about 6; the gap between two independent mocks wobbles by about $\sqrt{2} \times 6 \approx 8.5$, not $6 + 6$, because their chance errors partly cancel; twice that is about 17), is worth acting on.
+
+Two more numbers belong in the projection. The first is **how many questions you left blank**. A random guess on a four-option question is right with probability $\frac{1}{4}$, so each blank you guess is worth $\frac{1}{4}$ of a mark on average: 20 blanks guessed in the final sweep add $20 \times \frac{1}{4} = 5$ expected marks. (If you already guessed every blank in your mocks, as rule 4 says, those marks are in your scores already.) The second is your **trend**: a line through your last few mock scores, which you can extend to 19 February.
+
+<ScoreProjector />
+
+<QuickCheck
+  q="You score 96 / 150 in one mock and 90 / 150 a week later. What is the most reasonable conclusion?"
+  options={['Your preparation is going backwards, so you should change your study plan at once', 'Nothing yet: a 6-mark drop is well within what chance alone can cause', 'The second mock was harder, so you should ignore it and keep only the first score', 'Your true score must be exactly 93, the average of the two mocks you have sat']}
+  answer={1}
+  explain="At around 60% accuracy, one sitting has SD $= \sqrt{150 \times 0.6 \times 0.4} = 6$. The difference between two independent mocks has SD $\sqrt{2} \times 6 \approx 8.5$, so chance alone swings it by up to about ±17 marks. A 6-mark drop tells you almost nothing; wait for the trend over several mocks. The average of two noisy scores is a better estimate than either one, but it is not exact."
+/>
+
+<ExamTip>
+
+There is no published pass mark. {PRELIM.advance}. You cannot aim for a fixed number, so aim to raise your trend and shrink your biggest error type each cycle. A sensible rhythm, if you have about 18 weeks: a full mock every two weeks until the December holidays, weekly in January, and two a week in the final three weeks, with the last one on a Friday at 9:30 am.
+
+</ExamTip>
+
+<Takeaways>
+
+- Sit mocks under real conditions: {PRELIM.questions} questions, {PRELIM.minutes} minutes, no calculator or notes, two-pass pacing, every question answered, marked only at the end.
+- Log every wrong or guessed question with one of four types: knowledge gap, misread, calculation slip or time pressure.
+- Each type has its own fix: lessons, a reading routine, drills or pacing. Sitting more mocks fixes none of them on its own.
+- One mock wobbles by about $\pm 2\sqrt{150\,p(1-p)} \approx \pm 12$ marks from chance alone, so judge the trend over several mocks, and guessing every blank is worth $\frac14$ of a mark each.
+
+</Takeaways>
+
+Next, [past-paper walkthroughs](#/learn/past-paper-walkthroughs/prelim-maths-computing) take the 2026 Prelim block by block, so you can recognise each kind of question before you sit your next mock.

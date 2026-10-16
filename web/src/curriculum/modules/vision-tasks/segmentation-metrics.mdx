@@ -1,0 +1,259 @@
+import MaskIoUPainter from './visuals/segmentation-metrics/MaskIoUPainter'
+import PixelAccuracyTrap from './visuals/segmentation-metrics/PixelAccuracyTrap'
+import DiceIoUCurve from './visuals/segmentation-metrics/DiceIoUCurve'
+
+export const MIOU_CODE = `import numpy as np
+
+def calculate_miou(pred, true, num_classes):
+    pred = pred.reshape(-1)
+    true = true.reshape(-1)
+    ious = []
+    for c in range(num_classes):
+        p = (pred == c)       # predicted c
+        t = (true == c)       # truly c
+        inter = (p & t).sum() # both say c
+        union = (p | t).sum() # either says c
+        if union == 0:        # in neither map:
+            continue          # skip this class
+        iou = inter / union
+        ious.append(iou)
+        print(f"class {c}: {inter}/{union} = {iou:.3f}")
+    return float(np.mean(ious)) if ious else 0.0
+
+true = np.array([[0, 0, 1, 1],
+                 [0, 0, 1, 1],
+                 [2, 2, 0, 0],
+                 [2, 2, 0, 0]])
+pred = np.array([[0, 1, 1, 1],
+                 [0, 0, 1, 1],
+                 [2, 0, 0, 0],
+                 [2, 2, 2, 0]])
+miou = calculate_miou(pred, true, num_classes=4)
+print("mIoU:", round(miou, 4))
+print("pixel accuracy:", (pred == true).mean())`
+
+Your U-Net has produced a label map: a class for every pixel. Is it any good? The obvious score, the percentage of pixels it got right, can be 95% or more for a model that found nothing at all. Segmentation is measured with **IoU** (intersection over union) instead, averaged over the classes to give **mean IoU**. In the NOAI 2026 Final, writing `calculate_miou` was worth half of the U-Net task's marks, and this lesson shows you exactly how to write it.
+
+<Analogy title="Two people, one colouring book">
+
+You and a friend colour the same page of a colouring book, without looking at each other's work. To see how well you agree on the **red** parts, look at two things: the area you **both** coloured red, and the area that **either** of you coloured red. If those two areas are almost the same, you agree. If you both coloured a lot of red but in different places, the shared area is tiny compared with the total. Do the same for every colour, and average.
+
+</Analogy>
+
+## Intersection and union for one class
+
+Fix one class $c$, say "car". Two sets of pixels matter:
+
+- $P_c$: the pixels the model **predicted** as car.
+- $T_c$: the pixels that are **truly** car in the ground-truth label map.
+
+Their <Term def="The pixels that are in both sets. For one class: pixels the model predicted as that class AND that truly are that class.">intersection</Term> $P_c \cap T_c$ holds the pixels where both agree on "car". Their <Term def="The pixels that are in at least one of the sets. For one class: pixels predicted as that class OR truly of that class (or both).">union</Term> $P_c \cup T_c$ holds every pixel that either of them calls "car". The **IoU** (also called the <Term def="Another name for IoU: the size of the intersection of two sets divided by the size of their union.">Jaccard index</Term>) is the ratio of their sizes:
+
+$$
+\text{IoU}_c = \frac{|P_c \cap T_c|}{|P_c \cup T_c|} = \frac{TP}{TP + FP + FN}
+$$
+
+The bars $|\cdot|$ mean "the number of pixels in". In the language of the confusion matrix, for this one class: $TP$ (true positives) are pixels correctly predicted as car, $FP$ (false positives) are pixels predicted as car that are not car, and $FN$ (false negatives) are car pixels the model missed. The intersection is the $TP$ pixels; the union adds every mistake involving car. So IoU is 1 for a perfect match and 0 when the two regions share no pixels (even if they touch). It is the same IoU that detectors use to compare boxes (see [Vision tasks and object detection](#/learn/vision-tasks/vision-tasks-and-detection)), except that the shapes are now sets of pixels of any shape, and their sizes are pixel counts instead of rectangle areas. Notice what is **not** in the formula: $TN$, the huge number of pixels that are correctly "not car". That will matter later.
+
+<MaskIoUPainter />
+
+In code, each set is a <Term def="An array of True/False values with the same shape as the label map: True where a condition holds, for example where pred == 2.">boolean mask</Term>. `p = (pred == c)` is True wherever the prediction says $c$, and `t = (true == c)` wherever the truth does. Then `p & t` (and) is the intersection, `p | t` (or) is the union, and `.sum()` counts the Trues, because True counts as 1.
+
+<KeyIdea>
+
+For each class $c$:
+
+$$
+\text{IoU}_c = \frac{\text{pixels both maps call } c}{\text{pixels either map calls } c}
+$$
+
+In code, `(p & t).sum() / (p | t).sum()` with `p = pred == c` and `t = true == c`.
+
+</KeyIdea>
+
+## Mean IoU: one score for the whole map
+
+**Mean IoU** (mIoU) is the plain average of the per-class IoUs:
+
+$$
+\text{mIoU} = \frac{1}{|C|} \sum_{c \in C} \text{IoU}_c
+$$
+
+Here $C$ is the set of classes being averaged over (which classes belong in it is the subject of the next section), $|C|$ is how many there are, and $\sum$ means "add up over every class $c$ in $C$". Every class gets an equal vote, whether it covers 1% of the image or 90%. That makes mean IoU a **macro** average, as in [Regression metrics, IoU and averaging](#/learn/model-evaluation/regression-and-overlap-metrics); frequency-weighted IoU (below) is closer to a micro average.
+
+Here is a small example to work through by hand. The highlighted cells are the three pixels where the two maps disagree.
+
+<Columns min={150}>
+<MatrixGrid label="true" data={[[0, 0, 1, 1], [0, 0, 1, 1], [2, 2, 0, 0], [2, 2, 0, 0]]} cells={[[0, 1], [2, 1], [3, 2]]} cellSize={36} ariaLabel="true label map" />
+<MatrixGrid label="pred" data={[[0, 1, 1, 1], [0, 0, 1, 1], [2, 0, 0, 0], [2, 2, 2, 0]]} cells={[[0, 1], [2, 1], [3, 2]]} cellSize={36} ariaLabel="predicted label map" />
+</Columns>
+
+<Steps title="Mean IoU of a 4×4 label map by hand">
+  <Step title="Spot the differences">
+    Three pixels differ: row 0 column 1 (true 0, predicted 1), row 2 column 1 (true 2, predicted 0) and row 3 column 2 (true 0, predicted 2). Every other pixel agrees.
+  </Step>
+  <Step title="Class 0 (background)">
+    True has 8 pixels of class 0, pred has 7, and 6 of them are shared. Union $= 8 + 7 - 6 = 9$. $\text{IoU}_0 = 6/9 = 0.667$.
+  </Step>
+  <Step title="Class 1">
+    True has 4, pred has 5 (one extra at row 0 column 1), and all 4 true ones are shared. $\text{IoU}_1 = 4/5 = 0.8$.
+  </Step>
+  <Step title="Class 2">
+    True has 4, pred has 4, and 3 are shared. Union $= 4 + 4 - 3 = 5$. $\text{IoU}_2 = 3/5 = 0.6$.
+  </Step>
+  <Step title="Average">
+    $\text{mIoU} = (0.667 + 0.8 + 0.6)/3 = 0.689$. (Pixel accuracy would be $13/16 = 0.8125$.)
+  </Step>
+</Steps>
+
+The union trick in step 2 saves time: $|P \cup T| = |P| + |T| - |P \cap T|$. Adding the two sizes counts the shared pixels twice, so subtract them once.
+
+<QuickCheck
+  q="For the class 'person', a model's mask has 30 pixels, the true mask has 40 pixels, and 20 pixels are in both. What is the IoU for 'person'?"
+  options={['0.4', '0.5', '0.57', '0.67']}
+  answer={0}
+  explain="Union = $30 + 40 - 20 = 50$, so IoU = $20/50 = 0.4$. 0.5 is $20/40$ (only the true mask), 0.67 is $20/30$ (only the predicted mask), and 0.57 is the Dice score $2 \times 20/(30 + 40)$, which you will meet at the end of this lesson."
+/>
+
+## Classes that appear nowhere
+
+What if a class is in **neither** map? A street-scene model might have a "motorcycle" class, but this image has no motorcycles, and the model correctly predicts none. Then intersection = 0 and union = 0, and IoU is $\frac{0}{0}$: **undefined**. There are three tempting choices:
+
+- **Count it as 1** ("perfect, both agree there is none"). With many classes absent from most images, this hands out free marks and inflates mIoU.
+- **Count it as 0.** This punishes the model for something it did right.
+- **Skip it**: leave it out of the average. This is the standard choice, and the one the 2026 Final asked for.
+
+Skipping only applies when the union is 0. If the model predicts even **one** motorcycle pixel in an image without motorcycles, the union is 1, the intersection is 0, and that class scores IoU 0, which correctly punishes the false alarm. Try it in the painter above: paint one bicycle pixel and watch a new 0 enter the average.
+
+You may also meet **frequency-weighted IoU**, which multiplies each class's IoU by that class's share of the true pixels. Big classes then dominate and rare ones barely count: the opposite of what mean IoU's equal vote is for.
+
+<PastPaperQuestion paper="final2026" n={13} />
+
+<Note title="Per image or over the whole dataset?">
+
+The Final's `calculate_miou` flattens the whole `(B, H, W)` batch before counting, so it already **adds up** each class's intersections and unions over every image in the batch and divides once. Big benchmarks (PASCAL VOC, Cityscapes) do the same over the entire dataset. Averaging separate per-image mIoUs would give a different number, because a class that is rare in each image would then get many noisy scores instead of one fair one. Read the task statement to see which one is wanted.
+
+</Note>
+
+## Writing calculate_miou
+
+Here is the function, vectorised as the Final required: one loop over the **classes**, never a loop over pixels. Press Run, then try editing `pred`.
+
+<PyRunner packages={['numpy']} code={MIOU_CODE} />
+
+The output shows the three IoUs from the worked example (0.667, 0.800 and 0.600) and mIoU 0.6889. Class 3 never appears, so its union is 0 and it is skipped without any message. The same code works on PyTorch tensors; add `.item()` to turn each one-number tensor into a plain Python number:
+
+```python
+import torch
+
+def calculate_miou(pred_mask, true_mask, num_classes=2):
+    pred = pred_mask.reshape(-1)
+    true = true_mask.reshape(-1)
+    ious = []
+    for c in range(num_classes):
+        p = (pred == c)
+        t = (true == c)
+        inter = (p & t).sum().item()   # .item() turns a 0-d tensor into a Python number
+        union = (p | t).sum().item()
+        if union == 0:
+            continue
+        ious.append(inter / union)
+    return sum(ious) / len(ious) if ious else 0.0
+
+pred = torch.tensor([[0, 0], [1, 1]])
+true = torch.tensor([[0, 1], [1, 1]])
+print(round(calculate_miou(pred, true), 4))
+
+pred = torch.tensor([[0, 0], [0, 1]])     # predicts class 1 once
+true = torch.zeros(2, 2, dtype=torch.long)
+print(calculate_miou(pred, true))
+
+print(calculate_miou(torch.zeros(2, 2), torch.zeros(2, 2)))
+```
+
+```text
+0.5833
+0.375
+1.0
+```
+
+Check each line by hand. First: class 0 has intersection 1 and union 2 (0.5), class 1 has intersection 2 and union 3 (0.667), and the mean is 0.5833. Second: class 0 scores $3/4$, and class 1 is predicted once but never true, so it scores $0/1 = 0$; the mean is $0.375$, **not** 0.75. Third: everything is class 0 (IoU 1) and class 1 appears nowhere, so it is skipped and the answer is 1.0.
+
+<Mistake title="Four ways to lose the marks">
+
+- **Dividing before checking the union.** `inter / union` with union 0 gives `nan` in NumPy (which poisons the whole mean) or a `ZeroDivisionError` with plain Python numbers. Check `if union == 0` first.
+- **Using `and` / `or` instead of `&` / `|`.** Python's `and` needs a single True or False, so `p and t` on arrays raises "The truth value of an array with more than one element is ambiguous".
+- **Looping over pixels** with two nested `for` loops. It gives the right answer very slowly, and the Final explicitly banned it.
+- **Computing accuracy instead.** `(pred == true).mean()` is pixel accuracy, not IoU. The next section shows why that matters.
+
+</Mistake>
+
+## The pixel accuracy trap
+
+<Term def="The fraction of all pixels whose predicted class equals the true class: (number of correct pixels) / (total pixels).">Pixel accuracy</Term> is the share of pixels labelled correctly. It sounds sensible, but it is dominated by whichever class covers the most pixels. Suppose a 100-pixel image has a 5-pixel tumour, and a lazy model predicts "background" everywhere:
+
+- pixel accuracy $= 95/100 = 0.95$;
+- background IoU $= 95/100 = 0.95$, tumour IoU $= 0/5 = 0$;
+- mean IoU $= (0.95 + 0)/2 = 0.475$.
+
+95% accuracy for a model that found **no tumour at all**. Now take a decent model that predicts 6 tumour pixels, 4 of them correct. Its accuracy is $97/100 = 0.97$, only 2 points better, but its mean IoU jumps to $0.77$ (tumour IoU $4/7 = 0.571$, background IoU $93/96 = 0.969$). IoU separates the two models; accuracy barely notices.
+
+<PixelAccuracyTrap />
+
+This is the segmentation version of a trap you met in [Imbalanced classes](#/learn/model-evaluation/imbalanced-data): on <Term def="A dataset where one class is far more common than the others, such as 99% healthy and 1% sick.">imbalanced</Term> data, accuracy rewards always guessing the majority class. IoU ignores $TN$ (the correctly-ignored background), so a class cannot score well without actually being found.
+
+## Dice: IoU's close cousin
+
+Medical imaging often reports the <Term def="A segmentation score: twice the overlap divided by the total size of the two masks, 2|P∩T| / (|P| + |T|). It equals the F1 score computed over pixels.">Dice coefficient</Term> instead:
+
+$$
+\text{Dice} = \frac{2\,|P \cap T|}{|P| + |T|} = \frac{2\,TP}{2\,TP + FP + FN}
+$$
+
+Twice the overlap, divided by the two sizes added together. It is exactly the F1 score (the harmonic mean of precision and recall) computed over pixels. Dice and IoU carry the same information, and you can convert one into the other. Since $|P| + |T| = |P \cup T| + |P \cap T|$, write $I$ for the intersection size and $U$ for the union size:
+
+$$
+\text{Dice} = \frac{2I}{U + I} = \frac{2\,(I/U)}{1 + I/U} = \frac{2\,\text{IoU}}{1 + \text{IoU}}
+$$
+
+(divide the top and bottom by $U$ in the middle step). Run it backwards and $\text{IoU} = \dfrac{\text{Dice}}{2 - \text{Dice}}$.
+
+<DiceIoUCurve />
+
+<Steps title="Converting by hand">
+  <Step title="IoU = 0.5">
+    $\text{Dice} = \dfrac{2 \times 0.5}{1 + 0.5} = \dfrac{1}{1.5} = 0.667$.
+  </Step>
+  <Step title="IoU = 0.6">
+    $\text{Dice} = \dfrac{1.2}{1.6} = 0.75$.
+  </Step>
+  <Step title="Dice = 0.8">
+    $\text{IoU} = \dfrac{0.8}{2 - 0.8} = \dfrac{0.8}{1.2} = 0.667$.
+  </Step>
+</Steps>
+
+For a single mask, a higher IoU always means a higher Dice, because the curve always rises, so the two rank single predictions the same way; Dice just looks more generous in the middle. Averages are different: the conversion is curved, so mean Dice and mean IoU over several classes or images can rank two models differently. (Per-class IoUs of 0.9 and 0.1 give mIoU 0.50 and mean Dice 0.56; IoUs of 0.49 and 0.49 give mIoU 0.49 but mean Dice 0.66.) A "soft" version of Dice (using predicted probabilities instead of hard 0/1 masks) is also popular as a training loss, $1 - \text{Dice}$, for tiny structures such as tumours, because, like IoU, it cannot be won by predicting background.
+
+<QuickCheck
+  q="A model's tumour mask has IoU = 1/3 with the true mask. What is its Dice score?"
+  options={['0.5', '0.33', '0.67', '0.25']}
+  answer={0}
+  explain="$\text{Dice} = 2\,\text{IoU}/(1 + \text{IoU}) = (2/3)/(4/3) = 0.5$. 0.67 simply doubles the IoU, which forgets the denominator; Dice is never more than double IoU and never less than IoU itself."
+/>
+
+<ExamTip>
+
+Prelim questions here are quick recall: IoU is **overlap divided by union**; mIoU **averages over classes**; **accuracy is misleading** when one class dominates; Dice is $2|P \cap T|/(|P| + |T|)$. For conversions, remember one pair: IoU 0.5 ↔ Dice 0.667. In the Final, `calculate_miou` must be vectorised (loop over classes only), skip classes with union 0, avoid `nan`, and return a Python float. Before you submit, run it on a 2×2 example you can check by hand. For a timed rehearsal of the real task, see [2026 Task 2 Part 2: Mean IoU from scratch](#/learn/final-lab-pytorch/task-mean-iou).
+
+</ExamTip>
+
+That completes computer vision. The next part, starting with [Tokenisation, vocabularies and padding](#/learn/text-as-data/tokenisation), turns text into tensors, much as this part did with images.
+
+<Takeaways>
+
+- For each class, $\text{IoU} = |P \cap T| / |P \cup T| = TP/(TP + FP + FN)$; in code, `(p & t).sum() / (p | t).sum()` with `p = pred == c`, `t = true == c`.
+- **Mean IoU** averages the per-class IoUs, giving every class an equal vote. A class absent from **both** maps ($0/0$) is **skipped**; a class predicted but absent scores 0.
+- **Pixel accuracy** is dominated by the background: predicting background everywhere can score 95% while finding nothing. IoU ignores true negatives, so it cannot be gamed this way.
+- **Dice** $= 2|P \cap T|/(|P| + |T|) = 2\,\text{IoU}/(1 + \text{IoU})$: always at least IoU, and for one mask it orders predictions the same way as IoU (averages over classes can disagree).
+
+</Takeaways>

@@ -1,0 +1,270 @@
+/* Local layout helpers for the "vectors" lesson visuals. Colours come from theme tokens only. */
+
+.split {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem 1.25rem;
+  width: 100%;
+}
+.splitMain {
+  flex: 2 1 300px;
+  min-width: 0;
+  max-width: 520px;
+}
+.splitSide {
+  flex: 1 1 200px;
+  min-width: 0;
+  display: grid;
+  gap: 0.6rem;
+  justify-items: center;
+  text-align: center;
+}
+
+/* a vector written as a list: [ 3 , 4 ] with captions under each entry */
+.vec {
+  display: inline-flex;
+  align-items: flex-start;
+  gap: 0.15rem;
+  font-family: var(--font-mono);
+  font-weight: 700;
+  font-size: 1.45rem;
+  line-height: 1.2;
+  color: var(--ink);
+  flex-wrap: nowrap;
+}
+.vecName {
+  margin-right: 0.35rem;
+  color: var(--ink-2);
+  white-space: nowrap;
+}
+.vecBracket {
+  color: var(--ink-2);
+}
+.vecEntry {
+  display: inline-grid;
+  justify-items: center;
+  min-width: 1.6em;
+}
+.vecCap {
+  font-family: var(--font-body);
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  color: var(--ink-3);
+  margin-top: 0.15rem;
+  white-space: nowrap;
+}
+.vecSmall {
+  font-size: 1.05rem;
+}
+
+.reading {
+  font-size: var(--step--1);
+  color: var(--ink-2);
+  margin: 0;
+  max-width: 26ch;
+}
+.code {
+  font-family: var(--font-mono);
+  font-size: 0.85rem;
+  background: var(--surface-2);
+  border-radius: 6px;
+  padding: 0.25rem 0.55rem;
+  color: var(--ink);
+}
+
+/* equation line made of pieces that wrap between, never inside, chunks */
+.eq {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: baseline;
+  gap: 0.2rem 0.45rem;
+  font-family: var(--font-mono);
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--ink);
+  width: 100%;
+}
+.eq > span {
+  white-space: nowrap;
+}
+.eqOp {
+  color: var(--ink-3);
+}
+
+/* student table */
+.tableWrap {
+  width: 100%;
+  overflow-x: auto;
+}
+.table {
+  border-collapse: collapse;
+  width: 100%;
+  font-size: var(--step--1);
+  font-variant-numeric: tabular-nums;
+}
+.table th,
+.table td {
+  padding: 0.35rem 0.45rem;
+  text-align: right;
+  border-bottom: 1px solid var(--rule);
+  white-space: nowrap;
+}
+.table th:first-child,
+.table td:first-child {
+  text-align: left;
+}
+.table th {
+  font-size: 0.78rem;
+  background: var(--surface-2);
+  border-bottom: 1.5px solid var(--ink-3);
+}
+.row {
+  cursor: pointer;
+}
+.row:hover td {
+  background: var(--surface-2);
+}
+.row:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+}
+.rowActive td {
+  background: var(--accent-soft) !important;
+  font-weight: 700;
+}
+.rowAvg td {
+  color: var(--ink-2);
+  font-style: italic;
+}
+
+.stage {
+  position: relative;
+  width: 100%;
+}
+.svg3d {
+  display: block;
+  width: 100%;
+  height: auto;
+  touch-action: pan-y;
+  user-select: none;
+  -webkit-user-select: none;
+  cursor: grab;
+  font-family: var(--font-body);
+  transition: opacity 0.3s ease;
+}
+.svg3d:active {
+  cursor: grabbing;
+}
+.svgFaded {
+  opacity: 0.18;
+}
+.overlay {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: 1rem;
+  pointer-events: none;
+}
+.overlayCard {
+  max-width: 30ch;
+  background: var(--surface);
+  border: 1.5px solid var(--ink);
+  border-radius: 10px;
+  padding: 0.7rem 0.9rem;
+  font-size: var(--step--1);
+  line-height: 1.45;
+  color: var(--ink);
+  text-align: center;
+  box-shadow: var(--shadow-card);
+}
+.dimBadge {
+  display: inline-block;
+  font-size: 0.78rem;
+  font-weight: 700;
+  padding: 0.15rem 0.6rem;
+  border-radius: 999px;
+  background: var(--accent-soft);
+  color: var(--ink);
+}
+
+/* word vectors: two labelled grids */
+.wvPair {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: flex-start;
+  gap: 1rem 1.75rem;
+  width: 100%;
+}
+.wv {
+  display: grid;
+  justify-items: center;
+  gap: 0.35rem;
+  max-width: 100%;
+}
+.wvTitle {
+  font-size: var(--step--1);
+  font-weight: 700;
+  color: var(--ink-2);
+  text-align: center;
+}
+.wvTable {
+  border-collapse: separate;
+  border-spacing: 3px;
+  font-variant-numeric: tabular-nums;
+}
+.wvTable th {
+  font-size: 0.74rem;
+  font-weight: 700;
+  color: var(--ink-2);
+  padding: 0 0.15rem;
+  text-align: center;
+  white-space: nowrap;
+}
+.wvTable thead th {
+  padding-bottom: 0.1rem;
+}
+.wvTable .wvCorner {
+  color: var(--ink-3);
+  font-weight: 600;
+}
+.wvTable td {
+  width: 2.4rem;
+  height: 2.1rem;
+  text-align: center;
+  font-family: var(--font-mono);
+  font-size: 0.85rem;
+  font-weight: 650;
+  color: var(--ink);
+  background: var(--surface-2);
+  border: 1.5px solid transparent;
+  border-radius: 6px;
+}
+.wvSel td {
+  border-color: var(--ink);
+}
+.wvWord {
+  font: inherit;
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--ink);
+  background: var(--surface-2);
+  border: 1.5px solid var(--rule);
+  border-radius: 999px;
+  padding: 0.2rem 0.55rem;
+  cursor: pointer;
+  min-height: 2rem;
+}
+.wvWord[aria-pressed='true'] {
+  background: var(--accent-soft);
+  border-color: var(--accent);
+}
+.wvWord:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}

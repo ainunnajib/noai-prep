@@ -1,0 +1,356 @@
+import DtypeInspector from './visuals/tensors/DtypeInspector'
+import TensorShapeLab from './visuals/tensors/TensorShapeLab'
+import BatchedMatmulShapes from './visuals/tensors/BatchedMatmulShapes'
+import DimPicker from './visuals/tensors/DimPicker'
+
+Every number a PyTorch model touches (a pixel, a weight, the loss) lives inside a **tensor**. Most PyTorch bugs are not clever maths: a tensor has the wrong shape or type, or an operation runs along the wrong axis, and many of them give wrong answers without any error. This lesson makes shapes something you can *see* and predict before you run anything.
+
+<Analogy title="Boxes of mooncakes">
+
+Mooncakes sit in a tray of 4, trays go into a carton, cartons go into a crate. Describe a crate by (cartons, trays, cakes) and you have a shape. Shape surgery is repacking: put one tray into its own carton so it fits on the shelf with the others (add an axis), throw away a carton that only holds one tray (remove an axis), or turn the crate so the cartons face a different way (reorder the axes). The cakes themselves never change; only the packaging does.
+
+</Analogy>
+
+## What a tensor is
+
+A <Term def="PyTorch's multi-dimensional array: a grid of numbers of one type, with a shape. Like a NumPy array, but it can live on a GPU and can track gradients.">tensor</Term> is a grid of numbers of one type. The number of axes is called its rank or `ndim`, and the shape lists the length of each axis:
+
+| Example | Shape | ndim |
+|---|---|---|
+| a loss value | `()` | 0 |
+| scores for 10 classes | `(10,)` | 1 |
+| a greyscale image, 28 × 28 pixels | `(28, 28)` | 2 |
+| a colour image | `(3, 224, 224)` | 3 |
+| a batch of 32 colour images | `(32, 3, 224, 224)` | 4 |
+
+```python
+import torch
+
+x = torch.tensor([[1., 2., 3.],
+                  [4., 5., 6.]])
+print(x.shape)       # the size of each axis
+print(x.ndim)        # how many axes
+print(x.numel())     # how many numbers in total
+print(x.dtype, x.device)
+print(x[1, 2], x[:, 0])
+```
+
+```text
+torch.Size([2, 3])
+2
+6
+torch.float32 cpu
+tensor(6.) tensor([1., 4.])
+```
+
+`torch.Size([2, 3])` behaves like the tuple `(2, 3)`. Indexing and slicing (`x[1, 2]`, `x[:, 0]`), arithmetic and broadcasting all follow the NumPy rules you already know (`dim=` plays the part of NumPy's `axis=`). Tensors add two powers you will use in the next lessons. They can record the operations done to them so that gradients can be computed automatically, the subject of [Autograd: automatic gradients](#/learn/pytorch/autograd). They can also live on a GPU, as [GPUs, devices and common PyTorch errors](#/learn/pytorch/devices-and-common-errors) shows.
+
+## Creating tensors and predicting the dtype
+
+Every tensor has one <Term def="Data type: the kind of number every element is stored as, such as int64 (whole numbers) or float32 (decimals with about 7 significant digits).">dtype</Term>. Two creation functions look almost the same but behave differently:
+
+- **`torch.tensor(data)`** (lowercase) copies your data and *infers* the dtype from it: whole numbers give `int64`, any decimal gives `float32`, and `True`/`False` give `bool`.
+- **`torch.Tensor(data)`** (capital T) is the tensor class itself. Called on a list or a NumPy array, it always gives the default float type, `float32`, whatever numbers are inside.
+
+Generators such as `torch.zeros(2, 3)`, `torch.ones`, `torch.rand` (uniform between 0 and 1), `torch.randn` (normal distribution) and `torch.linspace` give `float32`; `torch.arange(5)` with whole numbers gives `int64`. Notice one difference from NumPy: PyTorch's default float is **float32**, while NumPy's is float64.
+
+```python
+import torch
+import numpy as np
+
+print(torch.tensor([1, 2, 3]).dtype)       # whole numbers
+print(torch.tensor([1, 2, 3.5]).dtype)     # one decimal is enough
+print(torch.Tensor([1, 2, 3]).dtype)       # capital T: always float32
+print(torch.arange(5))
+print(torch.zeros(2, 3))
+print(torch.from_numpy(np.array([0.5, 1.0])))   # keeps NumPy's float64
+```
+
+```text
+torch.int64
+torch.float32
+torch.float32
+tensor([0, 1, 2, 3, 4])
+tensor([[0., 0., 0.],
+        [0., 0., 0.]])
+tensor([0.5000, 1.0000], dtype=torch.float64)
+```
+
+The last line is the usual trap. NumPy arrays keep their own dtype: `torch.tensor(arr)` and `torch.from_numpy(arr)` are both float64 for a float NumPy array (and so is `torch.tensor(df.values)` from pandas), so add `.float()` when you load data from pandas or NumPy.
+
+Why should you care? Try the combinations yourself:
+
+<DtypeInspector />
+
+Three rules come out of it:
+
+1. **Element-wise arithmetic promotes.** `int64 + float32` gives `float32`, so `+`, `-`, `*` and `/` rarely complain. (In-place versions such as `x += y` or `x.add_(y)` cannot change `x`'s dtype, so an integer `x` plus a float `y` raises `result type Float can't be cast to the desired output type Long`.)
+2. **Matrix products and layers do not promote.** `@` and `nn.Linear` need *exactly* the same dtype on both sides. Feeding NumPy data (float64) or integer data into a model gives `mat1 and mat2 must have the same dtype`. The fix is `x.float()`, which converts to float32.
+3. **Gradients need floating point.** `torch.tensor([1, 2], requires_grad=True)` fails, because you cannot nudge an integer by 0.001. (Class labels for a classification loss are the exception: they *should* be `int64`, because they are indices, not things you differentiate.)
+
+<Mistake title="torch.Tensor(3) is not the number 3">
+
+`torch.tensor(3)` is a 0-D tensor holding the number 3. `torch.Tensor(3)` reads the 3 as a *size* and gives three uninitialised float32 numbers, whatever happened to be in memory. Use lowercase `torch.tensor` for data.
+
+</Mistake>
+
+<PastPaperQuestion paper="prelim2026" n={106} />
+
+<PastPaperQuestion paper="prelim2026" n={118} />
+
+<QuickCheck
+  q="What is the dtype of `torch.tensor([2, 4.0, 6])`?"
+  options={['torch.float32', 'torch.int64', 'torch.float64', 'a mix: int64 and float32']}
+  answer={0}
+  explain="A tensor has one dtype for all its elements. The single decimal (4.0) makes the whole tensor floating point, and PyTorch's default float is float32. float64 is NumPy's default, which is the tempting trap."
+/>
+
+## Shape surgery
+
+These tools rearrange a tensor without changing a single number. Use $(3, 4)$ as the running example:
+
+- **`x.view(…)` / `x.reshape(…)`** regroup the numbers in reading order; one size may be `-1`, meaning "work it out": `x.reshape(2, -1)` gives `(2, 6)`.
+- **`x.unsqueeze(d)`** inserts a new axis of size 1 at position `d`: `x.unsqueeze(0)` gives `(1, 3, 4)` and `x.unsqueeze(1)` gives `(3, 1, 4)`.
+- **`x.squeeze(d)`** removes axis `d` if its size is 1, and **`x.squeeze()`** removes every size-1 axis: a `(1, 3, 1, 4)` tensor squeezes to `(3, 4)`.
+- **`x.permute(…)`** puts the axes in a new order: `x.permute(1, 0)` gives `(4, 3)`.
+- **`x.transpose(a, b)`** swaps two axes (`x.T` for 2-D): `x.transpose(0, 1)` gives `(4, 3)`.
+- **`x.flatten(s)`** merges every axis from `s` to the end into one: `x.flatten()` gives `(12,)`.
+
+The one that needs care is `permute`. Read `x.permute(2, 0, 1)` as "new axis 0 is old axis 2, new axis 1 is old axis 0, new axis 2 is old axis 1". So each argument is an *old position*, listed in the *new order*.
+
+### Images are (N, C, H, W)
+
+PyTorch's convolution layers expect a batch of images shaped **(N, C, H, W)**: **N** images in the batch, **C** colour channels (3 for RGB), then the height **H** and width **W** in pixels. Image files, NumPy and matplotlib store a single photo as **(H, W, C)** instead, with the three colour values of each pixel side by side. Converting between the two is the most common shape surgery in computer vision. Try it on a tiny 4 × 5 photo:
+
+<TensorShapeLab />
+
+<KeyIdea>
+
+Shape operations never change the numbers, only how they are grouped and ordered. Say what each axis *means* (N, C, H, W, tokens, features), and write the shape as a comment beside every line.
+
+</KeyIdea>
+
+<Steps title="From a 224 × 224 photo to a batch">
+  <Step title="Load: (H, W, C)">
+    The photo arrives as a tensor of shape $(224, 224, 3)$: height, width, then the 3 colour values of each pixel.
+  </Step>
+  <Step title="Move the channels to the front: permute(2, 0, 1)">
+    New axis 0 is old axis 2 (C = 3), then old axis 0 (H = 224), then old axis 1 (W = 224). The shape is $(3, 224, 224)$, which is (C, H, W).
+  </Step>
+  <Step title="Add the batch axis: unsqueeze(0)">
+    Models expect a batch axis, so add one even for a single image. A new size-1 axis at position 0 gives $(1, 3, 224, 224)$, which is (N, C, H, W). `squeeze(0)` would take it away again.
+  </Step>
+  <Step title="Flatten for a linear layer: flatten(1)">
+    Merge every axis from 1 onwards and keep the batch axis: $3 \times 224 \times 224 = 3 \times 50176 = 150528$, so the shape is $(1, 150528)$.
+  </Step>
+</Steps>
+
+```python
+import torch
+
+img = torch.rand(224, 224, 3)          # a photo as loaded: (H, W, C)
+x = img.permute(2, 0, 1)               # (C, H, W)
+print(x.shape)
+batch = x.unsqueeze(0)                 # add the batch axis: (N, C, H, W)
+print(batch.shape)
+print(batch.squeeze(0).shape)          # remove it again
+print(batch.flatten(1).shape)          # one long vector per image
+```
+
+```text
+torch.Size([3, 224, 224])
+torch.Size([1, 3, 224, 224])
+torch.Size([3, 224, 224])
+torch.Size([1, 150528])
+```
+
+<Mistake title="reshape is not permute">
+
+`img.reshape(3, 224, 224)` also produces the shape $(3, 224, 224)$, and it runs without any error. But reshape pours the numbers in their stored order, so the first "channel" is really the first third of the pixels with their R, G, B values interleaved. The picture is scrambled and the model quietly learns from garbage. Moving an axis needs `permute`; regrouping needs `reshape`.
+
+</Mistake>
+
+<QuickCheck
+  q="`x` has shape `(8, 3, 32, 32)` in (N, C, H, W) order. What is the shape of `x.permute(0, 2, 3, 1)`?"
+  options={['(8, 32, 32, 3)', '(8, 3, 32, 32)', '(3, 32, 32, 8)', '(8, 32, 3, 32)']}
+  answer={0}
+  explain="New axis 0 is old axis 0 (8), then old axes 2 (32), 3 (32) and 1 (3), giving (8, 32, 32, 3): channels last, the (N, H, W, C) layout. Reading the arguments as destinations instead of sources is the usual slip."
+/>
+
+### view versus reshape
+
+`view` and `reshape` look identical, and on a freshly made tensor they are. The difference: `view` never copies, so after a `permute` or `transpose` it can refuse with `view size is not compatible with input tensor's size and stride`, while `reshape` quietly makes a copy when it must. When you meet that error, use `reshape` (or `.contiguous().view(…)`).
+
+<Reveal label="Why view sometimes refuses: strides and contiguous memory (optional)">
+
+Under the hood, a tensor's numbers sit in one long strip of memory. The shape, together with a <Term def="For each axis, how many places to jump along the memory strip to reach the next element on that axis. A (2, 3) tensor stored row by row has strides (3, 1).">stride</Term> for each axis, says how to read that strip as a grid. `permute` and `transpose` are cheap because they move nothing: they only change the strides, so the reading order now jumps around the strip. A tensor whose reading order matches its memory order is called <Term def="Stored in memory in exactly the order you read it, row after row. x.is_contiguous() checks it. permute and transpose usually produce non-contiguous tensors.">contiguous</Term>.
+
+`view` only relabels the strip. A contiguous tensor can always be viewed, but `view` refuses whenever the new shape would merge axes whose numbers are not next to each other in memory, which is typical after `permute` or `transpose`. `reshape` does the same as `view` when it can, and makes a contiguous copy when it must:
+
+```python
+import torch
+
+t = torch.tensor([[1, 2, 3],
+                  [4, 5, 6]])
+u = t.T                        # transpose: shape (3, 2)
+print(u)
+print(u.is_contiguous())
+print(u.reshape(6))            # reshape copies when it must
+print(u.view(6))               # view refuses
+```
+
+```text
+tensor([[1, 4],
+        [2, 5],
+        [3, 6]])
+False
+tensor([1, 4, 2, 5, 3, 6])
+RuntimeError: view size is not compatible with input tensor's size and stride (at least one dimension spans across two contiguous subspaces). Use .reshape(...) instead.
+```
+
+The fix is `u.reshape(6)` or `u.contiguous().view(6)`. You will see the second form in attention code: `out.transpose(1, 2).contiguous().view(B, T, C)`. In the lab above, apply `permute(2, 0, 1)`, switch on memory order and try `view(-1)` to watch this happen. (`view(3, -1)` still works there: it merges only the last two axes, which still sit one after the other in memory, so no copy is needed. `view(-1)` would also have to merge the first axis with them, and that axis is spread across the whole strip.)
+
+</Reveal>
+
+## Batched matrix multiplication
+
+For two matrices, $(m \times k)$ @ $(k \times n)$ gives $(m \times n)$: the touching inner sizes must agree and disappear. Now suppose you have 8 such products to do: `A` holds 8 matrices of size $5 \times 3$, so its shape is $(8, 5, 3)$, and `B` holds 8 matrices of size $3 \times 2$, shape $(8, 3, 2)$. `A @ B` multiplies them in pairs, all at once, and gives $(8, 5, 2)$: 8 separate $(5 \times 3)$ @ $(3 \times 2)$ products. With tensors of more than two dimensions, `@` always follows this rule:
+
+$$
+(\underbrace{\dots}_{\text{batch}},\ m,\ k)\ @\ (\underbrace{\dots}_{\text{batch}},\ k,\ n)\ \to\ (\text{batch},\ m,\ n)
+$$
+
+Only the **last two** dims are multiplied as matrices. All the earlier dims are <Term def="Extra leading axes that just say how many separate matrix products to do at once. They are matched with the broadcasting rules: equal, 1, or missing.">batch dims</Term>: they say how many separate products to do, and they are matched with the broadcasting rules (lined up from the right, equal or 1 or missing).
+
+The case you will meet most often is attention, the core of the <Term def="The network design behind modern language models such as GPT. You will build one in module 27.">Transformer</Term>.
+
+<Note title="A preview of attention">
+
+You will build attention properly in [Scaled dot-product attention and masks](#/learn/attention-and-transformers/scaled-dot-product-attention). For now, `Q` (queries) and `K` (keys) are just two stacks of <Term def="A word or piece of a word. A model turns each token into a vector of numbers.">token</Term> vectors with shape $(B, h, T, d)$: $B$ sentences in the batch, $h$ <Term def="Attention runs several independent copies side by side, called heads, each with its own smaller vectors. Here they are just one more batch dim.">heads</Term>, $T$ tokens per sentence and $d$ numbers per token. The job is to compare every token in `Q` with every token in `K`.
+
+</Note>
+
+Comparing every query with every key is a $(T \times d)$ @ $(d \times T)$ product. `K` is stored as $(\dots, T, d)$, so its last two dims must be swapped first with `K.transpose(-2, -1)` (negative dims count from the end, so $-2, -1$ means "the last two, whatever the rank").
+
+<BatchedMatmulShapes />
+
+<Steps title="Shapes in attention with B = 2, h = 4, T = 5, d = 16">
+  <Step title="Swap the last two dims of K">
+    `K.transpose(-2, -1)` turns $(2, 4, 5, 16)$ into $(2, 4, 16, 5)$.
+  </Step>
+  <Step title="Match the batch dims">
+    Both tensors start with $(2, 4)$, so there are $2 \times 4 = 8$ separate products, one per sentence per head.
+  </Step>
+  <Step title="Multiply the last two dims">
+    Each product is $(5 \times 16)$ @ $(16 \times 5)$: the inner 16s agree and disappear, leaving $(5 \times 5)$, one score for every (query, key) pair.
+  </Step>
+  <Step title="Put it together">
+    `Q @ K.transpose(-2, -1)` has shape $(2, 4, 5, 5)$, which is $(B, h, T, T)$. Softmax then turns each row into weights, and `weights @ V` is $(5 \times 5)$ @ $(5 \times 16)$ per head, giving back $(2, 4, 5, 16)$.
+  </Step>
+</Steps>
+
+```python
+import torch
+
+torch.manual_seed(0)
+B, h, T, d = 2, 4, 5, 16
+Q = torch.randn(B, h, T, d)
+K = torch.randn(B, h, T, d)
+V = torch.randn(B, h, T, d)
+
+scores = Q @ K.transpose(-2, -1) / d ** 0.5   # (B, h, T, d) @ (B, h, d, T)
+# real attention divides by √d to keep the scores small; the shapes are unchanged
+print(scores.shape)
+weights = torch.softmax(scores, dim=-1)   # each query's weights sum to 1
+print(weights.sum(dim=-1)[0, 0])
+out = weights @ V                         # (B, h, T, T) @ (B, h, T, d)
+print(out.shape)
+```
+
+```text
+torch.Size([2, 4, 5, 5])
+tensor([1.0000, 1.0000, 1.0000, 1.0000, 1.0000])
+torch.Size([2, 4, 5, 16])
+```
+
+Forgetting the transpose, `Q @ K` stops with `RuntimeError: Expected size for first two dimensions of batch2 tensor to be: [8, 16] but got: [8, 5].` The 8 in both pairs is $B \times h = 8$ products. The second numbers are the inner sizes: it wanted 16 ($d$, the last dim of `Q`) but found 5 ($T$, the second-to-last dim of `K`).
+
+<ExamTip>
+
+For any `@` question, cover the batch dims with your thumb, apply the 2-D rule to the last two dims, then put the batch dims back. $(B, h, T, d)$ @ $(B, h, d, T)$ → $(B, h, T, T)$ is worth memorising, along with its partner $(B, h, T, T)$ @ $(B, h, T, d)$ → $(B, h, T, d)$. If the two inner sizes differ, the answer is an error, and `transpose(-2, -1)` is usually the fix.
+
+</ExamTip>
+
+## Choosing dim
+
+Most operations take a `dim` argument (NumPy calls it `axis`) that says *along which axis* to work. The common operations treat it in four different ways:
+
+- **Reductions** (`sum`, `mean`, `max`, `argmax`): the dim you name **disappears** from the shape, unless you pass `keepdim=True`, which keeps it with size 1.
+- **Softmax** keeps the shape, and makes the numbers along the named dim positive and sum to 1.
+- **`torch.cat`** joins tensors along an existing dim: that dim **grows**, and every other dim must match.
+- **`torch.stack`** is its cousin that makes a **new** dim instead: two $(3, 4)$ tensors stack to $(2, 3, 4)$ with `dim=0`, and every shape must be identical. This is how a DataLoader turns single examples into a batch.
+
+The danger is that a wrong dim almost never raises an error. Try every dim for each operation and read the verdict:
+
+<DimPicker />
+
+The dims you will need most often:
+
+- **Attention weights, one set per query.** Scores $(B, h, T, T)$: `torch.softmax(scores, dim=-1)` keeps the shape.
+- **Join two stacks of images along the channels.** `x` and `skip` are both $(N, C, H, W)$ <Term def="The output of a convolution layer: for each image, a stack of C grids of numbers, one grid per channel. You will meet them in the CNN module.">feature maps</Term>: `torch.cat([x, skip], dim=1)` gives $(N, 2C, H, W)$. This is how a U-Net's <Term def="A U-Net (module 25) is an image network that shrinks a picture and then grows it back. A skip connection carries a copy of an early layer's output forward and joins it to a later one.">skip connection</Term> joins an early layer's output to a later one.
+- **Average token vectors into a sentence vector.** $(B, T, d)$: `x.mean(dim=1)` gives $(B, d)$.
+- **Predicted class per pixel** (segmentation: labelling every pixel). <Term def="The raw scores a model gives each class, before softmax turns them into probabilities. The biggest logit is the predicted class.">Logits</Term> $(N, \text{classes}, H, W)$: `logits.argmax(dim=1)` gives $(N, H, W)$.
+- **Predicted class per example.** Logits $(N, \text{classes})$: `logits.argmax(dim=1)` gives $(N,)$.
+
+```python
+import torch
+
+logits = torch.tensor([[2.0, 0.5, -1.0],
+                       [0.1, 3.0,  0.2]])   # 2 examples, 3 classes
+print(logits.argmax(dim=1))       # predicted class per example
+print(logits.argmax(dim=0))       # which example is best per class (not a prediction!)
+print(logits.mean(dim=1, keepdim=True).shape)
+x = torch.zeros(8, 64, 32, 32)
+skip = torch.zeros(8, 64, 32, 32)
+print(torch.cat([x, skip], dim=1).shape)
+print(torch.cat([x, skip], dim=0).shape)
+print(torch.stack([x, skip], dim=0).shape)    # a new dim in front
+```
+
+```text
+tensor([0, 1])
+tensor([0, 1, 1])
+torch.Size([2, 1])
+torch.Size([8, 128, 32, 32])
+torch.Size([16, 64, 32, 32])
+torch.Size([2, 8, 64, 32, 32])
+```
+
+<Mistake title="The wrong dim fails silently">
+
+`torch.softmax(scores, dim=0)` on a batch runs perfectly and returns numbers between 0 and 1. They just sum to 1 across *different sentences*, so the model trains on nonsense. Check two things: the output shape is the one you expect, and (for softmax) `out.sum(dim=-1)` is all ones.
+
+</Mistake>
+
+<QuickCheck
+  q="`logits` has shape `(32, 10)`: 32 examples and 10 classes. Which line gives one predicted class per example, as a tensor of shape `(32,)`?"
+  options={['logits.argmax(dim=1)', 'logits.argmax(dim=0)', 'logits.max(dim=1)', 'logits.argmax(dim=1, keepdim=True)']}
+  answer={0}
+  explain="The dim you name disappears: crossing out the 10 classes (dim 1) leaves (32,), one index per example. dim=0 gives (10,), the best example for each class. keepdim=True would give (32, 1), and max returns values together with indices rather than just the class."
+/>
+
+<ExamTip>
+
+In shape questions, write the shape and cross out the dim you name for a reduction, or add the two sizes along it for `cat`. In the Final, add `assert out.shape == (B, T, d)` or a `# (B, T, d)` comment after every line of a from-scratch model: shape bugs are one of the most common reasons a correct-looking implementation fails the hidden tests.
+
+</ExamTip>
+
+<Takeaways>
+
+- `torch.tensor` infers one dtype for the whole tensor (whole numbers → int64, decimals → float32). NumPy floats stay float64, so add `.float()`: `@` and layers need matching dtypes.
+- `unsqueeze(d)` adds a size-1 axis, `squeeze` removes size-1 axes, `permute` reorders axes (each argument is an old position), `transpose` swaps two, `flatten(s)` merges, and `view`/`reshape` regroup in reading order. `view` never copies, so it can refuse after `permute`; `reshape` copies if it must.
+- Image batches are (N, C, H, W). A photo (H, W, C) becomes a batch with `.permute(2, 0, 1).unsqueeze(0)`.
+- `@` multiplies the last two dims and broadcasts the rest: $(B, h, T, d)$ @ $(B, h, d, T)$ → $(B, h, T, T)$, using `K.transpose(-2, -1)`.
+- Name the dim you mean: reductions remove it, softmax normalises along it (`dim=-1` in attention), `cat` grows it (`dim=1` for channels). A wrong dim rarely raises an error.
+
+</Takeaways>

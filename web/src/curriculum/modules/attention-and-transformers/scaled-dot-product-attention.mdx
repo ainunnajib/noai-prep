@@ -1,0 +1,452 @@
+import AttentionMatrixStepper from './visuals/scaled-dot-product-attention/AttentionMatrixStepper'
+import SqrtDScaling from './visuals/scaled-dot-product-attention/SqrtDScaling'
+import CausalMaskGrid from './visuals/scaled-dot-product-attention/CausalMaskGrid'
+
+In the last lesson, [Attention as a soft lookup](#/learn/attention-and-transformers/attention-intuition), one query looked up one answer. A Transformer does that for **every** token of a sentence at the same time, with two matrix multiplications and a softmax. That one line of maths, $\operatorname{softmax}(QK^T/\sqrt{d_k})\,V$, is called **scaled dot-product attention**. In the 2026 NOAI Final, Task 3 asked students to code it (8 marks), to explain the $\sqrt{d_k}$ in it (2 marks) and to build a causal mask (5 bonus marks). By the end of this lesson you can do all three.
+
+## Every query at once
+
+Take a sentence of $T$ tokens. In self-attention each token has a query, a key and a value vector. Instead of looping over the tokens, we stack the vectors as the **rows** of three matrices:
+
+- $Q$ holds the queries, one row per token. It has $T$ rows and $d_k$ columns, written $(T, d_k)$.
+- $K$ holds the keys, also $(T, d_k)$. Queries and keys must have the same length, because we take dot products between them.
+- $V$ holds the values, $(T, d_v)$. The value length $d_v$ may differ from $d_k$, though in practice it is often the same.
+
+Here $d_k$ is the <Term def="The number of entries in each query and key vector. In the original Transformer it is 64.">key dimension</Term>: the length of each query and key vector. A shape such as $(T, d_k)$ means "$T$ rows and $d_k$ columns", the same way NumPy and PyTorch report `.shape`.
+
+<Analogy title="A class seating chart">
+
+Picture a class of $T$ students and a big table with one row and one column per student. Every student fills in their row by rating how relevant each classmate is to what they want to know. Then each student writes up notes that mix what their classmates said, copying most from the classmates they rated highest. The table of ratings is the score matrix; the notes are the output.
+
+</Analogy>
+
+### One multiplication computes every score
+
+In [Matrices and multiplication](#/learn/vectors-and-matrices/matrices-and-multiplication) you saw that each entry of a product $AB$ is a dot product of a **row** of $A$ with a **column** of $B$. The rows of $Q$ are already queries, but the keys are also rows. Transposing $K$, written $K^T$, flips its rows into columns. Then
+
+$$
+S = QK^T, \qquad S_{ij} = q_i \cdot k_j
+$$
+
+is a $T \times T$ table in which row $i$, column $j$ holds the score of query $i$ against key $j$. A single matrix multiplication has done all $T \times T$ dot products at once, which is exactly what GPUs are fast at.
+
+### The whole formula
+
+$$
+\text{Attention}(Q, K, V) = \operatorname{softmax}\!\left(\frac{QK^T}{\sqrt{d_k}}\right) V
+$$
+
+Read it from the inside out:
+
+- $QK^T$ is the $(T, T)$ table of <Term def="The raw dot products q·k between queries and keys, before softmax. Also called logits.">attention scores</Term>.
+- $\sqrt{d_k}$ is the square root of the key dimension. Dividing every score by it keeps the scores at a sensible size; the section below shows why this matters.
+- $\operatorname{softmax}$ is applied to **each row on its own** (in code, `dim=-1`, the last dimension). Row $i$ becomes token $i$'s attention weights: all positive, adding up to 1. Call this weight matrix $A$.
+- Multiplying by $V$ blends the values: row $i$ of $AV$ is $\sum_j A_{ij}\, v_j$, the weighted average of the value rows. That is exactly what the single query did in [Attention as a soft lookup](#/learn/attention-and-transformers/attention-intuition), now done for query $i$.
+
+<AttentionMatrixStepper />
+
+<KeyIdea>
+
+Scaled dot-product attention is **two matrix multiplications with a row-wise softmax in between**: $QK^T$ scores every query against every key, dividing by $\sqrt{d_k}$ keeps the scores moderate, softmax turns each row into weights that add up to 1, and multiplying by $V$ blends the values.
+
+</KeyIdea>
+
+## Keep track of the shapes
+
+Shape questions are free marks in the Prelim and the first thing to check when Final code crashes. Follow one sentence through the formula:
+
+| step | operation | shape |
+|---|---|---|
+| queries, keys | $Q$, $K$ | $(T, d_k)$ |
+| values | $V$ | $(T, d_v)$ |
+| scores | $QK^T$: $(T, d_k)$ times $(d_k, T)$ | $(T, T)$ |
+| scaled scores | divide by $\sqrt{d_k}$ | $(T, T)$ |
+| weights $A$ | softmax over each row | $(T, T)$ |
+| output | $AV$: $(T, T)$ times $(T, d_v)$ | $(T, d_v)$ |
+
+Three things to notice:
+
+- The weight matrix is **square**, $T \times T$: one row per query and one column per key. Doubling the sentence length makes it four times bigger, which is why long inputs are expensive (more on that in [Positional encoding and the Transformer block](#/learn/attention-and-transformers/positional-encoding-and-blocks)).
+- The output has **one row per token**, as long as a value vector.
+- $K$ and $V$ must have the same number of rows (one value per key), but $d_k$ and $d_v$ are free to differ.
+
+In PyTorch the tokens come in a <Term def="A group of examples processed together. Its size B is the first dimension of the tensor.">batch</Term> of $B$ sentences, so every tensor gets an extra dimension in front: $(B, T, d_k) \to (B, T, T) \to (B, T, d_v)$. The `@` operator treats every dimension except the last two as "batch" and multiplies the last two as matrices. That is why code transposes keys with `key.transpose(-2, -1)` (swap the last two dimensions) and not with `.T`, which reverses *all* the dimensions (and on tensors with more than 2 dimensions, PyTorch now warns that this use of `.T` is deprecated). In the next lesson, [Multi-head attention](#/learn/attention-and-transformers/multi-head-attention), a head dimension joins the front too: $(B, h, T, d_k)$.
+
+<QuickCheck
+  q="In a batch, `Q` and `K` have shape `(32, 10, 64)` and `V` has shape `(32, 10, 16)`. What are the shapes of the attention weights and of the output?"
+  options={[
+    'weights `(32, 10, 10)`, output `(32, 10, 16)`',
+    'weights `(32, 64, 64)`, output `(32, 10, 16)`',
+    'weights `(32, 10, 10)`, output `(32, 10, 64)`',
+    'weights `(32, 10, 64)`, output `(32, 64, 16)`',
+  ]}
+  answer={0}
+  explain="The scores compare each of the 10 queries with each of the 10 keys, so the weights are $(32, 10, 10)$; $d_k = 64$ is summed away inside each dot product. The output is weights times values, $(10, 10)$ times $(10, 16)$, giving $(32, 10, 16)$: one row per token, as long as a value. A $64 \times 64$ table would compare features, not tokens."
+/>
+
+## A worked example by hand
+
+Three tokens, $d_k = 4$ and $d_v = 2$. We pick $d_k = 4$ because $\sqrt{4} = 2$ is easy to divide by.
+
+<Columns min={190}>
+
+$$
+Q = \begin{bmatrix} 1 & 1 & 1 & 1 \\ 2 & 0 & 0 & 0 \\ 0 & 0 & 2 & 2 \end{bmatrix}
+$$
+
+$$
+K = \begin{bmatrix} 1 & 1 & 0 & 0 \\ 0 & 0 & 1 & 1 \\ 1 & 0 & 1 & 0 \end{bmatrix}
+$$
+
+$$
+V = \begin{bmatrix} 6 & 0 \\ 0 & 6 \\ 3 & 3 \end{bmatrix}
+$$
+
+</Columns>
+
+<Steps title="softmax(QKᵀ/√dₖ)V for three tokens">
+  <Step title="Scores $S = QK^T$">
+    Each entry is one query row dotted with one key row. For example, row 3 and column 2 (token 3 is "laksa" in the visual, token 2 is "love"): $S_{32} = q_3 \cdot k_2 = 0 \times 0 + 0 \times 0 + 2 \times 1 + 2 \times 1 = 4$. All nine entries make a $3 \times 3$ table:
+
+    $$
+    S = \begin{bmatrix} 2 & 2 & 2 \\ 2 & 0 & 2 \\ 0 & 4 & 2 \end{bmatrix}
+    $$
+  </Step>
+  <Step title="Scale: divide by $\sqrt{d_k} = 2$">
+    Same shape, smaller numbers:
+
+    $$
+    \frac{S}{\sqrt{d_k}} = \begin{bmatrix} 1 & 1 & 1 \\ 1 & 0 & 1 \\ 0 & 2 & 1 \end{bmatrix}
+    $$
+  </Step>
+  <Step title="Softmax each row">
+    - Row 1: all three scores are equal, so the weights are $\tfrac13, \tfrac13, \tfrac13$.
+    - Row 2: $e^1, e^0, e^1 \approx 2.72, 1, 2.72$, total $6.44$, so the weights are $0.422, 0.155, 0.422$.
+    - Row 3: $e^0, e^2, e^1 \approx 1, 7.39, 2.72$, total $11.11$, so the weights are $0.090, 0.665, 0.245$.
+
+    Each row adds up to 1. Call this matrix $A$.
+  </Step>
+  <Step title="Blend the values: $AV$">
+    - Row 1: $\tfrac13([6, 0] + [0, 6] + [3, 3]) = [3, 3]$, the plain average.
+    - Row 2: $0.422 \times [6, 0] + 0.155 \times [0, 6] + 0.422 \times [3, 3] \approx [3.80, 2.20]$.
+    - Row 3: $0.090 \times [6, 0] + 0.665 \times [0, 6] + 0.245 \times [3, 3] \approx [1.27, 4.73]$.
+
+    The output is $(3, 2)$: one blended value per token.
+  </Step>
+</Steps>
+
+Now press **Worked example (dₖ = 4)** in the visual above and step through it: every number should match yours. In the scores, cell S[laksa, love] is the $S_{32} = 4$ you just computed. Token 3's query points the same way as key 2, so its output leans towards $v_2 = [0, 6]$ more than towards the other values.
+
+## Why divide by √dₖ?
+
+Leave out the $\sqrt{d_k}$ and the formula still runs, and every shape is still right. So why is it there? Try it first: slide $d_k$ up to 512 with scaling off and watch the softmax weights, then switch scaling on.
+
+<SqrtDScaling />
+
+<Analogy title="Sharing a prize by softmax">
+
+A teacher splits a prize between three students by taking the softmax of their marks. On a 10-question quiz they score 8, 7 and 6, and the prize splits 67%, 24% and 9%: everyone gets a share. On a 100-question exam the same three students score 80, 70 and 60. The gaps are ten times bigger, and because softmax exponentiates the gaps, the top student now takes 99.995% and the other two get almost nothing. Dividing the exam marks by 10 before the softmax brings back the fair 67 / 24 / 9 split. Longer query and key vectors make bigger dot products in the same way, and dividing by $\sqrt{d_k}$ is that rescaling.
+
+</Analogy>
+
+Here is the maths behind what you just saw.
+
+**Dot products grow with the dimension.** A dot product $q \cdot k = q_1 k_1 + q_2 k_2 + \dots + q_{d_k} k_{d_k}$ is a sum of $d_k$ products. Suppose every entry of $q$ and $k$ is a random number with average 0 and <Term def="A measure of spread: the average squared distance from the mean. Its square root is the standard deviation, the typical size of a deviation.">variance</Term> 1 (see [Describing data](#/learn/probability-and-statistics/describing-data)), all independent. Then each product $q_i k_i$ also has average 0 and variance 1 (the same argument as for weight initialisation in [Initialisation, BatchNorm and LayerNorm](#/learn/training-deep-networks/initialisation-and-normalisation)), and [the variances of independent terms add up](#/learn/probability-and-statistics/distributions-and-clt):
+
+$$
+\operatorname{Var}(q \cdot k) = \underbrace{1 + 1 + \dots + 1}_{d_k \text{ terms}} = d_k
+$$
+
+So the standard deviation, the typical size of a score, is $\sqrt{d_k}$: about 2 when $d_k = 4$, 8 when $d_k = 64$ and 22.6 when $d_k = 512$.
+
+**Big scores break softmax.** Softmax only cares about differences between scores, and it exaggerates them exponentially. Take a row of scaled scores $[2, 1, 0]$: the weights are $[0.665, 0.245, 0.090]$, a nice soft blend. With $d_k = 64$ and no scaling, the same row is 8 times bigger, $[16, 8, 0]$, and the weights become $[0.9997, 0.0003, 0.0000]$. Attention has collapsed into a hard lookup, the very thing [Attention as a soft lookup](#/learn/attention-and-transformers/attention-intuition) replaced. Softmax is now <Term def="Pushed so far into its flat region that its output barely changes when the input changes, so its gradient is almost zero.">saturated</Term>.
+
+**Saturated softmax stops learning.** The slope of a softmax weight $p$ with respect to its own score is $p(1 - p)$. For $p = 0.665$ that is $0.665 \times 0.335 \approx 0.22$; for $p = 0.9997$ it is about $0.0003$, hundreds of times smaller. The gradients that should train $W_Q$ and $W_K$ shrink towards zero: the [vanishing gradient](#/learn/backpropagation/vanishing-and-exploding-gradients) problem, inside attention.
+
+**The fix.** Dividing a random quantity by $c$ divides its variance by $c^2$ ($\operatorname{Var}(aX) = a^2\operatorname{Var}(X)$ with $a = 1/c$). Dividing the scores by $\sqrt{d_k}$ divides their variance by $d_k$, bringing it back to $d_k / d_k = 1$ whatever the dimension.
+
+<KeyIdea>
+
+With unit-variance entries, $\operatorname{Var}(q \cdot k) = d_k$. Dividing by $\sqrt{d_k}$ brings the scores' variance back to about 1, so softmax stays soft and its gradients stay healthy, whatever the vector length.
+
+</KeyIdea>
+
+There are two ways to get the scaling wrong, and the worse one is invisible.
+
+<Mistake title="Dividing by dₖ, or not at all">
+
+Dividing by $d_k$ instead of $\sqrt{d_k}$ over-shrinks the scores: their standard deviation becomes $1/\sqrt{d_k}$ (0.125 when $d_k = 64$), so every row of weights is almost uniform and attention cannot focus. Forgetting the scale entirely is worse because it is silent: the code runs and every shape test passes. Only a check on the actual numbers catches it.
+
+</Mistake>
+
+The Final turned exactly this reasoning into a written question.
+
+<ExamTip title="The Final's written question">
+
+Task 3.2 of the 2026 Final asked *why* we divide by $\sqrt{d_k}$, for 2 marks. A full-mark answer has three links in the chain: (1) if $q$ and $k$ have independent unit-variance entries, $q \cdot k$ has variance $d_k$, so scores grow like $\sqrt{d_k}$; (2) large scores push softmax into saturation, almost one-hot, where its gradients are nearly zero and learning stalls; (3) dividing by $\sqrt{d_k}$ brings the variance back to about 1.
+
+</ExamTip>
+
+## Masks: hiding what a token must not see
+
+Sometimes a token must **not** look at certain positions. There are two common cases.
+
+**Causal (look-ahead) mask.** A GPT-style model learns to predict the next token. During training it reads a whole sentence at once, and the output at position $t$ is used to predict token $t + 1$. If position $t$ could attend to position $t + 1$, it would simply copy the answer, and at generation time that future token does not exist yet. A <Term def="A mask that lets each position attend only to itself and earlier positions, never to later ones. Used in GPT-style (autoregressive) models.">causal mask</Term> lets token $i$ attend only to positions $j \le i$: itself and the past.
+
+<Analogy title="Covering the answers">
+
+Working through a worksheet with the answers printed further down the page, you cover everything below the line you are on. You may look back at your earlier working as much as you like, but never ahead.
+
+</Analogy>
+
+<PastPaperQuestion paper="noai2025" n={20} />
+
+**Padding mask.** Sentences in a batch must have the same length, so short ones are filled up with `[PAD]` tokens (see [Tokenisation](#/learn/text-as-data/tokenisation)). Those fillers mean nothing, so no real token should attend to them; otherwise a sentence's meaning would depend on how much padding its batch happened to need.
+
+**How to mask: $-\infty$ before the softmax.** Set every blocked score to $-\infty$ and then apply softmax as usual. Since $e^{-\infty} = 0$, a blocked position gets weight exactly 0, and because softmax divides by the total of what is left, each row still adds up to 1.
+
+Apply a causal mask to the worked example. Every score above the diagonal (a key in the future) becomes $-\infty$, and softmax on each row gives the new weights $A$:
+
+<Columns min={240}>
+
+$$
+\text{masked scores} = \begin{bmatrix} 1 & -\infty & -\infty \\ 1 & 0 & -\infty \\ 0 & 2 & 1 \end{bmatrix}
+$$
+
+$$
+A = \begin{bmatrix} 1 & 0 & 0 \\ 0.731 & 0.269 & 0 \\ 0.090 & 0.665 & 0.245 \end{bmatrix}
+$$
+
+</Columns>
+
+In row 2, $e^1 \approx 2.72$ and $e^0 = 1$ share a total of $3.72$, giving $0.731$ and $0.269$. The first token can only see itself, so its output is just its own value $[6, 0]$; token 2's output becomes $0.731 \times [6, 0] + 0.269 \times [0, 6] \approx [4.39, 1.61]$; the last token, which may see everything, is unchanged.
+
+<QuickCheck
+  q="A decoder uses a causal mask on a sentence of 6 tokens. What are the attention weights of the **first** token, whatever its scores are?"
+  options={[
+    '$[1, 0, 0, 0, 0, 0]$: it may attend only to itself, so all its weight goes there',
+    '$[\\tfrac16, \\tfrac16, \\tfrac16, \\tfrac16, \\tfrac16, \\tfrac16]$: the mask makes every weight equal',
+    '$[0, 0, 0, 0, 0, 0]$: the first token has no earlier tokens, so it attends to nothing',
+    'They depend on its scores against all six keys, because the mask only affects later tokens',
+  ]}
+  answer={0}
+  explain="Under a causal mask, token 1 may attend to positions $j \le 1$, which is only itself. Its other five scores are $-\infty$, so softmax gives $e^{s_1}/e^{s_1} = 1$ for itself and 0 for the rest. The weights are never all 0, because softmax always shares out a total of 1 among the positions that are left."
+/>
+
+### Building masks in PyTorch
+
+Two functions make triangles. `torch.tril` keeps the **lower** triangle (on and below the diagonal) and `torch.triu` keeps the **upper** triangle; `diagonal=1` starts one step above the diagonal.
+
+```python
+import torch
+T = 4
+print(torch.tril(torch.ones(T, T)))               # 1 = may attend
+print(torch.triu(torch.ones(T, T), diagonal=1))   # 1 = future, must block
+```
+
+```text
+tensor([[1., 0., 0., 0.],
+        [1., 1., 0., 0.],
+        [1., 1., 1., 0.],
+        [1., 1., 1., 1.]])
+tensor([[0., 1., 1., 1.],
+        [0., 0., 1., 1.],
+        [0., 0., 0., 1.],
+        [0., 0., 0., 0.]])
+```
+
+Row $i$ is query $i$ and column $j$ is key $j$. The two matrices are opposite conventions for the same mask: in the first, **1 means keep**; in the second, **1 means block**. Then `scores.masked_fill(cond, float('-inf'))` writes $-\infty$ wherever `cond` is true:
+
+- with the `tril` mask: `scores.masked_fill(mask == 0, float('-inf'))`;
+- with the `triu(diagonal=1)` mask: `scores.masked_fill(mask == 1, float('-inf'))`.
+
+<CausalMaskGrid />
+
+<Mistake title="Mixing up mask conventions">
+
+Building a mask in one convention and reading it in the other is the classic attention bug: the triangle flips, tokens see the **future**, and the last row may be blocked completely. It even happens inside PyTorch: for a `True`/`False` mask, `F.scaled_dot_product_attention` treats `True` as "may attend", while `nn.MultiheadAttention` treats `True` as "blocked". Always print a small mask and check row 0: under a causal mask, the first token must see only itself.
+
+</Mistake>
+
+The 2026 Final tested exactly this. Its three mask builders below all return the same tensor (`True` = may attend), so whichever one you use, the attention code must then block the `False` entries, for example with `masked_fill(mask == 0, ...)`.
+
+<PastPaperQuestion paper="final2026" n={17} />
+
+**−∞ or −1e9?** If every position in a row is blocked (for example, a sentence that is entirely [PAD]; a left-padded sentence under a causal mask plus a padding mask, where the first [PAD] query may look only at itself and itself is blocked; or a mask that also blocks [PAD] query rows), all its scores are $-\infty$ and softmax computes $0 / 0$, which is `nan` (not a number). One `nan` then spreads through every later calculation. Many implementations, including the 2026 Final's notebook, use a huge negative number such as $-10^9$ instead: blocked weights still come out as exactly 0, and a fully blocked row becomes harmlessly uniform. And never mask with 0: $e^0 = 1$, so a "blocked" position still gets weight.
+
+```python
+import torch
+import torch.nn.functional as F
+scores = torch.tensor([[2., 1., 5.],
+                       [1., 3., 0.]])
+blocked = torch.tensor([[False, False, True],
+                        [True,  True,  True]])
+print(F.softmax(scores.masked_fill(blocked, float('-inf')), dim=-1))
+print(F.softmax(scores.masked_fill(blocked, -1e9), dim=-1))
+print(F.softmax(scores.masked_fill(blocked, 0.0), dim=-1))
+```
+
+```text
+tensor([[0.7311, 0.2689, 0.0000],
+        [   nan,    nan,    nan]])
+tensor([[0.7311, 0.2689, 0.0000],
+        [0.3333, 0.3333, 0.3333]])
+tensor([[0.6652, 0.2447, 0.0900],
+        [0.3333, 0.3333, 0.3333]])
+```
+
+In the first row, the score 5 would have taken almost all the weight; masked with $-\infty$ or $-10^9$ it gets exactly 0. Masked with 0 it still takes 9%.
+
+**Padding masks in code.** A padding mask comes straight from the token ids: `ids != PAD` is `True` for every real token and `False` for every `[PAD]`, one row per sentence. One `unsqueeze` adds a size-1 query axis so the mask can *broadcast* against the scores: PyTorch stretches a size-1 axis to match, here down all $T$ query rows.
+
+```python
+import torch
+PAD = 0
+ids = torch.tensor([[5, 7, 9, 0, 0],    # 3 real tokens, 2 [PAD]s
+                    [4, 4, 0, 0, 0]])   # 2 real tokens, 3 [PAD]s
+pad = ids != PAD            # (B, T): True = real token
+mask = pad.unsqueeze(1)     # (B, 1, T): one row per sentence
+print(mask.shape)
+
+scores = torch.zeros(2, 5, 5)   # (B, T, T), all equal here
+scores = scores.masked_fill(mask == 0, -1e9)
+weights = torch.softmax(scores, dim=-1)
+print(weights[1])               # sentence 2
+```
+
+```text
+torch.Size([2, 1, 5])
+tensor([[0.5000, 0.5000, 0.0000, 0.0000, 0.0000],
+        [0.5000, 0.5000, 0.0000, 0.0000, 0.0000],
+        [0.5000, 0.5000, 0.0000, 0.0000, 0.0000],
+        [0.5000, 0.5000, 0.0000, 0.0000, 0.0000],
+        [0.5000, 0.5000, 0.0000, 0.0000, 0.0000]])
+```
+
+Every query row of sentence 2, its three `[PAD]` rows included, shares its weight between the two real tokens only.
+
+<Reveal label="Mask shapes the Final expects">
+
+For scores of shape $(B, T, T)$, a causal mask $(T, T)$ is shared by the whole batch, and the padding mask $(B, 1, T)$ above marks which **keys** are real, copied down every query row. With attention heads (see [Multi-head attention](#/learn/attention-and-transformers/multi-head-attention)) the scores become $(B, h, T, T)$, and the masks become $(1, 1, T, T)$ and $(B, 1, 1, T)$, the shapes the Final's tests expected. For the padding mask that is `pad.unsqueeze(1).unsqueeze(2)`.
+
+</Reveal>
+
+## All of it in PyTorch
+
+This is the function Task 3.1 of the 2026 Final asked for (same signature, including the optional dropout on the weights), run on the worked example:
+
+```python
+import math
+import torch
+import torch.nn.functional as F
+torch.set_printoptions(precision=3)
+
+def scaled_dot_product_attention(query, key, value, mask=None, dropout=None):
+    d_k = query.size(-1)
+    scores = query @ key.transpose(-2, -1) / math.sqrt(d_k)    # (..., T, T)
+    if mask is not None:
+        scores = scores.masked_fill(mask == 0, -1e9)            # 0 = blocked
+    weights = F.softmax(scores, dim=-1)                         # each row sums to 1
+    if dropout is not None:
+        weights = dropout(weights)                              # e.g. nn.Dropout(0.1)
+    return weights @ value, weights                             # (..., T, d_v)
+
+# the worked example: T = 3 tokens, d_k = 4, d_v = 2
+Q = torch.tensor([[1., 1, 1, 1], [2, 0, 0, 0], [0, 0, 2, 2]])
+K = torch.tensor([[1., 1, 0, 0], [0, 0, 1, 1], [1, 0, 1, 0]])
+V = torch.tensor([[6., 0], [0, 6], [3, 3]])
+
+out, w = scaled_dot_product_attention(Q, K, V)
+print(w)
+print(out)
+
+causal = torch.tril(torch.ones(3, 3))       # 1 = may attend, 0 = future
+out, w = scaled_dot_product_attention(Q, K, V, mask=causal)
+print(w)
+print(out)
+
+# a batch: B = 2 sequences, T = 5 tokens, d_k = d_v = 8
+torch.manual_seed(0)
+q, k, v = torch.randn(2, 5, 8), torch.randn(2, 5, 8), torch.randn(2, 5, 8)
+out, w = scaled_dot_product_attention(q, k, v)
+print(w.shape, out.shape)
+print(w.sum(dim=-1))                       # every row adds up to 1
+print(torch.allclose(out, F.scaled_dot_product_attention(q, k, v)))
+```
+
+```text
+tensor([[0.333, 0.333, 0.333],
+        [0.422, 0.155, 0.422],
+        [0.090, 0.665, 0.245]])
+tensor([[3.000, 3.000],
+        [3.801, 2.199],
+        [1.274, 4.726]])
+tensor([[1.000, 0.000, 0.000],
+        [0.731, 0.269, 0.000],
+        [0.090, 0.665, 0.245]])
+tensor([[6.000, 0.000],
+        [4.386, 1.614],
+        [1.274, 4.726]])
+torch.Size([2, 5, 5]) torch.Size([2, 5, 8])
+tensor([[1.000, 1.000, 1.000, 1.000, 1.000],
+        [1.000, 1.000, 1.000, 1.000, 1.000]])
+True
+```
+
+The hand-worked numbers match, the masked version matches, and our function agrees with PyTorch's built-in `F.scaled_dot_product_attention`. Because `@`, `transpose(-2, -1)` and `dim=-1` all count from the end, the same function works unchanged for a single sentence, a batch, or a batch of heads.
+
+The same function in NumPy runs right here in your browser. Try the causal mask, swap `mask == 0` for `mask == 1` and look at row 0, or multiply `Q` by 8 and watch the weights saturate.
+
+<PyRunner packages={['numpy']} code={`import numpy as np
+np.set_printoptions(precision=3, suppress=True)
+
+def softmax(S):
+    S = S - S.max(axis=-1, keepdims=True)   # for numerical safety; same answer
+    E = np.exp(S)
+    return E / E.sum(axis=-1, keepdims=True)
+
+def attention(Q, K, V, mask=None):
+    d_k = Q.shape[-1]
+    S = Q @ K.T / np.sqrt(d_k)              # (T, T) scores
+    if mask is not None:
+        S = np.where(mask == 0, -np.inf, S)  # blocked -> minus infinity
+    A = softmax(S)                           # each row sums to 1
+    return A @ V, A
+
+Q = np.array([[1, 1, 1, 1], [2, 0, 0, 0], [0, 0, 2, 2]], dtype=float)
+K = np.array([[1, 1, 0, 0], [0, 0, 1, 1], [1, 0, 1, 0]], dtype=float)
+V = np.array([[6, 0], [0, 6], [3, 3]], dtype=float)
+
+out, A = attention(Q, K, V)
+print("weights:\\n", A)
+print("output:\\n", out)
+
+causal = np.tril(np.ones((3, 3)))            # 1 = may attend
+out, A = attention(Q, K, V, mask=causal)
+print("causal weights:\\n", A)
+print("causal output:\\n", out)`} />
+
+<Mistake title="Softmax over the wrong dimension">
+
+`F.softmax(scores, dim=-2)` (or `dim=1` on a batched tensor) normalises each **column** instead of each row, so every key's weights add up to 1 instead of every query's. The shapes are unchanged, so nothing crashes. Each query must share out its own attention, so the softmax goes over the keys: `dim=-1`. Checking that `weights.sum(dim=-1)` is all ones catches this.
+
+</Mistake>
+
+<ExamTip title="How NOAI asks about this">
+
+- **Prelim (fast recall):** the purpose of a causal mask (asked in both 2025 and 2026: *stop tokens attending to the future*); why divide by $\sqrt{d_k}$ (*stop softmax saturating as dot products grow with dimension*); the weight matrix is $T \times T$, so attention costs $O(T^2)$.
+- **Final (code):** the function above, in this order: scores with `transpose(-2, -1)` and `math.sqrt(d_k)`; `masked_fill` **before** softmax (the Final's solution fills with `-1e9`); softmax with `dim=-1`; optional dropout on the weights; multiply by `value`; return both output and weights.
+- The 2026 Final's causal-mask bonus wanted `torch.tril(torch.ones(L, L))` reshaped to $(1, 1, L, L)$ with two `unsqueeze(0)` calls, kept as a float tensor of 1s and 0s, since its test compared it with a float `tril`.
+- No calculator: if all scores in a row are equal, the weights are uniform and the output is the plain average of the values; under a causal mask the first token's output is always its own value.
+
+</ExamTip>
+
+<Takeaways>
+
+- $\text{Attention}(Q, K, V) = \operatorname{softmax}(QK^T/\sqrt{d_k})\,V$: two matrix multiplications with a row-wise softmax (`dim=-1`) in between.
+- Shapes: $(T, d_k)$ queries and keys give a $(T, T)$ table of scores and weights, and the output is $(T, d_v)$; with a batch, $(B, T, d_k) \to (B, T, T) \to (B, T, d_v)$.
+- With unit-variance entries, $\operatorname{Var}(q \cdot k) = d_k$. Dividing by $\sqrt{d_k}$ keeps the scores' variance near 1, so softmax does not saturate and gradients do not vanish.
+- Masks set blocked scores to $-\infty$ (or $-10^9$) **before** softmax, so their weights are exactly 0 and each row still sums to 1. Causal masks block the future; padding masks block `[PAD]` keys.
+- `torch.tril(torch.ones(T, T))` marks what may be attended (use `mask == 0` to block); `torch.triu(torch.ones(T, T), diagonal=1)` marks the future (block where it is 1). Mixing the conventions is the classic bug.
+
+</Takeaways>

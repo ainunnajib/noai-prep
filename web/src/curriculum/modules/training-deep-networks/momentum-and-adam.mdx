@@ -1,0 +1,300 @@
+import EMASmoother from './visuals/momentum-and-adam/EMASmoother'
+import AdagradVsRMSProp from './visuals/momentum-and-adam/AdagradVsRMSProp'
+import AdamStepBars from './visuals/momentum-and-adam/AdamStepBars'
+import OptimizerRace from './visuals/momentum-and-adam/OptimizerRace'
+
+Plain gradient descent has two weaknesses you have already seen. In a long, narrow valley it zig-zags between the walls and crawls along the floor, because one learning rate has to suit both the steep and the gentle direction. And with mini-batches it reacts at full strength to every noisy gradient. The optimisers in this lesson fix both problems with one simple tool, a **running average**. Momentum averages the gradients, RMSProp averages their squares, and **Adam**, which does both, is the optimiser behind most of today's deep learning.
+
+## The tool: an exponential moving average
+
+Take a stream of noisy numbers $g_1, g_2, g_3, \dots$ (think: the gradient of one weight at each step). An <Term def="A running average that mixes a small fraction of each new value into the old average, so recent values count most and old ones fade away gradually.">exponential moving average</Term> (EMA) keeps one number $m$ and updates it at every step $t$:
+
+$$
+m_t = \beta\, m_{t-1} + (1 - \beta)\, g_t, \qquad m_0 = 0
+$$
+
+- $g_t$ is the new value at step $t$, and $m_t$ is the average after taking it in.
+- $\beta$ (beta), between 0 and 1, is how much of the **old** average to keep; $1 - \beta$ is how much of the **new** value to mix in.
+
+With $\beta = 0.9$, each step keeps 90% of the old average and adds 10% of the new value. Unrolling the formula shows how much each past value counts:
+
+$$
+m_t = (1-\beta)\left(g_t + \beta\, g_{t-1} + \beta^2 g_{t-2} + \cdots\right)
+$$
+
+The weights $0.1,\ 0.09,\ 0.081, \dots$ fade away geometrically, so the average mostly reflects roughly the last $1/(1-\beta) = 10$ values.
+
+<Analogy title="Your mood during exam week">
+
+Today's paper matters, but yesterday's mood carries over too. One bad paper does not ruin a good week, yet if the papers keep going badly, your mood does follow. A large $\beta$ is a calm person (smooth, slow to react); $\beta = 0$ is someone whose mood is decided entirely by the last paper.
+
+</Analogy>
+
+<EMASmoother />
+
+There is a catch at the start. Because $m_0 = 0$, the first averages are too small. With $\beta = 0.9$ and a steady value of 10, the average creeps up instead of starting at 10. The fix, called <Term def="Dividing a moving average that started at 0 by (1 − βᵗ), which exactly cancels the pull towards 0 in the early steps.">bias correction</Term>, divides by $1 - \beta^t$:
+
+<Steps title="β = 0.9 and a steady value g = 10">
+  <Step title="Step 1">
+    $m_1 = 0.9 \times 0 + 0.1 \times 10 = 1$. Far too small. Corrected: $\hat m_1 = 1 / (1 - 0.9) = 1 / 0.1 = 10$.
+  </Step>
+  <Step title="Step 2">
+    $m_2 = 0.9 \times 1 + 0.1 \times 10 = 1.9$. Corrected: $\hat m_2 = 1.9 / (1 - 0.81) = 1.9 / 0.19 = 10$.
+  </Step>
+  <Step title="Step 3">
+    $m_3 = 0.9 \times 1.9 + 1 = 2.71$. Corrected: $\hat m_3 = 2.71 / (1 - 0.729) = 2.71 / 0.271 = 10$.
+  </Step>
+  <Step title="Later">
+    $\beta^t$ shrinks towards 0, so $1 - \beta^t$ approaches 1 and the correction quietly switches itself off.
+  </Step>
+</Steps>
+
+<KeyIdea>
+
+An exponential moving average $m \leftarrow \beta m + (1-\beta) g$ smooths a noisy stream. A bigger $\beta$ means smoother but slower to react; it remembers about the last $1/(1-\beta)$ values.
+
+</KeyIdea>
+
+<QuickCheck
+  q="A moving average with $\beta = 0.8$ currently equals 5. The next value is 10. What is the new average?"
+  options={['6', '9', '7.5', '10']}
+  answer={0}
+  explain="$m = 0.8 \times 5 + 0.2 \times 10 = 4 + 2 = 6$. Swapping the weights ($0.2 \times 5 + 0.8 \times 10 = 9$) is the classic slip; 7.5 is the plain average of 5 and 10."
+/>
+
+## Momentum: a heavy ball that keeps rolling
+
+<Term def="An optimiser that steps along a running average (or running sum) of recent gradients instead of the latest gradient alone, like a heavy ball that keeps rolling.">Momentum</Term> steps along a running average of the gradients instead of the latest gradient alone. PyTorch writes it like this:
+
+$$
+\mathbf{v}_t = \beta\, \mathbf{v}_{t-1} + \mathbf{g}_t, \qquad \mathbf{w} \leftarrow \mathbf{w} - \eta\, \mathbf{v}_t
+$$
+
+- $\mathbf{g}_t$ is the gradient at step $t$ and $\eta$ is the learning rate, as before.
+- $\mathbf{v}_t$ is the **velocity**: a running sum of past gradients, each older one shrunk by another factor $\beta$. The usual choice is $\beta = 0.9$.
+
+(Some textbooks use the EMA form $\mathbf{v}_t = \beta \mathbf{v}_{t-1} + (1-\beta)\mathbf{g}_t$. It is the same method; the missing $1-\beta$ is simply absorbed into $\eta$.) A popular variant, <Term def="A version of momentum that measures the gradient at the look-ahead point, where the velocity is about to carry the weights, instead of at the current weights.">Nesterov momentum</Term> (`nesterov=True` in PyTorch's SGD), computes the gradient at the look-ahead point $\mathbf{w} - \eta\beta\mathbf{v}$, where the ball is about to roll, which usually reduces overshooting a little.
+
+Why does this fix the zig-zag? Look at the two directions of a narrow valley separately.
+
+<Steps title="β = 0.9: steady direction versus back-and-forth direction">
+  <Step title="Along the valley, the gradient is steady">
+    Say $g = 1$ every step. Then $v = 1,\ 1.9,\ 2.71,\ 3.44, \dots$, growing towards $1/(1-\beta) = 10$. The ball speeds up to 10 times a single step.
+  </Step>
+  <Step title="Across the valley, the gradient flips sign">
+    Say $g = +1, -1, +1, -1, \dots$ Then $v = 1,\ -0.1,\ 0.91,\ -0.18,\ 0.84, \dots$, settling at about $\pm 0.53$. The swings largely cancel.
+  </Step>
+  <Step title="Result">
+    Movement along the valley is amplified about 10 times, while the zig-zag across it is damped to about half a step. The path straightens out and speeds up.
+  </Step>
+</Steps>
+
+<Analogy title="A heavy supermarket trolley">
+
+Push a heavy trolley down an aisle and it keeps rolling straight; little sideways nudges barely change its course. A light trolley jerks left and right with every push. Momentum makes the parameters behave like the heavy trolley.
+
+</Analogy>
+
+<PastPaperQuestion paper="prelim2026" n={70} />
+
+<PastPaperQuestion paper="prelim2026" n={40} />
+
+## RMSProp: a step size for every parameter
+
+Momentum fixes the direction, but every parameter still shares one learning rate. In a narrow valley the steep direction needs small steps and the gentle one needs big steps. <Term def="Root Mean Square Propagation: an optimiser that divides each parameter's gradient by the square root of a moving average of that parameter's squared gradients.">RMSProp</Term> gives each parameter its own scale by dividing its gradient by the typical size of its recent gradients:
+
+$$
+s_t = \rho\, s_{t-1} + (1 - \rho)\, g_t^2
+$$
+
+$$
+w \leftarrow w - \eta\, \frac{g_t}{\sqrt{s_t} + \epsilon}
+$$
+
+- $g_t^2$ is the squared gradient, so $s_t$ is a moving average of squared gradients and $\sqrt{s_t}$ is their **root mean square**: the typical gradient size for this parameter, ignoring sign.
+- $\rho$ (rho) plays the role of $\beta$, typically 0.9 to 0.99.
+- $\epsilon$ (epsilon) is a tiny number such as $10^{-8}$ that stops division by zero.
+- Everything is done **separately for each parameter**: every weight has its own $s$.
+
+If one weight always has gradient 10 and another always has 0.1, then $\sqrt{s}$ becomes 10 and 0.1 respectively, and **both** take steps of about $\eta$. Steep directions are slowed down, gentle ones are sped up.
+
+An earlier method, <Term def="Adaptive Gradient: divides each parameter's step by the square root of the SUM of all its past squared gradients, so step sizes can only ever shrink.">Adagrad</Term>, divides by the square root of the **sum** of all past squared gradients instead, $G_t = G_{t-1} + g_t^2$. That sum never shrinks, so Adagrad's steps get smaller and smaller and can stall long before training is finished. RMSProp's moving average forgets old gradients, which keeps its steps healthy.
+
+<AdagradVsRMSProp />
+
+<Mistake title="RMSProp is not momentum">
+
+RMSProp does not average the *direction* of the gradient; it only rescales the *size* of each parameter's step. Momentum smooths the direction. That is why combining them makes sense.
+
+</Mistake>
+
+## Adam: momentum and RMSProp together
+
+<Term def="Adaptive Moment Estimation: an optimiser that combines momentum (a moving average of gradients) with RMSProp-style per-parameter scaling (a moving average of squared gradients), plus bias correction.">Adam</Term> keeps both averages for every parameter and bias-corrects them, because both start at 0:
+
+$$
+\begin{aligned}
+m_t &= \beta_1 m_{t-1} + (1-\beta_1)\, g_t \\
+v_t &= \beta_2 v_{t-1} + (1-\beta_2)\, g_t^2 \\
+\hat m_t &= \frac{m_t}{1-\beta_1^t}, \qquad \hat v_t = \frac{v_t}{1-\beta_2^t} \\
+w &\leftarrow w - \eta\, \frac{\hat m_t}{\sqrt{\hat v_t} + \epsilon}
+\end{aligned}
+$$
+
+- Line 1, the **first moment** $m_t$: a moving average of the gradients. This is momentum.
+- Line 2, the **second moment** $v_t$: a moving average of the squared gradients. This is RMSProp's $s_t$. (Careful: Adam's $v_t$ is this squared-gradient average, not momentum's velocity $\mathbf{v}_t$; Adam's momentum part is $m_t$.)
+- Line 3, **bias correction**: both averages start at 0, so divide by $1 - \beta^t$, exactly as in the moving-average example above.
+- Line 4, the **update**: step along the averaged gradient, scaled by the typical gradient size.
+
+The defaults, used almost everywhere, are $\eta = 0.001$, $\beta_1 = 0.9$, $\beta_2 = 0.999$ and $\epsilon = 10^{-8}$. "Moment" is the statistics word for these averages: the first moment is the mean, the second the mean of the squares.
+
+<Steps title="Adam's first step, with g = 4 and η = 0.001">
+  <Step title="Update the averages">
+    $m_1 = 0.1 \times 4 = 0.4$ and $v_1 = 0.001 \times 16 = 0.016$.
+  </Step>
+  <Step title="Bias-correct">
+    $\hat m_1 = 0.4 / (1 - 0.9) = 4$ and $\hat v_1 = 0.016 / (1 - 0.999) = 16$.
+  </Step>
+  <Step title="Step">
+    $\eta \times \hat m_1 / \sqrt{\hat v_1} = 0.001 \times 4 / 4 = 0.001$. The first step is exactly $\eta$ (times the sign of the gradient), whatever the gradient's size.
+  </Step>
+  <Step title="Without bias correction">
+    $0.001 \times 0.4 / \sqrt{0.016} \approx 0.001 \times 0.4 / 0.126 \approx 0.0032$: more than 3 times too big, and for no good reason. Bias correction stops that early jolt.
+  </Step>
+</Steps>
+
+In general Adam's step is roughly $\eta \times \hat m / \sqrt{\hat v}$: the direction comes from the averaged gradient, and the size is measured against that parameter's own typical gradient. When the gradient is steady, $\hat m \approx \sqrt{\hat v}$ and the step is about $\eta$. When the gradient keeps changing sign, $\hat m$ averages towards 0 while $\sqrt{\hat v}$ does not, so the step is small and cautious.
+
+<AdamStepBars />
+
+<KeyIdea>
+
+**Adam = momentum + RMSProp + bias correction.** Each parameter's step is about $\eta \times \hat m / \sqrt{\hat v}$, so one learning rate works for parameters whose gradients differ by factors of a thousand, and rarely updated parameters (such as the embeddings of rare words) still get meaningful steps.
+
+</KeyIdea>
+
+<PastPaperQuestion paper="prelim2026" n={71} />
+
+<QuickCheck
+  q="Adam (with bias correction, default betas) is on its very first step. A weight has gradient $-0.5$ and the learning rate is $0.01$. What happens to the weight?"
+  options={['It increases by about 0.01', 'It increases by about 0.005', 'It decreases by about 0.01', 'It increases by about 0.032']}
+  answer={0}
+  explain="On the first step $\hat m_1 = g$ and $\sqrt{\hat v_1} = |g|$, so the step is $\eta \times g/|g|$, which has size exactly $\eta = 0.01$. The update subtracts it, and subtracting a negative step increases the weight. 0.005 is plain SGD ($\eta \times 0.5$); 0.032 is what you get without bias correction."
+/>
+
+## The race
+
+Now put all four on the same long, curved valley and watch the differences you have just learned about.
+
+<OptimizerRace />
+
+There is no single winner for every problem: how well each optimiser does depends on its learning rate, as the multiplier slider shows. But the characters are always the same. SGD is limited by the steepest direction; momentum straightens and accelerates the path but can overshoot; RMSProp equalises step sizes but jitters near the end; Adam is smooth and fast with little tuning, which is why it is the usual first choice.
+
+## AdamW: weight decay done properly
+
+<Term def="Shrinking every weight slightly towards zero at each step, which discourages large weights and reduces overfitting.">Weight decay</Term> shrinks every weight a little at each step, which discourages large weights and reduces overfitting. If you add it to Adam's gradient in the ordinary way, Adam then divides it by $\sqrt{\hat v}$ like everything else, so weights with large gradients are hardly decayed at all. <Term def="Adam with decoupled weight decay: the decay is applied directly to the weights instead of being added to the gradient, so Adam's per-parameter scaling does not distort it.">AdamW</Term> **decouples** the two: it applies the decay directly to the weights, outside Adam's division, so every weight shrinks by the same fraction. It is the standard optimiser for Transformers such as BERT and GPT: `torch.optim.AdamW(params, lr=1e-3, weight_decay=0.01)`. [The regularisation lesson](#/learn/training-deep-networks/regularising-deep-networks) shows why small weights help and works through AdamW's update.
+
+## Which optimiser should I use?
+
+- **SGD with momentum**: rolls along an average of past gradients. Typical settings: `lr=0.1`, `momentum=0.9`, plus a learning-rate schedule. Popular for CNNs (convolutional neural networks, the image models of [the next module](#/learn/convolutional-networks/images-as-tensors)) on images, where it often generalises best.
+- **RMSProp**: divides each step by that parameter's root-mean-square gradient. Typical: `lr=1e-3`. Common in older RNN and reinforcement-learning work.
+- **Adagrad**: divides by the root of the *sum* of all squared gradients. Suits sparse features, but its steps shrink and can stall.
+- **Adam**: momentum + RMSProp + bias correction. Typical: `lr=1e-3`, `betas=(0.9, 0.999)`. A reliable default for almost anything.
+- **AdamW**: Adam with decoupled weight decay. Typical: `lr` between `1e-4` and `1e-3`, `weight_decay=0.01`. The standard for Transformers and fine-tuning.
+
+A practical rule: start with Adam or AdamW, which get most models training quickly with little tuning. For image classifiers trained for a long time, a well-tuned SGD with momentum and a learning-rate schedule often reaches slightly better test accuracy, one reason researchers still use it.
+
+<PastPaperQuestion paper="prelim2026" n={287} />
+
+<PastPaperQuestion paper="prelim2026" n={290} />
+
+## In code
+
+Adam from scratch is only a few lines of NumPy, and turning update formulas like these into working code is exactly the skill the Final's Python programming tasks test. Here two weights have steady gradients that differ by a factor of 1,000, yet Adam moves both by the same amount:
+
+<PyRunner packages={['numpy']} code={`import numpy as np
+
+def adam_step(w, g, m, v, t, lr=0.001,
+              b1=0.9, b2=0.999, eps=1e-8):
+    # 1st moment: running average of gradients
+    m = b1 * m + (1 - b1) * g
+    # 2nd moment: running average of squared gradients
+    v = b2 * v + (1 - b2) * g ** 2
+    # bias correction (m and v start at 0)
+    m_hat = m / (1 - b1 ** t)
+    v_hat = v / (1 - b2 ** t)
+    w = w - lr * m_hat / (np.sqrt(v_hat) + eps)
+    return w, m, v
+
+# two weights: a steady big gradient and a steady tiny one
+w = np.array([1.0, 1.0])
+m = np.zeros(2)
+v = np.zeros(2)
+g = np.array([5.0, 0.005])
+
+# t starts at 1, not 0, because of the bias correction
+for t in range(1, 4):
+    w_new, m, v = adam_step(w, g, m, v, t)
+    print(f"step {t}: Adam moves each weight by {np.round(w - w_new, 6)}")
+    w = w_new
+
+print(f"plain SGD (lr = 0.001) would move them by {0.001 * g[0]:.6f} and {0.001 * g[1]:.6f}")`} />
+
+In PyTorch every optimiser has the same interface, so switching is a one-line change. This script runs the race above for 60 steps:
+
+```python
+import torch
+
+def loss_fn(p):                       # the curved valley from the race
+    x, y = p[0], p[1]
+    return 2 * (y - 0.08 * x**2) ** 2 + 0.03 * (x - 2.2) ** 2
+
+def train(make_opt, steps=60):
+    p = torch.tensor([-3.0, 1.3], requires_grad=True)
+    optimiser = make_opt([p])
+    for _ in range(steps):
+        optimiser.zero_grad()
+        loss = loss_fn(p)
+        loss.backward()
+        optimiser.step()
+    return loss_fn(p).item()
+
+optimisers = {
+    "SGD":      lambda ps: torch.optim.SGD(ps, lr=0.4),
+    "Momentum": lambda ps: torch.optim.SGD(ps, lr=0.08, momentum=0.9),
+    "RMSProp":  lambda ps: torch.optim.RMSprop(ps, lr=0.08, alpha=0.9),
+    "Adam":     lambda ps: torch.optim.Adam(ps, lr=0.25, betas=(0.9, 0.999)),
+}
+for name, make_opt in optimisers.items():
+    print(f"{name:9s} loss after 60 steps: {train(make_opt):.4f}")
+```
+
+```text
+SGD       loss after 60 steps: 0.0511
+Momentum  loss after 60 steps: 0.0011
+RMSProp   loss after 60 steps: 0.0596
+Adam      loss after 60 steps: 0.0006
+```
+
+These match the race at step 60 with the multiplier at × 1. (RMSProp differs slightly in the third decimal place: PyTorch computes in 32-bit floats and the race in 64-bit, and RMSProp's jittery path is sensitive to such tiny rounding differences.) Note PyTorch's names: momentum's $\beta$ is `momentum`, RMSProp's $\rho$ is `alpha`, and Adam's $\beta_1, \beta_2$ are `betas`.
+
+<ExamTip>
+
+How NOAI asks about optimisers:
+
+- **One-liners**: momentum accumulates past gradients to smooth updates and damp oscillations; RMSProp scales each parameter's step by its recent gradient size; Adam combines momentum and RMSProp; AdamW decouples weight decay from the adaptive update.
+- **Adagrad vs RMSProp**: Adagrad's sum of squared gradients only grows, so its learning rate decays towards zero; RMSProp uses a moving average, so it does not.
+- **Quick EMA arithmetic**: $m = \beta m + (1-\beta) g$. Keep $\beta$ on the *old* value.
+- **Choosing**: Adam/AdamW for fast, low-tuning training and Transformers; SGD with momentum can generalise better in some settings, such as CNNs on images. Beware options saying Adam is "always" better.
+
+</ExamTip>
+
+<Takeaways>
+
+- An exponential moving average $m \leftarrow \beta m + (1-\beta) g$ remembers about the last $1/(1-\beta)$ values; bias correction $\hat m = m/(1-\beta^t)$ removes its pull towards 0 at the start.
+- Momentum steps along a running average of gradients: steady directions speed up (up to $1/(1-\beta)$ times) and back-and-forth directions cancel.
+- RMSProp divides each parameter's gradient by the root of a moving average of its squared gradients; Adagrad uses an ever-growing sum, so its steps shrink until it stalls.
+- Adam = momentum + RMSProp + bias correction; its first step has size exactly $\eta$, and for a steady gradient its step is about $\eta$ whatever the gradient's size, while noisy, sign-changing gradients get smaller steps.
+- AdamW applies weight decay directly to the weights; use Adam/AdamW as a default, and consider SGD with momentum when final accuracy on images matters most.
+
+</Takeaways>

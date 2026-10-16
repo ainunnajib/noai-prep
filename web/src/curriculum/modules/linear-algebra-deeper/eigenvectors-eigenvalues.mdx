@@ -1,0 +1,311 @@
+import EigenHunter from './visuals/eigenvectors-eigenvalues/EigenHunter'
+import EigenBars from './visuals/eigenvectors-eigenvalues/EigenBars'
+import PowerIteration from './visuals/eigenvectors-eigenvalues/PowerIteration'
+
+When a matrix acts on the plane, almost every arrow gets knocked off its course, but a few special directions are only stretched, never turned. These are the matrix's **eigenvectors** (from the German *eigen*, "own"), and the stretch factors are its **eigenvalues**. They are behind PCA, Google's PageRank and the exploding gradients of deep networks, and the 2026 Preliminary Round asked about them several times; two of those questions appear below.
+
+<Analogy title="Stretching prata dough">
+
+A prata seller grabs a ball of dough by its left and right edges and pulls. Suppose you had drawn some straight lines on it first. A line drawn left to right stays left to right: it just gets longer. A line drawn top to bottom stays top to bottom too (it shrinks a little). But a line drawn diagonally gets twisted round towards the direction of the pull. The two directions that do not twist are the eigenvectors of the stretch, and *how much* each one gets longer or shorter is its eigenvalue.
+
+</Analogy>
+
+## Arrows that turn, and arrows that don't
+
+Recall from [A matrix is a transformation of space](#/learn/linear-algebra-deeper/linear-transformations) that a matrix moves every point of the plane. Take
+
+$$
+A = \begin{bmatrix} 2 & 1 \\ 1 & 2 \end{bmatrix}
+$$
+
+and feed it three arrows:
+
+$$
+\begin{aligned}
+A\begin{bmatrix} 1 \\ 0 \end{bmatrix} &= \begin{bmatrix} 2 \\ 1 \end{bmatrix} \\[4pt]
+A\begin{bmatrix} 1 \\ 1 \end{bmatrix} &= \begin{bmatrix} 3 \\ 3 \end{bmatrix} = 3\begin{bmatrix} 1 \\ 1 \end{bmatrix} \\[4pt]
+A\begin{bmatrix} 1 \\ -1 \end{bmatrix} &= \begin{bmatrix} 1 \\ -1 \end{bmatrix} = 1\begin{bmatrix} 1 \\ -1 \end{bmatrix}
+\end{aligned}
+$$
+
+The first arrow pointed along the x-axis and came out pointing up and to the right: it was turned. The second came out pointing in exactly the same direction, just 3 times as long. The third came out unchanged. Those last two are eigenvectors of $A$. Go hunting for them yourself:
+
+<EigenHunter />
+
+## The definition: $Av = \lambda v$
+
+<KeyIdea>
+
+A non-zero vector $v$ is an **eigenvector** of the square matrix $A$ if
+
+$$
+Av = \lambda v
+$$
+
+for some number $\lambda$, which is called its **eigenvalue**. In words: multiplying $v$ by the whole matrix gives the same answer as multiplying it by one ordinary number, so $A$ only stretches $v$ along its own line.
+
+</KeyIdea>
+
+Symbol by symbol:
+
+- $A$ is a square matrix ($n \times n$). Only square matrices have eigenvectors, because $Av$ must live in the same space as $v$ to be compared with it.
+- $v$ is a non-zero vector: the direction that does not turn.
+- $\lambda$ (the Greek letter *lambda*) is a single number, the <Term def="The number λ in Av = λv: the factor by which the matrix stretches its eigenvector. It can be negative (a flip) or zero (a squash).">eigenvalue</Term>: the stretch factor along that direction.
+
+What the value of $\lambda$ tells you:
+
+- $\lambda > 1$: $v$ is stretched. $0 < \lambda < 1$: it is shrunk. $\lambda = 1$: it is left exactly as it was.
+- $\lambda < 0$: $v$ is flipped to point backwards along the same line (and scaled by $|\lambda|$). Try the **Flip** preset above: it has $\lambda = -1$.
+- $\lambda = 0$: $v$ is squashed to the zero vector. Try **Squash**.
+
+Two pieces of small print:
+
+1. **Eigenvectors come as whole lines.** If $Av = 3v$ then $A(2v) = 2Av = 6v = 3(2v)$, so $2v$, $-v$ and $0.5v$ are eigenvectors too, all with the same $\lambda = 3$. That is why we speak of eigen-*directions*, and why NumPy just reports one of length 1.
+2. **The zero vector never counts.** $A0 = 0 = \lambda 0$ is true for *every* number $\lambda$, which would make the idea meaningless.
+
+Not every matrix has real eigenvectors. A rotation by 90° turns every arrow, so it has none (its eigenvalues turn out to be complex numbers, which are beyond this course). A <Term def="A matrix that slides each row of the grid sideways by an amount proportional to its height, like pushing the top of a stack of books.">shear</Term> such as $\begin{bmatrix} 1 & 1 \\ 0 & 1 \end{bmatrix}$ has only one eigen-line, the x-axis. At the other extreme, the identity matrix $I$ leaves every arrow alone, so every non-zero vector is an eigenvector with $\lambda = 1$.
+
+<Note title="The roundabout's centre pole">
+
+A spinning roundabout turns every horizontal direction, just as a 2-D rotation does. But in 3-D its centre pole stays exactly where it is. That is why every 3-D rotation has a real eigenvector, its axis, with eigenvalue 1.
+
+</Note>
+
+<QuickCheck
+  id="linear-algebra-deeper.eigenvectors-eigenvalues.qc1"
+  q="Let $A = \begin{bmatrix} 3 & 0 \\ 0 & -2 \end{bmatrix}$. Which vector is an eigenvector of $A$, and with which eigenvalue?"
+  options={['$[1, 1]$, with eigenvalue $1$', '$[0, 1]$, with eigenvalue $-2$', '$[0, 1]$, with eigenvalue $2$', '$[1, 0]$, with eigenvalue $-2$']}
+  answer={1}
+  explain="$A[0, 1] = [0, -2] = -2 \cdot [0, 1]$: it stays on its own line, flipped, so $\lambda = -2$ (the sign matters). $A[1, 1] = [3, -2]$ is not a multiple of $[1, 1]$, so $[1, 1]$ is not an eigenvector at all (1 is just $3 + (-2)$). $A[1, 0] = [3, 0]$, so $[1, 0]$ is an eigenvector with eigenvalue 3."
+/>
+
+<PastPaperQuestion paper="prelim2026" n={12} />
+
+## Finding the eigenvalues
+
+Hunting with a slider works for a picture, but in an exam you need a method. Start from the definition and move everything to one side:
+
+$$
+\begin{aligned}
+Av &= \lambda v \\
+Av - \lambda I v &= 0 \\
+(A - \lambda I)\,v &= 0
+\end{aligned}
+$$
+
+We wrote $\lambda v$ as $\lambda I v$ because you cannot subtract a plain number from a matrix, but you can subtract the matrix $\lambda I$ (the identity with $\lambda$ down its diagonal).
+
+Now read the last equation geometrically. The matrix $A - \lambda I$ sends a **non-zero** vector $v$ to the zero vector, so it squashes a whole direction flat. From [Identity, inverse, determinant and trace](#/learn/vectors-and-matrices/identity-inverse-determinant), that means it is <Term def="A square matrix with determinant 0. It squashes space into fewer dimensions and has no inverse.">singular</Term>:
+
+$$
+\det(A - \lambda I) = 0
+$$
+
+For a 2×2 matrix $A = \begin{bmatrix} a & b \\ c & d \end{bmatrix}$ this is
+
+$$
+\begin{aligned}
+&\det\begin{bmatrix} a - \lambda & b \\ c & d - \lambda \end{bmatrix} \\
+&= (a - \lambda)(d - \lambda) - bc \\
+&= \lambda^2 - (a + d)\lambda + (ad - bc) = 0
+\end{aligned}
+$$
+
+This is a quadratic in $\lambda$. Look at its coefficients: $a + d$ is the <Term def="The sum of the entries on the main diagonal of a square matrix, written tr(A).">trace</Term> of $A$, and $ad - bc$ is its determinant. So the eigenvalues of any 2×2 matrix solve
+
+$$
+\lambda^2 - (\operatorname{tr} A)\,\lambda + \det A = 0
+$$
+
+<Steps title="Eigenvalues and eigenvectors of the Stretch matrix">
+  <Step title="Trace and determinant">
+    The matrix is
+
+    $$
+    A = \begin{bmatrix} 2 & 1 \\ 1 & 2 \end{bmatrix}.
+    $$
+
+    $\operatorname{tr} A = 2 + 2 = 4$ and $\det A = 2 \times 2 - 1 \times 1 = 3$.
+  </Step>
+  <Step title="Solve the quadratic">
+    $\lambda^2 - 4\lambda + 3 = 0$ factorises as $(\lambda - 1)(\lambda - 3) = 0$, so $\lambda = 3$ or $\lambda = 1$.
+  </Step>
+  <Step title="Eigenvector for $\lambda = 3$">
+    $A - 3I = \begin{bmatrix} -1 & 1 \\ 1 & -1 \end{bmatrix}$. Its first row says $-x + y = 0$, so $y = x$: any multiple of $[1, 1]$.
+  </Step>
+  <Step title="Eigenvector for $\lambda = 1$, and check">
+    $A - I = \begin{bmatrix} 1 & 1 \\ 1 & 1 \end{bmatrix}$ gives $x + y = 0$: any multiple of $[1, -1]$. Check: $A[1, -1] = [2 - 1,\ 1 - 2] = [1, -1]$. ✓ These match the two eigen-lines you hunted for with the **Stretch** preset.
+  </Step>
+</Steps>
+
+### Shortcut: diagonal and triangular matrices
+
+A <Term def="A square matrix with only zeros below the main diagonal (upper triangular) or only zeros above it (lower triangular).">triangular matrix</Term> has only zeros below (or above) its main diagonal. Then $A - \lambda I$ is triangular too, and its determinant is just the product of its diagonal:
+
+$$
+\det\begin{bmatrix} a - \lambda & b \\ 0 & d - \lambda \end{bmatrix} = (a - \lambda)(d - \lambda)
+$$
+
+This is zero exactly when $\lambda = a$ or $\lambda = d$. **The eigenvalues of a diagonal or triangular matrix are its diagonal entries**, read off with no working at all. For example, $\begin{bmatrix} 4 & 7 \\ 0 & -1 \end{bmatrix}$ has eigenvalues $4$ and $-1$; the 7 makes no difference to them.
+
+<Mistake>
+
+Reading eigenvalues off the diagonal of a matrix that is **not** triangular. $\begin{bmatrix} 2 & 1 \\ 1 & 2 \end{bmatrix}$ has 2 and 2 on its diagonal, but its eigenvalues are 3 and 1. A quick self-check catches this: if the eigenvalues were 2 and 2, their product would be 4, but $\det A = 3$.
+
+</Mistake>
+
+## Eigenvalues, determinant and trace
+
+Here is the most useful fact in this lesson for NOAI. If the two roots of the quadratic are $\lambda_1$ and $\lambda_2$, it factorises as
+
+$$
+(\lambda - \lambda_1)(\lambda - \lambda_2) = \lambda^2 - (\lambda_1 + \lambda_2)\lambda + \lambda_1\lambda_2
+$$
+
+Matching the coefficients with $\lambda^2 - (\operatorname{tr} A)\lambda + \det A$:
+
+$$
+\lambda_1 + \lambda_2 = \operatorname{tr} A \qquad\qquad \lambda_1 \lambda_2 = \det A
+$$
+
+There is a picture for the product too. The determinant is the factor by which a matrix scales areas. Along its eigenvectors the matrix does nothing but stretch, by $\lambda_1$ one way and $\lambda_2$ the other, so a parallelogram built on the eigenvectors has its area multiplied by $|\lambda_1 \lambda_2|$, and flipped over when $\lambda_1 \lambda_2 < 0$. That signed factor, $\lambda_1 \lambda_2$, is exactly $\det A$. Think of the diagonal matrix with entries 2 and 3 from [Identity, inverse, determinant and trace](#/learn/vectors-and-matrices/identity-inverse-determinant): it stretches the width by 2 and the height by 3, so every area grows by $2 \times 3 = 6$, and its eigenvalues are exactly 2 and 3.
+
+<EigenBars />
+
+<KeyIdea>
+
+**Sum of the eigenvalues = trace. Product of the eigenvalues = determinant.** This holds for square matrices of every size (an $n \times n$ matrix has $n$ eigenvalues, counting repeats and any complex ones), so many eigenvalue questions can be answered from the diagonal and the determinant alone.
+
+</KeyIdea>
+
+A big consequence: **a zero eigenvalue means the matrix is singular.** Algebraically, if any $\lambda_i = 0$ then the product $\det A = 0$. Geometrically, $Av = 0 \cdot v = 0$ for some non-zero $v$, so two different inputs ($0$ and $v$) give the same output, and no inverse could know which one to return. It works the other way round as well: if $\det A = 0$, then $\lambda = 0$ solves $\det(A - \lambda I) = 0$.
+
+<PastPaperQuestion paper="prelim2026" n={15} />
+
+<QuickCheck
+  id="linear-algebra-deeper.eigenvectors-eigenvalues.qc2"
+  q="What are the eigenvalues of $\begin{bmatrix} 1 & 2 \\ 4 & 3 \end{bmatrix}$?"
+  options={['$1$ and $3$', '$4$ and $-5$', '$-5$ and $1$', '$5$ and $-1$']}
+  answer={3}
+  explain="Trace $= 1 + 3 = 4$ and $\det = 1 \times 3 - 2 \times 4 = -5$. Two numbers that add to 4 and multiply to $-5$ are $5$ and $-1$. The pair 1 and 3 is just the diagonal, which only works for triangular matrices; 4 and $-5$ are the trace and determinant themselves; $-5$ and 1 multiply correctly but add to $-4$."
+/>
+
+<ExamTip title="Eigenvalue facts that save time">
+
+With about 36 seconds per question, never solve for eigenvalues if a shortcut exists:
+
+| Situation | Shortcut |
+|---|---|
+| Diagonal or triangular matrix | Eigenvalues = the diagonal entries |
+| Any square matrix | Sum = trace, product = determinant |
+| An eigenvalue is 0 | $\det A = 0$, so $A$ is singular (not invertible) |
+| $Av = \lambda v$ | $A^2 v = A(\lambda v) = \lambda^2 v$, so $A^k$ has eigenvalues $\lambda^k$ |
+| $Av = \lambda v$, $\lambda \neq 0$ | Multiply both sides by $A^{-1}$ and divide by $\lambda$: $A^{-1}v = \tfrac{1}{\lambda}v$ |
+| $Av = \lambda v$ | $(A + cI)v = \lambda v + cv$, so the eigenvalues all shift by $c$ |
+| Symmetric matrix ($A = A^T$) | Eigenvalues are always real and eigenvectors of different eigenvalues are perpendicular, so $A = Q\Lambda Q^T$ (see below; you will need this for PCA) |
+
+In the three rows for $A^k$, $A^{-1}$ and $A + cI$, every eigenvector of $A$ is still an eigenvector; only its eigenvalue changes.
+
+</ExamTip>
+
+## Eigendecomposition: $A = V\Lambda V^{-1}$
+
+The eigenvectors and eigenvalues together rebuild the whole matrix. Put the eigenvectors side by side as the **columns** of a matrix $V$, and the eigenvalues down the diagonal of a matrix $\Lambda$ (capital lambda), in the same order. Then the equations $Av_i = \lambda_i v_i$, one per column, all fit into one line:
+
+$$
+AV = V\Lambda \qquad\text{so}\qquad A = V \Lambda V^{-1}
+$$
+
+- $V$ is the matrix of eigenvectors (one per column), and $V^{-1}$ is its inverse.
+- $\Lambda$ is diagonal: $\lambda_1, \lambda_2, \dots$ on the diagonal, zeros elsewhere.
+- Read it right to left, as it acts on a vector: $V^{-1}$ rewrites $x$ as amounts of each eigenvector, $\Lambda$ stretches each amount by its own eigenvalue, and $V$ puts the pieces back together.
+
+This <Term def="Writing a square matrix as A = VΛV⁻¹, with its eigenvectors as the columns of V and its eigenvalues on the diagonal of Λ. Also called diagonalisation.">eigendecomposition</Term> (also called *diagonalising* $A$) exists whenever $A$ has $n$ independent eigenvectors, for example when it has $n$ different real eigenvalues. The 90° rotation cannot be diagonalised with real numbers (its eigenvalues are complex), and the shear cannot be diagonalised at all: its only eigenvalue, 1, has just one eigen-line, so $V$ would not have two independent columns. For the Stretch matrix,
+
+$$
+\begin{bmatrix} 2 & 1 \\ 1 & 2 \end{bmatrix} = \begin{bmatrix} 1 & 1 \\ 1 & -1 \end{bmatrix} \begin{bmatrix} 3 & 0 \\ 0 & 1 \end{bmatrix} \begin{bmatrix} \tfrac12 & \tfrac12 \\ \tfrac12 & -\tfrac12 \end{bmatrix}
+$$
+
+Two consequences matter for AI:
+
+- **Powers are easy.** $A^2 = V\Lambda V^{-1}V\Lambda V^{-1} = V\Lambda^2V^{-1}$, because the middle $V^{-1}V$ cancels. In general $A^k = V\Lambda^k V^{-1}$, and $\Lambda^k$ just raises each diagonal entry to the power $k$. That is the next section in one line.
+- **Symmetric matrices are the best case.** Their eigenvectors can be chosen perpendicular and of length 1, so $V$ is an <Term def="A square matrix whose columns are perpendicular and of length 1. Its inverse is its transpose, and it only rotates or reflects. The SVD lesson covers it properly.">orthogonal matrix</Term> $Q$ with $Q^{-1} = Q^T$, and $A = Q\Lambda Q^T$ (the *spectral theorem*). The covariance matrix in [Covariance and PCA](#/learn/linear-algebra-deeper/covariance-and-pca) is symmetric, and this is exactly how PCA reads off its directions.
+
+<KeyIdea>
+
+$A = V\Lambda V^{-1}$: change to eigenvector coordinates, stretch each one by its eigenvalue, change back. For a symmetric matrix, $A = Q\Lambda Q^T$ with perpendicular unit eigenvectors in $Q$.
+
+</KeyIdea>
+
+## Multiplying again and again
+
+What happens if you apply the same matrix over and over? This is $A^k = V\Lambda^kV^{-1}$ at work. Write the starting arrow $[1, 0]$ as a mix of the two eigenvectors of $A = \begin{bmatrix} 2 & 1 \\ 1 & 2 \end{bmatrix}$:
+
+$$
+\begin{bmatrix} 1 \\ 0 \end{bmatrix} = \tfrac12\begin{bmatrix} 1 \\ 1 \end{bmatrix} + \tfrac12\begin{bmatrix} 1 \\ -1 \end{bmatrix}
+$$
+
+Each multiplication by $A$ scales the first part by 3 and the second part by 1, so after $k$ steps
+
+$$
+A^k\begin{bmatrix} 1 \\ 0 \end{bmatrix} = \tfrac12 \cdot 3^k \begin{bmatrix} 1 \\ 1 \end{bmatrix} + \tfrac12 \cdot 1^k \begin{bmatrix} 1 \\ -1 \end{bmatrix}
+$$
+
+giving $[2, 1]$, then $[5, 4]$, $[14, 13]$ and $[41, 40]$. The $3^k$ part grows so much faster that the arrow swings onto the $[1, 1]$ line while its length grows roughly 3 times per step. In general, the direction ends up along the eigenvector whose eigenvalue is largest in size, the <Term def="The eigenvalue with the largest absolute value |λ|. Repeated multiplication by the matrix lines vectors up with its eigenvector.">dominant eigenvalue</Term> $\lambda_1$. Two conditions: $|\lambda_1|$ must be strictly bigger than every other $|\lambda|$, and the starting arrow must have some part along its eigenvector. If two eigenvalues tie in size (such as $1$ and $-1$) or form a complex pair, the direction never settles. The closer $|\lambda_2|$ is to $|\lambda_1|$, the slower the swing.
+
+<PowerIteration />
+
+This simple loop matters in AI:
+
+- **Power iteration.** Multiply, rescale to length 1, repeat: you get the dominant eigenvector without solving any equation. Google's original PageRank scored web pages using the dominant eigenvector of a huge matrix describing how a random surfer clicks from page to page, computed in exactly this way.
+- **Exploding and vanishing gradients.** A <Term def="A network that reads a sequence one step at a time, reusing the same weights at every step.">recurrent network</Term> multiplies its <Term def="The network's running memory: a vector it updates at every step of the sequence.">hidden state</Term> by the same weight matrix at every time step, and backpropagation multiplies gradients by the transposed matrix (which has the same eigenvalues) on the way back. Over 50 steps, a direction with $|\lambda| = 1.1$ grows about $1.1^{50} \approx 117$ times, while $|\lambda| = 0.9$ shrinks it to $0.9^{50} \approx 0.005$ of its size. That is why careful initialisation tries to keep these factors close to 1.
+
+## In code
+
+`np.linalg.eig` returns the eigenvalues and a matrix whose **columns** are the eigenvectors, each scaled to length 1. The sign of an eigenvector is arbitrary (both ends of the line are equally good), so do not worry if you get $[-0.71, -0.71]$ instead of $[0.71, 0.71]$. For symmetric matrices, `np.linalg.eigh` is faster and always returns real values, sorted from smallest to largest.
+
+<PyRunner packages={['numpy']} rows={18} code={`import numpy as np
+
+A = np.array([[2.0, 1.0],
+              [1.0, 2.0]])
+vals, vecs = np.linalg.eig(A)
+vals, vecs = vals.real, vecs.real  # all real here
+print("eigenvalues:", vals)
+print("eigenvectors (the COLUMNS):")
+print(vecs.round(4))
+
+v = vecs[:, 0]  # the partner of vals[0]
+print("A @ v      =", (A @ v).round(4))
+print("lambda * v =", (vals[0] * v).round(4))
+print("sum:", vals.sum().round(6),
+      " trace:", np.trace(A))
+print("product:", vals.prod().round(6),
+      " det:", np.linalg.det(A).round(6))`} />
+
+Power iteration, from the section above, takes only a few lines: multiply, rescale to length 1, repeat.
+
+<PyRunner packages={['numpy']} rows={14} code={`import numpy as np
+
+A = np.array([[2.0, 1.0],
+              [1.0, 2.0]])
+# power iteration: multiply, rescale, repeat
+x = np.array([1.0, 0.0])
+for k in range(1, 7):
+    x = A @ x
+    x = x / np.linalg.norm(x)
+    print(k, x.round(4))
+# x is now (almost) a unit eigenvector,
+# so x . (A x) is (almost) its eigenvalue
+print("biggest eigenvalue:", (x @ A @ x).round(4))`} />
+
+Writing this loop from scratch is good practice for the Final, whose tasks ask you to implement algorithms (such as k-means, gradient boosting and attention) in plain NumPy or PyTorch. In PyTorch the same tools are `torch.linalg.eig`, `torch.linalg.eigh` and `torch.linalg.eigvals`. Unlike NumPy's, `torch.linalg.eig` and `eigvals` always return complex tensors, even for a symmetric matrix: take `.real`, or use `eigh` or `eigvalsh` for symmetric matrices, which return real values sorted from smallest to largest.
+
+<Takeaways>
+
+- An eigenvector is a non-zero vector that $A$ only stretches: $Av = \lambda v$. The eigenvalue $\lambda$ is the stretch factor; negative means a flip, zero means a squash.
+- Eigenvalues solve $\det(A - \lambda I) = 0$; for a 2×2 matrix that is $\lambda^2 - (\operatorname{tr} A)\lambda + \det A = 0$. For a diagonal or triangular matrix they are simply the diagonal entries.
+- With the eigenvectors as the columns of $V$ and the eigenvalues in $\Lambda$, $A = V\Lambda V^{-1}$ and $A^k = V\Lambda^kV^{-1}$; a symmetric matrix has $A = Q\Lambda Q^T$.
+- Sum of eigenvalues = trace, product = determinant, so an eigenvalue of 0 means the matrix is singular.
+- Multiplying by $A$ again and again lines vectors up with the dominant eigenvector and scales lengths by about $|\lambda_1|$ per step: the root of power iteration and of exploding or vanishing gradients.
+
+</Takeaways>

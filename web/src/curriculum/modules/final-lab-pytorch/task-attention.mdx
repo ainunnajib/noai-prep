@@ -1,0 +1,389 @@
+import { FINAL } from '../../../data/facts'
+import AttentionCodeStepper from './visuals/task-attention/AttentionCodeStepper'
+import MHAModuleShapes from './visuals/task-attention/MHAModuleShapes'
+import AnswerTemplateBuilder from './visuals/task-attention/AnswerTemplateBuilder'
+
+Task 3 of the 2026 Final, "The Attention Mechanism", was the biggest programming task: 35 of the 80 programming marks. Its first two parts (20 marks) asked for the attention function (Q3.1, 8 marks), a short written answer on why it divides by $\sqrt{d_k}$ (Q3.2, 2 marks) and a multi-head attention module (Q3.3 and Q3.4, 5 marks each). Even if the Final on {FINAL.dateLabel} sets a different task, every Transformer question is built from these same few lines.
+
+<Analogy title="Asking your CCA group chat">
+
+You post a question in your CCA group chat: "Which hawker centre near school has the best chicken rice?" Your question is the **query**. Each friend has a **key**, what they know about (food, football, chemistry homework), and a **value**, the reply they would actually give. Attention scores how well your query matches **every** friend's key, turns the scores into shares that add up to 100%, and hands you a blend of all the replies in those shares: mostly the food expert's answer, with a little of everyone else's.
+
+</Analogy>
+
+## What the notebook gives you
+
+This lesson rebuilds Parts 1 and 2 exactly as the notebook asked, line by line, with the notebook's real test output. You have already written this function ([Scaled dot-product attention](#/learn/attention-and-transformers/scaled-dot-product-attention)) and this module ([Multi-head attention](#/learn/attention-and-transformers/multi-head-attention)). Here you type them into the notebook's stubs against the clock and check them against the hidden-test traps.
+
+Every tensor in Task 3 has four axes, and the docstrings name them. We use short capital letters, as in [PyTorch patterns for the Final](#/learn/final-lab-pytorch/torch-exam-patterns):
+
+- **B**, the <Term def="How many sequences (sentences) are processed together in one forward pass. Always axis 0 in PyTorch.">batch size</Term>, called `batch` in the notebook;
+- **h**, the number of <Term def="Separate, smaller attention computations that run side by side on different slices of each token's numbers. Their results are glued back together at the end.">attention heads</Term>, `num_heads`;
+- **T**, the number of <Term def="The pieces a text is cut into before a model reads it, such as words or parts of words. Each token becomes one vector of numbers.">tokens</Term> in each sequence, `seq_len`;
+- **d_k**, how many numbers each query and key vector has in one head.
+
+So `query` and `key` have shape `(B, h, T, d_k)` and `value` has shape `(B, h, T, d_v)` (in practice $d_v = d_k$). The setup cell imports `torch`, `torch.nn as nn`, `torch.nn.functional as F`, `math` and `numpy`, and there is no internet. You fill in the gap between two comment markers:
+
+```python
+def scaled_dot_product_attention(query, key, value, mask=None, dropout=None):
+    d_k = query.size(-1)
+    ### QUESTION 3.1 START
+    # TODO Step 1: Compute attention scores: QK^T
+    # TODO Step 2: Scale by sqrt(d_k)
+    # TODO Step 3: Apply mask if provided
+    # TODO Step 4: Apply softmax to get attention weights
+    # TODO Step 5: Apply dropout if provided
+    # TODO Step 6: Compute output: attention_weights @ V
+    ### QUESTION 3.1 END
+    return output, attention_weights
+```
+
+The last line is already written, so your code **must** create variables called exactly `output` and `attention_weights`.
+
+## Q3.1: the formula, one symbol at a time
+
+The notebook prints the formula you are implementing:
+
+$$
+\text{Attention}(Q, K, V) = \operatorname{softmax}\!\left(\frac{QK^T}{\sqrt{d_k}}\right)V
+$$
+
+Read it from the inside out, for one sequence in one head:
+
+- $Q$ has one row per token: row $i$ is token $i$'s query. Its shape is $(T, d_k)$. $K$ is the same for keys.
+- $K^T$ ("K transpose") flips $K$ so its rows become columns. Then $QK^T$ is a $T \times T$ table of <Term def="The dot product of a query with a key: multiply matching entries and add them up. A big score means a good match.">scores</Term>: row $i$, column $j$ is the dot product $q_i \cdot k_j$.
+- $\sqrt{d_k}$ is the square root of $d_k$, the number of entries in each query and key vector (their dimension). Dividing by it keeps the scores at a moderate size; Q3.2 below is about why.
+- $\operatorname{softmax}$ acts on **each row separately**. It turns a row of scores $s_1, \dots, s_T$ into weights $p_j = e^{s_j} / \sum_m e^{s_m}$: all positive and adding up to 1.
+- Multiplying the weights by $V$ makes row $i$ of the output a weighted average of the value rows, $\sum_j p_{ij}\, v_j$.
+
+The same picture holds for every head of every sequence at once, because `torch.matmul` treats the first two axes `(B, h)` as a pile of separate matrices. Each TODO becomes one line:
+
+1. **Scores:** `torch.matmul(query, key.transpose(-2, -1))`. `transpose(-2, -1)` swaps only the last two axes, turning `(B, h, T, d_k)` into `(B, h, d_k, T)`; the result is `(B, h, T, T)`.
+2. **Scale:** divide by `math.sqrt(d_k)`. `d_k` is a plain Python number, so use `math.sqrt`, not `torch.sqrt`.
+3. **Mask:** `scores.masked_fill(mask == 0, -1e9)`. The method <Term def="Tensor.masked_fill(cond, value) returns a copy in which every position where cond is True is replaced by value.">`masked_fill`</Term> writes $-10^9$ wherever the mask is 0. The docstring's convention is **1 = keep, 0 = hide**, and the notebook says: do not use `-inf`.
+4. **Softmax:** `F.softmax(scores, dim=-1)`, so each row (one query's scores) sums to 1.
+5. **Dropout:** if a dropout layer was passed in, apply it to the weights.
+6. **Output:** `torch.matmul(attention_weights, value)`, shape `(B, h, T, d_v)`.
+
+Why does a mask of shape `(B, 1, 1, T)` work on scores of shape `(B, h, T, T)`? Through <Term def="PyTorch and NumPy stretch an axis of size 1 to match the other tensor's size, without copying data. (B, 1, 1, T) is treated as (B, h, T, T) by repeating the same row of T values.">broadcasting</Term>: an axis of size 1 is repeated to match, so the same row of T zeros and ones is applied to every head and every query. A padding token is hidden from **every** query.
+
+Here is a tiny sentence to run the six lines on: `cats purr [PAD]`, where `[PAD]` is a <Term def="A filler token added to the end of short sentences so that every sentence in a batch has the same length T. The model should ignore it.">padding token</Term>. Step through the code, then try the slips.
+
+<AttentionCodeStepper />
+
+<KeyIdea>
+
+Q3.1 is six short lines in a fixed order: scores with `transpose(-2, -1)`, divide by `math.sqrt(d_k)`, `masked_fill(mask == 0, -1e9)` **before** the softmax, softmax over `dim=-1`, optional dropout, multiply by `value`. Return both the output and the weights.
+
+</KeyIdea>
+
+### The query `cats`, by hand
+
+<Steps title="One row of attention with the padding mask">
+  <Step title="Scores: dot products with each key">
+    $q_\text{cats} = [1, 1, 0, 0]$. With the keys: $[1,1,0,0]\cdot[1,1,0,0] = 2$, $[1,1,0,0]\cdot[0,0,1,1] = 0$ and $[1,1,0,0]\cdot[1,1,1,1] = 2$. The row is $[2, 0, 2]$.
+  </Step>
+  <Step title="Scale: divide by $\sqrt{d_k} = \sqrt{4} = 2$">
+    $[2, 0, 2] \div 2 = [1, 0, 1]$.
+  </Step>
+  <Step title="Mask: hide [PAD]">
+    The mask is $[1, 1, 0]$, so the third score becomes $-10^9$: $[1, 0, -10^9]$.
+  </Step>
+  <Step title="Softmax">
+    $e^{-10^9}$ is 0 to every decimal place a computer stores. With $e \approx 2.718$: $p = \left[\frac{e}{e + 1}, \frac{1}{e + 1}, 0\right] = \left[\frac{2.718}{3.718}, \frac{1}{3.718}, 0\right] \approx [0.73, 0.27, 0]$, which adds up to 1.
+  </Step>
+  <Step title="Blend the values">
+    $0.73 \times [1, 0] + 0.27 \times [0, 1] + 0 \times [0, 0] = [0.73, 0.27]$: mostly "cats", a little "purr", nothing from the padding.
+  </Step>
+</Steps>
+
+Here is the finished function, with the expected shape written after each line, run on the same example:
+
+```python
+import math
+import torch
+import torch.nn.functional as F
+
+def scaled_dot_product_attention(query, key, value, mask=None, dropout=None):
+    d_k = query.size(-1)
+    scores = torch.matmul(query, key.transpose(-2, -1))   # (B, h, T, T)
+    scores = scores / math.sqrt(d_k)                      # (B, h, T, T)
+    if mask is not None:                                  # 1 = keep, 0 = hide
+        scores = scores.masked_fill(mask == 0, -1e9)      # (B, h, T, T)
+    attention_weights = F.softmax(scores, dim=-1)         # each row sums to 1
+    if dropout is not None:
+        attention_weights = dropout(attention_weights)
+    output = torch.matmul(attention_weights, value)       # (B, h, T, d_v)
+    return output, attention_weights
+
+# the lesson's example: "cats purr [PAD]", B = 1, h = 1, T = 3, d_k = 4
+Q = torch.tensor([[1., 1, 0, 0], [0, 0, 1, 1], [1, 0, 1, 0]]).view(1, 1, 3, 4)
+K = torch.tensor([[1., 1, 0, 0], [0, 0, 1, 1], [1, 1, 1, 1]]).view(1, 1, 3, 4)
+V = torch.tensor([[1., 0], [0, 1], [0, 0]]).view(1, 1, 3, 2)
+mask = torch.tensor([1, 1, 0]).view(1, 1, 1, 3)        # (B, 1, 1, T): hide [PAD]
+
+out, w = scaled_dot_product_attention(Q, K, V, mask=mask)
+print(w[0, 0])
+print(out[0, 0])
+```
+
+```text
+tensor([[0.7311, 0.2689, 0.0000],
+        [0.2689, 0.7311, 0.0000],
+        [0.5000, 0.5000, 0.0000]])
+tensor([[0.7311, 0.2689],
+        [0.2689, 0.7311],
+        [0.5000, 0.5000]])
+```
+
+Pasted into the notebook, it passes the test cell for 3.1, which checks the shapes, that each row sums to 1 and that masked positions get exactly 0.
+
+<Reveal label="Show what the 3.1 test cell printed (PyTorch 2.14)">
+
+```text
+Test variables initialized:
+  Q shape: torch.Size([2, 8, 10, 64])
+  K shape: torch.Size([2, 8, 10, 64])
+  V shape: torch.Size([2, 8, 10, 64])
+
+============================================================
+Testing Scaled Dot-Product Attention...
+============================================================
+  Output shape: torch.Size([2, 8, 10, 64])
+  Attention shape: torch.Size([2, 8, 10, 10])
+  Attention sums to 1: 1.0000
+  ✓ Attention working!
+
+Testing Attention with Mask...
+  ✓ Masked attention working!
+```
+
+</Reveal>
+
+<Mistake title="Five slips, and which ones the visible test catches">
+
+- **Forgetting `/ math.sqrt(d_k)`** (or dividing by `d_k`): every visible check still passes, because they test shapes, row sums and zeros. Only the hidden value tests notice.
+- **`dim=-2` in the softmax:** columns sum to 1 instead of rows. The printed "Attention sums to 1: 1.0000" still looks fine (it is an average), but the `allclose` check fails.
+- **`mask == 1` instead of `mask == 0`:** hides the real tokens and keeps the padding.
+- **Filling with 0:** $e^0 = 1$, so a "hidden" token still gets weight. Use a huge negative number.
+- **`key.T`:** on a 4-axis tensor `.T` reverses **all** the axes, so `(2, 8, 10, 64)` becomes `(64, 10, 8, 2)` (with a deprecation warning), and the matmul crashes with `RuntimeError: The size of tensor a (8) must match the size of tensor b (10) at non-singleton dimension 1`. Use `transpose(-2, -1)`.
+
+</Mistake>
+
+Why does the notebook insist on `-1e9` rather than `float('-inf')`? Both give exactly 0 for a hidden key, as long as at least one key in the row is visible. The difference shows up when **every** key in a row is hidden, which happens to padding queries when a mask has shape `(B, 1, T, T)`: with $-\infty$ the softmax computes $0/0$, which is `nan` ("not a number"), and one `nan` spreads into every later number. With $-10^9$ the row just becomes uniform and harmless.
+
+<Reveal label="Show the two masks side by side">
+
+```python
+scores = torch.tensor([[0.5, 1.0, -0.2],
+                       [0.3, 0.8, 0.1]])
+mask = torch.tensor([[1, 1, 0],
+                     [0, 0, 0]])              # row 1: every key hidden
+print(F.softmax(scores.masked_fill(mask == 0, -1e9), dim=-1))
+print(F.softmax(scores.masked_fill(mask == 0, float('-inf')), dim=-1))
+```
+
+```text
+tensor([[0.3775, 0.6225, 0.0000],
+        [0.3333, 0.3333, 0.3333]])
+tensor([[0.3775, 0.6225, 0.0000],
+        [   nan,    nan,    nan]])
+```
+
+</Reveal>
+
+The notebook has a second, "numerical correctness" test. It sets `Q_test` and `K_test` to all ones, shape `(1, 1, 3, 4)`, and `V_test = torch.arange(12).reshape(1, 1, 3, 4).float()`, whose three rows are `[0, 1, 2, 3]`, `[4, 5, 6, 7]` and `[8, 9, 10, 11]`.
+
+<QuickCheck
+  q="In that test, what is each row of `out_test` (the output for one query)?"
+  options={['[4, 5, 6, 7]', '[0, 1, 2, 3]', '[12, 15, 18, 21]', '[8, 9, 10, 11]']}
+  answer={0}
+  explain="Every score is the same ($4 / \sqrt{4} = 2$), so softmax gives equal weights of $\tfrac{1}{3}$ to the three keys. Each output row is the average of the value rows: $\tfrac{1}{3}([0,1,2,3] + [4,5,6,7] + [8,9,10,11]) = [4, 5, 6, 7]$. $[12, 15, 18, 21]$ is the sum, which you would get if the weights were 1 each instead of adding up to 1."
+/>
+
+## Q3.2: why divide by $\sqrt{d_k}$?
+
+This 2-mark question is marked by hand. The notebook asks for **2 to 4 sentences** covering three things: what happens to dot products as $d_k$ grows, how that affects the softmax, and why that hurts training. A full answer also says what the division achieves. Here is the reasoning, with small numbers.
+
+**1. Dot products grow with $d_k$.** Suppose each entry of $q$ and $k$ is a random number with mean 0 and <Term def="The average squared distance from the mean. Its square root, the standard deviation, is the typical size of the numbers.">variance</Term> 1. Then $q \cdot k = q_1k_1 + q_2k_2 + \dots + q_{d_k}k_{d_k}$ is a sum of $d_k$ products, each with mean 0 and variance 1. Variances of independent terms add, so
+
+$$
+\operatorname{Var}(q \cdot k) = d_k, \qquad \text{typical size} = \sqrt{d_k}.
+$$
+
+With $d_k = 64$ the scores are typically about $\pm 8$; with $d_k = 512$, about $\pm 22.6$.
+
+**2. Big scores saturate the softmax.** Take the scores $[8, 0, -8]$. Because $e^8 \approx 2981$, the softmax gives about $[0.9997, 0.0003, 0.0000]$: nearly <Term def="A vector with a 1 in one place and 0 everywhere else. A softmax output that is almost one-hot has put nearly all its weight on one item.">one-hot</Term>. The softmax is <Term def="Pushed so far that its output hardly changes when its input changes: it is stuck near 0 or 1.">saturated</Term>.
+
+**3. Saturation kills the gradient.** The slope of a weight $p_i$ with respect to its own score is $p_i(1 - p_i)$. For $0.9997$ that is about $0.0003$. Gradient descent learns from slopes, so the query and key layers barely change and training stalls.
+
+**4. The fix.** Dividing by $\sqrt{d_k}$ divides the variance by $d_k$, bringing it back to $d_k / d_k = 1$. The same example becomes $[8, 0, -8] \div 8 = [1, 0, -1]$, with weights $[0.67, 0.24, 0.09]$ and slope $0.67 \times 0.33 \approx 0.22$: hundreds of times more learning signal.
+
+<AnswerTemplateBuilder />
+
+<ExamTip title="Writing the 2-mark answer">
+
+Use the notebook's own template ("When $d_k$ is large…, this causes softmax to…, which leads to…") and make sure each of the four ideas appears: **variance $d_k$**, **saturation**, **vanishing gradients**, **variance back to 1**. Quote one number, such as "about 22.6 when $d_k = 512$". Keep it in the `answer_3_2` string and run the cell so the answer prints.
+
+</ExamTip>
+
+The 2026 Final's multiple-choice section asked the same idea from the other side (Q16, which you solved in [Multi-head attention](#/learn/attention-and-transformers/multi-head-attention)): a self-attention module gave very peaked weights, and the missing line was `/ math.sqrt(self.head_dim)` on the scores, for exactly the reasons above. Dividing by `head_dim` itself would overshoot and make the weights nearly uniform.
+
+## Q3.3 and Q3.4: the multi-head module
+
+One attention computation is one "point of view". **Multi-head attention** runs $h$ of them side by side, each on its own slice of every token's numbers. The notebook's logic has four words: split, calculate, concatenate, project.
+
+The module receives `d_model`, how many numbers describe each token (512 in the test), and `num_heads` ($h = 8$). Each head gets
+
+$$
+d_k = \frac{d_\text{model}}{h} = \frac{512}{8} = 64
+$$
+
+numbers per token, which is why the given `__init__` asserts that `d_model % num_heads == 0`.
+
+**Q3.3, `__init__` (5 marks).** Create the layers once, in `__init__`:
+
+- four <Term def="nn.Linear(n_in, n_out) is a learnable layer that maps the last axis of its input from n_in numbers to n_out numbers: y = xWᵀ + b.">`nn.Linear`</Term> layers, `self.W_q`, `self.W_k`, `self.W_v` and `self.W_o`, each `nn.Linear(d_model, d_model)`;
+- one <Term def="nn.Dropout(p) randomly sets a fraction p of its input to 0 during training (and scales the rest by 1/(1 − p)), which reduces overfitting. In eval mode it does nothing.">`nn.Dropout`</Term>, `self.dropout = nn.Dropout(dropout)`.
+
+Why `(d_model, d_model)` and not `(d_model, d_k)`? One big $512 \times 512$ projection is the same as eight $512 \times 64$ projections placed side by side: the first 64 output numbers belong to head 0, the next 64 to head 1, and so on. One big matrix multiplication is faster than eight small ones.
+
+**Q3.4, `forward` (5 marks).** Five steps, following the notebook's comments. In the table, `B`, `h` and `d_k` stand for `batch_size`, `self.num_heads` and `self.d_k`:
+
+| step | code | shape after it |
+|---|---|---|
+| project | `Q = self.W_q(query)` | `(B, T, d_model)` |
+| split | `.view(B, -1, h, d_k)` | `(B, T, h, d_k)` |
+| | `.transpose(1, 2)` | `(B, h, T, d_k)` |
+| attend | `scaled_dot_product_attention(…)` | `(B, h, T, d_k)`, weights `(B, h, T, T)` |
+| merge | `.transpose(1, 2)` | `(B, T, h, d_k)` |
+| | `.contiguous().view(B, -1, d_model)` | `(B, T, d_model)` |
+| project | `self.W_o(out)` | `(B, T, d_model)` |
+
+`view` regroups the numbers into a new shape without moving them, and `-1` asks PyTorch to work out that axis's size. Play the forward pass and change the sizes:
+
+<MHAModuleShapes />
+
+Here is the complete module; the answer lives between the `QUESTION` markers and everything else was given. The last three lines are the core of the notebook's test cell, and below is what that cell printed (a real run).
+
+```python
+import torch.nn as nn
+
+class MultiHeadAttention(nn.Module):
+    def __init__(self, d_model, num_heads, dropout=0.1):
+        super().__init__()
+        assert d_model % num_heads == 0, "d_model must be divisible by num_heads"
+        self.d_model = d_model
+        self.num_heads = num_heads
+        self.d_k = d_model // num_heads
+        ### QUESTION 3.3 START
+        self.W_q = nn.Linear(d_model, d_model)
+        self.W_k = nn.Linear(d_model, d_model)
+        self.W_v = nn.Linear(d_model, d_model)
+        self.W_o = nn.Linear(d_model, d_model)
+        self.dropout = nn.Dropout(dropout)
+        ### QUESTION 3.3 END
+
+    def forward(self, query, key, value, mask=None):
+        batch_size = query.size(0)
+        ### QUESTION 3.4 START
+        # 1. project: (B, T, d_model)
+        Q = self.W_q(query)
+        K = self.W_k(key)
+        V = self.W_v(value)
+        # 2. split into heads: (B, T, h, d_k) -> (B, h, T, d_k)
+        Q = Q.view(batch_size, -1, self.num_heads, self.d_k).transpose(1, 2)
+        K = K.view(batch_size, -1, self.num_heads, self.d_k).transpose(1, 2)
+        V = V.view(batch_size, -1, self.num_heads, self.d_k).transpose(1, 2)
+        # 3. attention in all heads at once: (B, h, T, d_k), (B, h, T, T)
+        out, attn = scaled_dot_product_attention(Q, K, V, mask=mask,
+                                                 dropout=self.dropout)
+        # 4. merge heads: (B, h, T, d_k) -> (B, T, h, d_k) -> (B, T, d_model)
+        out = out.transpose(1, 2).contiguous().view(batch_size, -1, self.d_model)
+        # 5. output projection: (B, T, d_model)
+        return self.W_o(out), attn
+        ### QUESTION 3.4 END
+
+# the notebook's test (batch = 2, seq_len = 10)
+mha = MultiHeadAttention(d_model=512, num_heads=8)
+x = torch.randn(batch, seq_len, 512)
+out, attn = mha(x, x, x)          # self-attention: x three times
+```
+
+```text
+============================================================
+Testing Multi-Head Attention...
+============================================================
+  Input shape: torch.Size([2, 10, 512])
+  Output shape: torch.Size([2, 10, 512])
+  Attention shape: torch.Size([2, 8, 10, 10])
+  ✓ Multi-Head Attention working!
+```
+
+As an extra check, we copied the same weights into PyTorch's built-in `nn.MultiheadAttention` (with `batch_first=True`). With both modules in eval mode, which switches dropout off, the outputs agreed to about $10^{-7}$: the same answer up to rounding.
+
+<QuickCheck
+  q="In a `MultiHeadAttention` with `d_model = 256` and `num_heads = 8`, the input has shape (4, 20, 256), meaning (B, T, d_model). What is the shape of `Q` after `.view(batch_size, -1, self.num_heads, self.d_k).transpose(1, 2)`?"
+  options={['(4, 8, 20, 32)', '(4, 20, 8, 32)', '(4, 8, 32, 20)', '(4, 8, 20, 256)']}
+  answer={0}
+  explain="$d_k = 256 / 8 = 32$. The view gives (4, 20, 8, 32) = (B, T, h, d_k), and transpose(1, 2) swaps T and h: (4, 8, 20, 32). (4, 20, 8, 32) is the shape before the transpose, and (4, 8, 20, 256) forgets that each head only gets 32 numbers."
+/>
+
+<Mistake title="The reshape slips">
+
+- **Skipping the transpose.** `Q.view(batch_size, self.num_heads, -1, self.d_k)` has the right shape, so the test cell prints a tick, but `view` only re-cuts memory in order: head 0's second row holds token 0's *next* $d_k$ numbers instead of the start of token 1. Right shape, wrong numbers, and the hidden tests compare numbers.
+- **`.view` straight after `.transpose`.** `transpose` only changes the order in which memory is read, so `view` refuses with a `RuntimeError` (the check below shows it). A tensor is *contiguous* when its numbers sit in memory in the order its shape says; `.contiguous()` makes a copy laid out that way, so add it first, or use `.reshape`, which copies when it has to.
+- **Creating layers inside `forward`.** A layer built there gets new random weights on every call, never trains, and does not exist as `self.W_q` for the tests.
+- **Hard-coding 512, 8 or 64.** Read sizes from the arguments (`self.d_k`, `self.d_model`, `query.size(0)`): hidden tests use other sizes.
+
+</Mistake>
+
+Both reshape slips can be checked in a few lines, with sizes that are all different ($B = 2$, $T = 5$, $h = 3$, $d_k = 4$).
+
+<Reveal label="Show the check">
+
+```python
+torch.manual_seed(0)
+B, T, h, d_k = 2, 5, 3, 4                     # all different sizes
+P = torch.randn(B, T, h * d_k)                # a projected Q: (B, T, d_model)
+right = P.view(B, T, h, d_k).transpose(1, 2)  # (B, h, T, d_k)
+wrong = P.view(B, h, T, d_k)                  # also (B, h, T, d_k)!
+print(right.shape == wrong.shape, torch.equal(right, wrong))
+
+out = torch.randn(B, h, T, d_k)               # what attention returns
+try:
+    out.transpose(1, 2).view(B, T, h * d_k)
+except RuntimeError as e:
+    print("RuntimeError:", e)
+print(out.transpose(1, 2).contiguous().view(B, T, h * d_k).shape)
+```
+
+```text
+True False
+RuntimeError: view size is not compatible with input tensor's size and stride (at least one dimension spans across two contiguous subspaces). Use .reshape(...) instead.
+torch.Size([2, 5, 12])
+```
+
+</Reveal>
+
+The attention weights have shape `(B, h, T, T)`: every token scores every other token, so one head of one sentence needs $T \times T$ numbers. Doubling the sentence length quadruples that table, a fact the Prelim likes to test.
+
+<PastPaperQuestion paper="prelim2026" n={219} />
+
+<ExamTip title="Working through Parts 1 and 2 in the exam">
+
+- **Budget about 35 minutes** for these 20 marks if Task 3 gets an hour. Write Q3.1 and run its test cell before you start on the module, because Q3.4 calls your Q3.1 function.
+- **Keep every given name:** `output`, `attention_weights`, `self.W_q`, `self.W_k`, `self.W_v`, `self.W_o`, `self.dropout`. In 2026 every graded Task 3 test was **hidden**, and hidden tests look things up by name.
+- **Test values, not only shapes.** In a scratch cell, compare your output with PyTorch's built-in version (which returns only the output, not the weights): `torch.allclose(out, F.scaled_dot_product_attention(Q, K, V, attn_mask=mask.bool()), atol=1e-6)`. On the notebook's test tensors this prints `True`. Keep the `atol=1e-6`: the built-in adds the numbers in a different order, so the two differ by about $4 \times 10^{-7}$ and the default tolerance prints `False` even for a correct function. Delete the scratch cell afterwards.
+- Leave Q3.2 until the code runs: it is only 2 marks, but do not leave it blank.
+
+</ExamTip>
+
+<Takeaways>
+
+- **Q3.1** is six lines: `matmul(query, key.transpose(-2, -1))`, `/ math.sqrt(d_k)`, `masked_fill(mask == 0, -1e9)` before the softmax, `F.softmax(..., dim=-1)`, optional dropout, `matmul(weights, value)`. Return both tensors.
+- The visible tests check shapes, row sums and zeros. A missing scale or a scrambled head split passes them and fails the hidden value tests, so check values yourself.
+- **Q3.2** in four ideas: $q \cdot k$ has variance $d_k$; large scores saturate the softmax; saturated softmax has near-zero gradients; dividing by $\sqrt{d_k}$ brings the variance back to 1.
+- **Q3.3/3.4:** four `nn.Linear(d_model, d_model)` and a dropout in `__init__`; in `forward`, project, `view(B, -1, h, d_k).transpose(1, 2)`, attend, `transpose(1, 2).contiguous().view(B, -1, d_model)`, then `W_o`.
+
+</Takeaways>

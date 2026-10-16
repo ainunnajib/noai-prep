@@ -1,0 +1,339 @@
+import RangeVisualiser from './visuals/loops/RangeVisualiser'
+import LoopTracer from './visuals/loops/LoopTracer'
+import NudgeLoop from './visuals/loops/NudgeLoop'
+import { LOOP_BASICS, NUDGE_LOOP } from './visuals/loops/snippets'
+
+Computers never get bored. Training an AI model means repeating the same few steps thousands or millions of times: make a prediction, check how wrong it is, adjust, and go again. A **loop** is how you tell Python to repeat. By the end of this lesson you will have written a five-line loop that learns a number all by itself, using the same idea that trains every neural network.
+
+## Doing something for each item: for
+
+```python
+for name in ["Ali", "Bala", "Chen"]:
+    print("Hi", name)
+print("Done")
+```
+
+```text
+Hi Ali
+Hi Bala
+Hi Chen
+Done
+```
+
+A <Term def="A statement that runs a block of code once for each item in a sequence, such as a list, a string or a range of numbers.">for loop</Term> reads almost like English: "for each name in this list, print a greeting". (The square brackets make a **list**: several values kept in order. Lists get their own lesson at the end of this module: [Lists: ordered collections](#/learn/python-basics/lists).)
+
+- `name` is the **loop variable**. You choose its name. On each pass it refers to the next item: first `"Ali"`, then `"Bala"`, then `"Chen"`.
+- The colon and the indented block work exactly as they did for `if`. The indented lines are the **body**, and they run once per item. One run of the body is called an <Term def="One pass through the body of a loop. A loop over three items has three iterations.">iteration</Term>.
+- After the last item, Python carries on with the first unindented line, so `Done` is printed once, at the end.
+
+A for loop can walk over anything that holds items in order. A string, for example, is a sequence of characters, so `for ch in "NOAI":` runs four times, with `ch` equal to `"N"`, `"O"`, `"A"` and then `"I"`.
+
+## Counting with range()
+
+Often you just want to repeat something a number of times, or count. That is what `range()` is for.
+
+<Analogy title="The 24-hour clock">
+
+A 24-hour clock shows the hours 0, 1, 2, … up to 23. That is 24 different hours, and the number 24 itself never appears on the display. `range(24)` works the same way: 24 values, starting at 0 and stopping **before** 24. (Minutes are `range(60)`.) The number you give `range` says how many values you get, not the last value.
+
+</Analogy>
+
+`range` comes in three forms:
+
+| You write | Values produced | How many |
+|---|---|---|
+| `range(5)` | 0, 1, 2, 3, 4 | 5 |
+| `range(2, 6)` | 2, 3, 4, 5 | 4 |
+| `range(0, 10, 2)` | 0, 2, 4, 6, 8 | 5 |
+| `range(10, 0, -2)` | 10, 8, 6, 4, 2 | 5 |
+
+In general, `range(start, stop, step)` begins at `start` (0 if you leave it out), adds `step` each time (1 if you leave it out), and stops **before** reaching `stop`. The stop value is never included, the same "stop is excluded" rule as string slices. With a negative step it counts down, still stopping before `stop`.
+
+`range` produces its numbers one at a time as a loop asks for them, so `print(range(5))` only shows `range(0, 5)`. To see all the numbers at once, wrap it in `list()`, which collects them into a list: `print(list(range(5)))` shows `[0, 1, 2, 3, 4]`.
+
+<RangeVisualiser />
+
+How many times does a loop over `range` run? With a step of 1 it is simply $\text{stop} - \text{start}$: `range(2, 6)` gives $6 - 2 = 4$ values. With a bigger step, divide the distance by the step and **round up**:
+
+$$
+\text{number of values} = \left\lceil \frac{\text{stop} - \text{start}}{\text{step}} \right\rceil
+$$
+
+Here $\lceil \cdot \rceil$ means "round up to the next whole number". For `range(0, 10, 3)`: $\frac{10 - 0}{3} = 3.33\ldots$, which rounds up to 4, and indeed the values are 0, 3, 6, 9. (If the answer is 0 or negative, the range is empty.)
+
+<KeyIdea>
+
+`range(n)` gives exactly $n$ values, $0$ to $n - 1$. That is precisely the set of valid positions in a string of length $n$, which is why `range(len(word))` is such a common pattern.
+
+</KeyIdea>
+
+```python
+word = "NOAI"
+for i in range(len(word)):
+    print(i, word[i])
+```
+
+```text
+0 N
+1 O
+2 A
+3 I
+```
+
+<QuickCheck
+  q="What does `print(list(range(2, 11, 3)))` show?"
+  options={['`[2, 5, 8]`', '`[2, 5, 8, 11]`', '`[3, 6, 9]`', '`[2, 3, 4, 5, 6, 7, 8, 9, 10]`']}
+  answer={0}
+  explain="Start at 2 and add 3 each time: 2, 5, 8. The next value would be 11, but `stop` is excluded, so the list ends at 8. Check with the formula: $\lceil (11 - 2)/3 \rceil = 3$ values."
+/>
+
+<PastPaperQuestion paper="prelim2026" n={81} />
+
+## Keeping a running total
+
+Loops become powerful when each pass builds on the last. This program adds up 1 + 2 + 3 + 4:
+
+```python
+total = 0
+for i in range(1, 5):
+    total = total + i
+print(total)
+```
+
+```text
+10
+```
+
+The variable `total` is an <Term def="A variable that collects a result as a loop runs, for example a running total that starts at 0 and has each item added to it.">accumulator</Term>: it starts at 0, and each pass adds the current `i` to it. Remember that `total = total + i` means "work out `total + i`, then make `total` refer to the answer". Programmers write it more briefly as `total += i`, which does exactly the same thing.
+
+The best way to check a loop by hand is a <Term def="A table with one column per variable and one row per pass of a loop, showing the values as the program runs. Used to check code by hand.">trace table</Term>: one column per variable, one row per pass.
+
+| | `i` | `total` |
+|---|---|---|
+| start | (none yet) | 0 |
+| pass 1 | 1 | 0 + 1 = 1 |
+| pass 2 | 2 | 1 + 2 = 3 |
+| pass 3 | 3 | 3 + 3 = 6 |
+| pass 4 | 4 | 6 + 4 = 10 |
+
+<Mistake title="Is the print inside the loop or after it?">
+
+Indentation decides how often a line runs. These two programs differ only in the spaces before `print`:
+
+<Columns min={220}>
+
+<div>
+
+```python
+total = 0
+for i in range(1, 4):
+    total += i
+    print(total)
+```
+
+```text
+1
+3
+6
+```
+
+</div>
+
+<div>
+
+```python
+total = 0
+for i in range(1, 4):
+    total += i
+print(total)
+```
+
+```text
+6
+```
+
+</div>
+
+</Columns>
+
+On the left, `print` is in the body, so it runs on every pass. On the right, it runs once, after the loop has finished. NOAI code-reading questions love this difference.
+
+</Mistake>
+
+<PyRunner code={LOOP_BASICS} />
+
+## Repeating until something happens: while
+
+A for loop repeats a known number of times. Sometimes you don't know how many times in advance: you just want to keep going **until** something becomes true.
+
+<Analogy title="Topping up your EZ-Link card">
+
+Your card has \$3, and you want at least \$20 before a long trip. You top up \$5, check the balance, and repeat until it is enough. You don't decide "four top-ups" in advance: you keep checking a condition.
+
+</Analogy>
+
+```python
+balance = 3
+top_ups = 0
+while balance < 20:
+    balance = balance + 5
+    top_ups = top_ups + 1
+print(balance, top_ups)
+```
+
+```text
+23 4
+```
+
+A <Term def="A statement that repeats its body for as long as its condition is True, checking the condition before every pass.">while loop</Term> works like this:
+
+1. Check the condition (`balance < 20`).
+2. If it is `True`, run the body once, then **jump back to step 1**.
+3. If it is `False`, skip the body and carry on after the loop.
+
+Step through it, and watch the trace table grow:
+
+<LoopTracer />
+
+<KeyIdea>
+
+A `while` loop repeats as long as its condition stays `True`. Something inside the loop must eventually make the condition `False`, or the loop never ends: an <Term def="A loop whose stopping condition never becomes False, so it runs until someone stops the program.">infinite loop</Term>.
+
+</KeyIdea>
+
+<Mistake title="The loop that never ends">
+
+If you forget the line that changes `balance`, or indent it wrongly so that it sits *after* the loop, then `balance < 20` is `True` forever. Python does not warn you; the program just keeps running. In Jupyter, a cell that is stuck shows `[*]` beside it, and you stop it with the square stop button (**Interrupt the kernel**). When writing a `while` loop, always ask: "which line in the body moves me towards the stopping condition?"
+
+</Mistake>
+
+<Tip title="Leaving a loop early with break">
+
+Inside any loop, `break` stops the loop immediately and jumps to the first line after it. Combined with an `if`, it lets you stop as soon as you have found what you were looking for:
+
+```python
+for n in range(1, 100):
+    if n * n > 50:
+        break
+print(n)
+```
+
+```text
+8
+```
+
+$7 \times 7 = 49$ is not more than 50, but $8 \times 8 = 64$ is, so the loop stops at `n = 8` without trying the other 91 numbers.
+
+</Tip>
+
+<QuickCheck
+  q="A program should keep asking for a password until the user types the right one. Which loop fits best?"
+  options={[
+    'A `while` loop, because you cannot know in advance how many tries it will take',
+    'A `for` loop over `range(3)`, because every loop must have a fixed number of passes',
+    'A `for` loop, because a `while` loop is not allowed to contain an `if` inside it',
+    'No loop at all, because an `if` statement repeats itself until its condition is True',
+  ]}
+  answer={0}
+  explain="Use `for` when you know what to repeat over (each item, or a fixed count). Use `while` when you repeat **until** a condition changes and the number of passes is unknown, like waiting for the right password. Loops can contain `if` statements, and an `if` runs at most once."
+/>
+
+## A loop that learns
+
+Now for the payoff. Suppose a model's job is to find the number $w$ that makes $2 \times w$ equal to 6. You can solve that in your head, but pretend you can't: the model has to **learn** $w$ by trial and correction.
+
+<Analogy title="Tuning a guitar string">
+
+You pluck the string, listen to how far off the note is, turn the peg a little in the right direction, and pluck again. Too flat: tighten. Too sharp: loosen. Big turns overshoot; tiny turns take forever. After a few rounds, the note is right.
+
+</Analogy>
+
+You met this loop in [Letting the computer find the line](#/learn/ai-first-look/let-the-computer-learn): predict, measure, find the slope, nudge. Now you write it in Python. `lr` is the learning rate $\eta$ from that lesson.
+
+```python
+w = 0.0     # first guess
+lr = 0.1    # learning rate: how big each nudge is
+for step in range(5):
+    prediction = 2 * w
+    error = prediction - 6
+    w = w - lr * error
+    print(step, round(w, 3), round(error, 3))
+```
+
+```text
+0 0.6 -6.0
+1 1.08 -4.8
+2 1.464 -3.84
+3 1.771 -3.072
+4 2.017 -2.458
+```
+
+Each pass of the loop does three things:
+
+- **Predict**: `prediction = 2 * w` is what the current guess says.
+- **Measure**: `error = prediction - 6`. A negative error means the prediction is too small; a positive error means too big; 0 means perfect. (This error is prediction minus target, the opposite sign of the residual $y - \hat{y}$ from [Your first model: fitting a line by hand](#/learn/ai-first-look/fit-a-line-by-hand). With this sign, we nudge by *subtracting* it.)
+- **Nudge**: `w = w - lr * error` moves `w` **against** the error. If the error is negative, subtracting it makes `w` bigger; if it is positive, `w` gets smaller. The <Term def="A small positive number that sets how big each correction is. Too small: learning is slow. Too big: the corrections overshoot and can blow up.">learning rate</Term> `lr` sets the size of the nudge.
+
+Where is "find the slope"? For this tiny problem the error happens to *be* the slope. Measure the loss as $\tfrac{1}{4}(2w - 6)^2$ (the squared error, scaled by $\tfrac{1}{4}$ to keep the numbers tidy): its slope at any $w$ is exactly $2w - 6$, the error. Check it by nudging, as in [Letting the computer find the line](#/learn/ai-first-look/let-the-computer-learn): at $w = 0$ the loss is $9$ and at $w = 0.01$ it is $8.9401$, so the slope is about $-0.0599 \div 0.01 \approx -6$, the error at $w = 0$. In general, gradient descent subtracts $\eta \times$ (slope of the loss), not the raw error.
+
+<Steps title="The first two passes by hand">
+  <Step title="Pass 1 (step 0): predict and measure">
+    $w = 0$, so the prediction is $2 \times 0 = 0$ and the error is $0 - 6 = -6$: far too small.
+  </Step>
+  <Step title="Pass 1: nudge">
+    $w = 0 - 0.1 \times (-6) = 0 + 0.6 = 0.6$. Minus a negative number moves $w$ up.
+  </Step>
+  <Step title="Pass 2 (step 1): predict and measure">
+    Prediction $2 \times 0.6 = 1.2$, error $1.2 - 6 = -4.8$. Still too small, but less wrong than before.
+  </Step>
+  <Step title="Pass 2: nudge">
+    $w = 0.6 - 0.1 \times (-4.8) = 0.6 + 0.48 = 1.08$. The nudges shrink as the error shrinks, so $w$ slows down as it approaches 3.
+  </Step>
+</Steps>
+
+Run the loop, then play with the learning rate:
+
+<NudgeLoop />
+
+Why does the learning rate behave like that? Look at the **gap** between $w$ and the answer 3. One pass turns $w$ into $w - \text{lr}\,(2w - 6)$, so the new gap is
+
+$$
+w_{\text{new}} - 3 = (w - 3) - \text{lr}\,(2w - 6) = (w - 3) - 2\,\text{lr}\,(w - 3) = (1 - 2\,\text{lr})\,(w - 3).
+$$
+
+In words: every pass multiplies the gap by the same number, $1 - 2\,\text{lr}$. With $\text{lr} = 0.1$ that number is $0.8$, so the gap goes $-3 \to -2.4 \to -1.92 \to \ldots$, its size shrinking by a fifth each pass. With $\text{lr}$ between 0.5 and 1 the number is negative, so $w$ lands on the other side of 3 each time (overshoot) but still gets closer. With $\text{lr} > 1$ the number is below $-1$, so every pass makes the gap **bigger**, and $w$ blows up.
+
+<KeyIdea>
+
+Predict, measure, find the slope (here, the error itself), nudge against it, repeat. That loop is how machines learn. The learning rate sets the nudge size: too small is slow, too big overshoots, and far too big diverges.
+
+</KeyIdea>
+
+<Note title="You have just written gradient descent">
+
+Real training is this same loop with millions of numbers instead of one $w$. As in [Letting the computer find the line](#/learn/ai-first-look/let-the-computer-learn), the errors are combined into one score, the **loss**, and the **gradient** (the slopes of the loss) says which way, and by how much, to nudge every number; [the calculus module](#/learn/calculus-and-gradient-descent/derivatives-as-slopes) shows how to compute it exactly. In PyTorch, training is literally a `for` loop around predict, measure, find the slope and nudge (each pass over the whole dataset is called an **epoch**).
+
+</Note>
+
+<PyRunner code={NUDGE_LOOP} />
+
+<ExamTip>
+
+Loop questions in the Prelim are about counting and tracing, fast:
+
+- `range(n)` gives $0$ to $n - 1$; `range(a, b)` gives $b - a$ values and never includes $b$. With a step, use $\lceil (b - a)/\text{step} \rceil$.
+- An empty range is a classic trap: `range(5, 0)` produces nothing, because the default step is +1.
+- For a `while` loop, write a quick trace table with one row per check of the condition, and stop at the first `False`.
+- Check the indentation of every `print`: inside the loop it prints every pass, after the loop it prints once.
+
+</ExamTip>
+
+<Takeaways>
+
+- `for x in sequence:` runs the indented body once per item, with `x` taking each item in turn.
+- `range(start, stop, step)` starts at `start`, moves by `step` and stops **before** `stop`. `range(n)` gives the $n$ values $0$ to $n - 1$.
+- `while condition:` repeats as long as the condition is `True`. Something in the body must make it `False`, or the loop runs forever.
+- A trace table (one column per variable, one row per pass) is the surest way to predict what a loop does.
+- Predict, measure, find the slope, nudge, repeat: a loop with a learning rate is the core of how neural networks are trained.
+
+</Takeaways>

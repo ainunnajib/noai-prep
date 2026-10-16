@@ -1,0 +1,302 @@
+import RegularisedPolyFit from './visuals/regularisation/RegularisedPolyFit'
+import ShrinkOrSnap from './visuals/regularisation/ShrinkOrSnap'
+import L1L2Constraint from './visuals/regularisation/L1L2Constraint'
+import RegularisationPath from './visuals/regularisation/RegularisationPath'
+import RobustLossCompare from './visuals/regularisation/RobustLossCompare'
+
+At the end of the last lesson, [Multiple and polynomial regression](#/learn/linear-regression/multiple-and-polynomial), a degree-9 curve threaded all 10 training points and failed badly on new data, using weights in the hundreds. Throwing away flexibility (a lower degree) is one cure. **Regularisation** is a better one: keep the flexible model, but make big weights *cost* something, so the model only uses them when they really pay off. Questions on it appeared in both the 2026 Prelim and the 2026 Final. The lesson ends with a closely related question: how much should one big mistake cost?
+
+<Analogy title="Packing under an airline weight limit">
+
+With a 20 kg limit you cannot bring everything at full size. An **L2** traveller packs a lighter version of everything: smaller bottles, fewer shirts, but a bit of each. An **L1** traveller leaves whole items at home and takes the important ones at full size. Ridge (L2) and lasso (L1) regularisation make exactly these two choices about a model's weights.
+
+</Analogy>
+
+Here is that degree-9 curve again, and the cure. Slide $\lambda$ (the strength of the penalty) to the right and watch the wild degree-9 curve calm down:
+
+<RegularisedPolyFit />
+
+## Charging the model for big weights
+
+Regularisation adds a **penalty** on the size of the weights to the loss. The two classic versions are
+
+$$
+L_{\text{ridge}}(w) = \underbrace{\frac{1}{n}\sum_{i=1}^{n} (y_i - \hat{y}_i)^2}_{\text{MSE: fit the data}} + \underbrace{\lambda \sum_{j=1}^{d} w_j^2}_{\text{L2 penalty}}
+$$
+
+$$
+L_{\text{lasso}}(w) = \underbrace{\frac{1}{n}\sum_{i=1}^{n} (y_i - \hat{y}_i)^2}_{\text{MSE: fit the data}} + \underbrace{\lambda \sum_{j=1}^{d} |w_j|}_{\text{L1 penalty}}
+$$
+
+- The first part is the usual mean squared error: it rewards fitting the training data.
+- $\sum_j w_j^2$ is the **sum of squared weights**, also written $\lVert w \rVert_2^2$ (the squared L2 norm). Using it gives <Term def="Linear regression trained with MSE plus λ times the sum of squared weights (an L2 penalty). Also called Tikhonov regularisation; in neural networks the same idea is weight decay.">ridge regression</Term>.
+- $\sum_j |w_j|$ is the **sum of absolute weights**, written $\lVert w \rVert_1$ (the L1 norm). Using it gives the <Term def="Linear regression trained with MSE plus λ times the sum of absolute weights (an L1 penalty). LASSO stands for Least Absolute Shrinkage and Selection Operator.">lasso</Term>.
+- $\lambda \geq 0$ (lambda) is the <Term def="How much the penalty counts compared with the data-fitting error. λ = 0 means no regularisation; a huge λ forces all weights towards 0.">regularisation strength</Term>, a <Term def="A setting you choose before training, such as λ, the learning rate or the polynomial degree, rather than a parameter the model learns from the data.">hyperparameter</Term> you choose. $\lambda = 0$ is plain least squares.
+- The sums run over the $d$ feature weights $w_1, \dots, w_d$ only, and $w_0$ is the bias (so here, unlike in [Multiple and polynomial regression](#/learn/linear-regression/multiple-and-polynomial), $d$ does not count the column of 1s). The **bias $w_0$ is not penalised**: it only shifts every prediction up or down and cannot make the curve wiggle, so shrinking it would just drag all predictions towards 0 for no benefit (imagine forcing every flat-price prediction towards zero dollars).
+
+Now a weight is only worth making big if it lowers the MSE by more than it adds to the penalty. The wild degree-9 curve needed weights like 400 and −678, whose squares cost a fortune, so it is no longer the cheapest option.
+
+<Steps title="Computing a penalised loss">
+  <Step title="The setting">
+    A model has bias $w_0 = 5$, weights $w_1 = 3$ and $w_2 = -1$, and its MSE on the training data is $2$. Take $\lambda = 0.1$.
+  </Step>
+  <Step title="Ridge (L2)">
+    Square and add the feature weights: $3^2 + (-1)^2 = 9 + 1 = 10$. Penalty $= 0.1 \times 10 = 1$. Ridge loss $= 2 + 1 = 3$.
+  </Step>
+  <Step title="Lasso (L1)">
+    Add the absolute values: $|3| + |-1| = 4$. Penalty $= 0.1 \times 4 = 0.4$. Lasso loss $= 2 + 0.4 = 2.4$.
+  </Step>
+  <Step title="What about the bias?">
+    $w_0 = 5$ appears in neither penalty. Notice also that L2 punishes the big weight much more (9 versus 3 for $w_1$), while L1 charges every unit of weight the same.
+  </Step>
+</Steps>
+
+<KeyIdea>
+
+Regularised loss = data error + $\lambda \times$ (size of the weights). **L2/ridge** uses $\sum w_j^2$, **L1/lasso** uses $\sum |w_j|$. Bigger $\lambda$ means smaller weights and a simpler model; the bias is left out of the penalty.
+
+</KeyIdea>
+
+<PastPaperQuestion paper="prelim2026" n={149} />
+
+## Why L1 snaps weights to exactly zero
+
+The two penalties look similar, but they behave very differently near zero. To see why, shrink the problem to **one weight**. Suppose that without a penalty the best value is $w = a$, so the data part of the loss is $(w - a)^2$.
+
+**With L2:** minimise $(w - a)^2 + \lambda w^2$. Setting the derivative to zero, $2(w - a) + 2\lambda w = 0$, gives
+
+$$
+w^* = \frac{a}{1 + \lambda}.
+$$
+
+L2 **divides** by $1 + \lambda$. The weight gets smaller but never reaches 0 (unless $a$ was already 0).
+
+**With L1:** minimise $(w - a)^2 + \lambda |w|$. For $w > 0$ the derivative is $2(w - a) + \lambda = 0$, so $w = a - \frac{\lambda}{2}$. But if $a \le \frac{\lambda}{2}$, that would not be positive, and the best you can do is stop at exactly $0$. In one line:
+
+$$
+w^* = \operatorname{sign}(a)\cdot\max\!\left(|a| - \tfrac{\lambda}{2},\; 0\right).
+$$
+
+L1 **subtracts** a fixed amount and stops at zero, so every small weight becomes exactly 0.
+
+The deep reason is the **pull** of each penalty, its slope. The slope of $\lambda w^2$ is $2\lambda w$, which fades to nothing as $w$ approaches 0, like a spring that goes slack. The slope of $\lambda |w|$ is $\pm\lambda$ however small $w$ is: a constant tug that can drag a weight all the way to 0 and hold it there.
+
+<ShrinkOrSnap />
+
+<Steps title="Shrink or snap, with λ = 2">
+  <Step title="A big weight: a = 3">
+    L2: $3 \div (1 + 2) = 1$. L1: $3 - 2/2 = 2$. Both shrink it; L1 keeps more of a big weight.
+  </Step>
+  <Step title="A small weight: a = 0.5">
+    L2: $0.5 \div 3 \approx 0.17$, small but still there. L1: $0.5 - 1 < 0$, so the answer is exactly $0$: the feature is switched off.
+  </Step>
+</Steps>
+
+You can watch the two pulls in PyTorch, which is how you would add a penalty in a Final task: add it to the loss and let autograd find its gradient.
+
+```python
+import torch
+
+w = torch.tensor([3.0, -1.0, 0.2], requires_grad=True)
+lam = 0.1
+
+l2 = lam * (w ** 2).sum()      # ridge penalty
+l2.backward()
+print("L2 pull:", w.grad)       # 2 * lam * w
+
+w.grad = None
+l1 = lam * w.abs().sum()       # lasso penalty
+l1.backward()
+print("L1 pull:", w.grad)       # lam * sign(w)
+```
+
+```text
+L2 pull: tensor([ 0.6000, -0.2000,  0.0400])
+L1 pull: tensor([ 0.1000, -0.1000,  0.1000])
+```
+
+The small weight 0.2 feels a pull of only 0.04 from L2, but the full 0.1 from L1.
+
+<QuickCheck
+  q="Without a penalty the best value of a weight is $a = 0.6$. With $\lambda = 2$, what are the best weights under L2 and under L1 (using $w^* = a/(1+\lambda)$ and $\max(|a| - \lambda/2, 0)$)?"
+  options={['L2: 0.2, L1: 0', 'L2: 0, L1: 0.2', 'L2: 0.2, L1: 0.2', 'L2: 0.3, L1: 0']}
+  answer={0}
+  explain="L2 divides: $0.6 \div (1 + 2) = 0.2$. L1 subtracts $\lambda/2 = 1$: $0.6 - 1 < 0$, so the weight stops at exactly 0. Swapping them is the classic mix-up: it is L1, not L2, that produces exact zeros."
+/>
+
+## The picture: diamond versus circle
+
+There is a second, geometric way to see the same thing. A penalty with strength $\lambda$ behaves like a **budget** on the weights: keep $|w_1| + |w_2| \le t$ for L1, or $w_1^2 + w_2^2 \le t^2$ for L2, where a bigger $\lambda$ means a smaller budget $t$. With two weights the L1 budget is a **diamond** and the L2 budget is a **circle**.
+
+The MSE, drawn over $(w_1, w_2)$, is a bowl whose contour lines are ovals around the unpenalised best fit $\hat{w}$. The regularised answer is the point inside the budget with the lowest MSE: the place where the ovals, growing outwards from $\hat{w}$, **first touch** the shape.
+
+<L1L2Constraint />
+
+The diamond's corners stick out along the axes, so a growing oval very often touches a corner first, and at a corner one weight is exactly 0. With many weights the L1 region has many corners and edges, so many weights land on zero together. The circle has no corners, so the touching point is usually somewhere with both weights non-zero.
+
+<KeyIdea>
+
+**L1 (lasso) gives sparse models**: many weights exactly 0, so it also performs feature selection. **L2 (ridge) gives small but dense weights**: the overall size of the weights shrinks, and none is switched off.
+
+</KeyIdea>
+
+**Elastic net** adds both penalties, $\lambda_1\sum_j |w_j| + \lambda_2\sum_j w_j^2$: it keeps lasso's exact zeros but behaves more stably when features are correlated (scikit-learn: `ElasticNet(alpha=…, l1_ratio=…)`).
+
+<PastPaperQuestion paper="prelim2026" n={148} />
+
+## Turning the knob: λ, and scikit-learn's C
+
+As $\lambda$ grows from 0, the weights trace out a **regularisation path**. Explore it on a small, made-up dataset with two useless features:
+
+<RegularisationPath />
+
+- **$\lambda$ too small:** almost plain least squares. With few examples and many features, it overfits.
+- **$\lambda$ too large:** every weight is squashed towards 0 and the model predicts nearly the average of $y$ every time. That is <Hl>underfitting</Hl>.
+- **In between:** the validation error is lowest. Choose $\lambda$ with a validation set or <Term def="Split the training data into k parts (folds); train k times, each time holding out a different fold to measure the error; average the k scores.">cross-validation</Term>, never with the training error (which always prefers $\lambda = 0$).
+
+Three practical rules:
+
+1. **Standardise the features first.** The penalty treats all weights alike, but the size of a weight depends on the feature's units: the same length in metres needs a weight 1000 times bigger than in millimetres, so the metres version would be punished far more for exactly the same effect. Standardising puts every feature on the same scale, so the penalty is fair.
+2. **Do not penalise the bias.** scikit-learn's `Ridge`, `Lasso` and `LogisticRegression` (with its default `lbfgs` solver) leave the intercept unpenalised; in your own code, leave $w_0$ out of the penalty and out of its gradient.
+3. **Know which way the knob turns.** scikit-learn's `Ridge(alpha=…)` and `Lasso(alpha=…)` use `alpha` like $\lambda$: bigger means stronger. But `LogisticRegression(C=…)` and `SVC(C=…)` (a support vector machine classifier, met in [Support vector machines and kernels](#/learn/classification/support-vector-machines)) use <Hl>C, the inverse of the regularisation strength</Hl>, playing the role of $1/\lambda$: a **smaller C means stronger regularisation**.
+
+<Mistake title="C is not λ">
+
+"The model overfits, so increase C" is backwards. In `LogisticRegression` and `SVC`, increasing C *weakens* the penalty and makes overfitting worse. To regularise more, **decrease** C (for example from 100 to 0.1).
+
+</Mistake>
+
+<Note title="Another common way to write it: λ/2m, with the bias left out">
+
+Many courses write the ridge loss with a ½ in front of both parts, $m$ examples, and the sum starting at $j = 1$:
+
+$$
+\begin{aligned}
+J(w) = {} & \frac{1}{2m}\sum_{i=1}^{m} (\hat{y}_i - y_i)^2 \\
+& + \frac{\lambda}{2m}\sum_{j=1}^{d} w_j^2
+\end{aligned}
+$$
+
+The ½ cancels the 2 from differentiating (as in the 2025 Final), so the gradient is the data part $\frac{1}{m}X^T(\hat{y} - y)$ plus $\frac{\lambda}{m}w_j$ for $j \ge 1$ only. With the column of 1s first in $X$, in NumPy:
+
+```python
+grad = X.T @ (y_hat - y) / m    # data part, every weight
+grad[1:] += lam / m * w[1:]     # penalty part, skip the bias w[0]
+```
+
+The constant in front of $\lambda$ ($\lambda$, $2\lambda$, $\lambda/m$, …) only rescales $\lambda$: it changes which value of $\lambda$ you need, not the idea. [Logistic regression](#/learn/classification/logistic-regression) (next module) uses exactly the same penalty, and its gradient has the same shape, with sigmoid predictions in $\hat{y}.$
+
+</Note>
+
+This 2026 Final question is about logistic regression, but only that shape matters: data part plus penalty part, and the bias left out.
+
+<PastPaperQuestion paper="final2026" n={4} />
+
+<Reveal label="Going further: ridge fixes the singular matrix, and L2 is weight decay">
+
+**Ridge fixes the singular matrix.** Writing the ridge loss with the total (not mean) squared error, $\lVert y - Xw \rVert^2 + \lambda \lVert w \rVert^2$, and setting its gradient to zero gives $w = (X^T X + \lambda I)^{-1} X^T y$, where $I$ is the identity matrix (1s on the diagonal; use 0 in the bias position to leave it unpenalised). Adding $\lambda > 0$ to the diagonal makes the matrix invertible even when columns are duplicated, the problem met in [Multiple and polynomial regression](#/learn/linear-regression/multiple-and-polynomial).
+
+**L2 is "weight decay".** The gradient of $\lambda \sum w_j^2$ is $2\lambda w$, so a gradient descent step becomes $w \leftarrow w - \eta(\nabla \text{MSE} + 2\lambda w) = (1 - 2\eta\lambda)\,w - \eta\, \nabla\text{MSE}$. Every step first shrinks ("decays") each weight by a factor slightly below 1. In PyTorch, `torch.optim.SGD(model.parameters(), lr=0.1, weight_decay=1e-4)` does this for you: it adds `weight_decay * w` to each gradient, which is the same as a penalty of $\tfrac{1}{2} \cdot 10^{-4} \lVert w \rVert^2$.
+
+Note that `weight_decay` applied to `model.parameters()` also decays the **biases**. To leave them out, pass two parameter groups:
+
+```python
+decay = [p for n, p in model.named_parameters() if "bias" not in n]
+no_decay = [p for n, p in model.named_parameters() if "bias" in n]
+optimizer = torch.optim.SGD([
+    {"params": decay, "weight_decay": 1e-4},
+    {"params": no_decay, "weight_decay": 0.0},
+], lr=0.1)
+```
+
+With plain SGD, an L2 penalty and weight decay are exactly the same thing. With Adam they are not: Adam rescales each gradient, penalty included, so `torch.optim.AdamW` instead applies *decoupled* weight decay, shrinking the weights directly at each step.
+
+</Reveal>
+
+<PyRunner packages={['numpy', 'scikit-learn']} rows={18} code={`import numpy as np
+from sklearn.linear_model import (
+    LinearRegression, Ridge, Lasso)
+
+rng = np.random.default_rng(10)
+# 30 examples, 5 features...
+X = rng.normal(size=(30, 5))
+noise = rng.normal(scale=0.5, size=30)
+# ...but only 2 of them matter
+y = 3 * X[:, 0] - 2 * X[:, 1] + noise
+
+models = [LinearRegression(), Ridge(alpha=5),
+          Lasso(alpha=0.3)]
+for model in models:
+    model.fit(X, y)
+    name = type(model).__name__
+    print(f"{name:16s}", model.coef_.round(2) + 0.0)`} />
+
+Run it: plain least squares gives the three useless features small non-zero weights (0.07, −0.11, 0.07); ridge makes every weight smaller in size (one tiny weight even crosses zero, 0.07 → −0.01) but none is exactly 0; lasso sets those three to exactly `0.` and keeps the two real ones. (scikit-learn scales the data term differently for each model, so `alpha` values are not comparable between `Ridge` and `Lasso`; only the direction "bigger is stronger" is.)
+
+## MSE versus MAE: how much do you fear big mistakes?
+
+Regularisation changes the *penalty* part of the loss. The *data* part is a choice too. Besides the MSE there is the <Term def="Mean absolute error: the average of |y − ŷ| over all examples. Every unit of error costs the same, however big the error is.">mean absolute error</Term>:
+
+$$
+\begin{aligned}
+\text{MSE} &= \frac{1}{n}\sum_{i=1}^{n} (y_i - \hat{y}_i)^2 \\
+\text{MAE} &= \frac{1}{n}\sum_{i=1}^{n} |y_i - \hat{y}_i|
+\end{aligned}
+$$
+
+Squaring makes big errors enormous. With errors $1, 1, 1, 1, 10$:
+
+- MSE $= (1 + 1 + 1 + 1 + 100) \div 5 = 20.8$, and the single error of 10 supplies $100/104 \approx 96\%$ of it.
+- MAE $= (1 + 1 + 1 + 1 + 10) \div 5 = 2.8$.
+
+So a model trained with MSE will bend over backwards to reduce one huge error, even if that makes all the others worse. That is great when big errors are genuinely disastrous, and terrible when the big error is an <Term def="A data point far from the pattern of the rest, often caused by a typo, a sensor glitch or a rare event.">outlier</Term> caused by a typo.
+
+<Analogy title="Two teachers">
+
+The MSE teacher is strict about disasters: one answer that is 10 marks off hurts you more than ten answers that are 1 mark off. The MAE teacher simply counts marks lost, so one disaster costs exactly as much as ten small slips.
+
+</Analogy>
+
+<RobustLossCompare />
+
+The simplest model of all, predicting one constant $c$ for everyone, shows the difference clearly. For the data $1, 2, 3, 4, 100$:
+
+- The constant with the smallest **MSE** is the **mean**, $110 \div 5 = 22$: dragged far upwards by the 100.
+- The constant with the smallest **MAE** is the **median**, $3$: moving $c$ up by a little adds to the error of every point below $c$ and removes it from every point above, so the best spot has as many points on each side, however far away they are.
+
+That is why MAE is called <Term def="Not thrown off much by a few extreme data points.">robust</Term> to outliers.
+
+<Reveal label="Going further: the Huber loss, a compromise">
+
+A popular compromise is the **Huber loss**. For a residual $r = y - \hat{y}$ and a threshold $\delta$ that you choose,
+
+$$
+\ell_\delta(r) = \begin{cases} \tfrac{1}{2} r^2 & \text{if } |r| \le \delta \\ \delta\left(|r| - \tfrac{1}{2}\delta\right) & \text{if } |r| > \delta \end{cases}
+$$
+
+It acts like the squared error for small residuals (smooth, easy to optimise) and grows only linearly, like the absolute error, beyond $\delta$ (so outliers cannot dominate). The two pieces meet smoothly at $|r| = \delta$. Switch it on in the visual above to see a third line.
+
+</Reveal>
+
+<ExamTip>
+
+Regularisation questions in the Prelim are quick recall. Know these cold:
+- **L1 = lasso = $\lambda\sum|w_j|$ = sparse, many exact zeros, feature selection.** **L2 = ridge = $\lambda\sum w_j^2$ = small, non-zero weights = weight decay** (exactly equal for plain SGD; with Adam, an optimiser you will meet in [Momentum, RMSProp and Adam](#/learn/training-deep-networks/momentum-and-adam), they differ, which is why AdamW applies decoupled weight decay). **Elastic net = L1 + L2.**
+- Why L1 gives zeros: its slope stays at $\pm\lambda$ near 0 (diamond corners); L2's slope $2\lambda w$ fades to 0.
+- **Bigger $\lambda$ → simpler model → underfitting; $\lambda = 0$ → no regularisation.** scikit-learn's **C is the inverse**: smaller C = stronger regularisation.
+- The **bias is not regularised** (in code: `grad[1:] += lam / m * w[1:]`); **standardise** features before regularising.
+- **MSE ↔ mean, sensitive to outliers; MAE ↔ median, robust; Huber in between.**
+- $\nabla_w\, \lambda\lVert w \rVert^2 = 2\lambda w$.
+
+</ExamTip>
+
+Next, [Logistic regression](#/learn/classification/logistic-regression) moves from predicting numbers to predicting yes/no labels: it squashes the same weighted sum into a probability, and scikit-learn adds this lesson's L2 penalty to it by default, with its strength set by `C`.
+
+<Takeaways>
+
+- Regularisation adds $\lambda \times$ (weight size) to the loss so a flexible model cannot use huge weights to chase noise; the bias is not penalised.
+- L2/ridge ($\sum w_j^2$) divides weights down smoothly; L1/lasso ($\sum |w_j|$) subtracts a fixed amount and snaps small weights to exactly 0 (diamond corners), selecting features.
+- Too little $\lambda$ overfits, too much underfits: pick it on validation data. In scikit-learn, C = inverse strength, so small C = strong regularisation.
+- MSE punishes big errors quadratically (best constant: the mean); MAE punishes them linearly and is robust to outliers (best constant: the median); Huber mixes the two.
+
+</Takeaways>

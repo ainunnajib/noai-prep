@@ -1,0 +1,228 @@
+.stage {
+  position: relative;
+  width: 100%;
+  transition: height 0.45s ease;
+}
+
+.cell {
+  position: absolute;
+  left: 0;
+  top: 0;
+  box-sizing: border-box;
+  display: grid;
+  place-items: center;
+  border-radius: 4px;
+  font-family: var(--font-mono);
+  font-weight: 700;
+  color: var(--ink);
+  line-height: 1;
+  overflow: hidden;
+  transition-property: transform, width, height, background-color, border-color, opacity;
+  transition-duration: 0.6s;
+  transition-timing-function: cubic-bezier(0.45, 0.05, 0.25, 1);
+}
+
+.sheetLabel {
+  position: absolute;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--ink-3);
+  white-space: nowrap;
+  transition: transform 0.6s cubic-bezier(0.45, 0.05, 0.25, 1);
+}
+
+.frame {
+  position: absolute;
+  box-sizing: border-box;
+  border: 1.5px dashed var(--viz-5);
+  border-radius: 8px;
+  transition: all 0.6s cubic-bezier(0.45, 0.05, 0.25, 1);
+}
+
+.frameLabel {
+  position: absolute;
+  left: 8px;
+  top: 1px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--viz-5);
+}
+
+/* shape chips: (4, 5, 3) with a name under each number */
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px;
+  font-family: var(--font-mono);
+}
+
+.chip {
+  display: inline-grid;
+  justify-items: center;
+  min-width: 2.1rem;
+  padding: 2px 6px 3px;
+  border-radius: 8px;
+  border: 2px solid currentColor;
+  background: color-mix(in srgb, currentColor 12%, var(--surface));
+  line-height: 1.1;
+}
+
+.chipNum {
+  font-size: 1rem;
+  font-weight: 800;
+  color: var(--ink);
+}
+
+.chipName {
+  font-size: 0.68rem;
+  font-weight: 700;
+}
+
+.paren {
+  font-size: 1.3rem;
+  font-weight: 700;
+  color: var(--ink-3);
+}
+
+.code {
+  margin: 0;
+  padding: 0.55rem 0.75rem;
+  width: 100%;
+  box-sizing: border-box;
+  background: var(--surface-2);
+  border-radius: 8px;
+  font-family: var(--font-mono);
+  font-size: 0.82rem;
+  line-height: 1.5;
+  color: var(--ink);
+  white-space: pre;
+  overflow-x: auto;
+}
+
+.comment {
+  color: var(--ink-3);
+}
+
+.error {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 0.5rem 0.7rem;
+  border-radius: 8px;
+  background: var(--bad-soft);
+  color: var(--bad);
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  font-weight: 700;
+  overflow-wrap: anywhere;
+}
+
+.ok {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 0.5rem 0.7rem;
+  border-radius: 8px;
+  background: var(--ok-soft);
+  color: var(--ok);
+  font-size: 0.85rem;
+  font-weight: 700;
+}
+
+.note {
+  width: 100%;
+  font-size: 0.85rem;
+  color: var(--ink-2);
+}
+
+.goal {
+  width: 100%;
+  box-sizing: border-box;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4rem 0.8rem;
+  padding: 0.45rem 0.7rem;
+  border-radius: 8px;
+  border: 1.5px dashed var(--accent-line);
+  font-size: 0.85rem;
+  color: var(--ink-2);
+}
+
+.goalDone {
+  border-style: solid;
+  border-color: var(--ok);
+  background: var(--ok-soft);
+  color: var(--ok);
+}
+
+.legend {
+  width: 100%;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem 0.9rem;
+  font-size: 0.8rem;
+  color: var(--ink-2);
+}
+
+.legend b {
+  font-family: var(--font-mono);
+}
+
+.row {
+  width: 100%;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.6rem 1rem;
+}
+
+.mono {
+  font-family: var(--font-mono);
+}
+
+/* small ▲▼ steppers: a small glyph with a finger-sized hit area around it */
+.stepBtn {
+  position: relative;
+}
+
+.stepBtn::before {
+  content: '';
+  position: absolute;
+  inset: -7px -2px;
+}
+
+/* Segmented controls with long options: on phones, a tidy grid of equal chips instead of lumpy pills */
+.segGrid,
+.segGridWide {
+  width: 100%;
+}
+
+@media (max-width: 560px) {
+  .segGrid :global(.segmented-track),
+  .segGridWide :global(.segmented-track) {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(6.2rem, 1fr));
+    border-radius: 12px;
+  }
+
+  .segGridWide :global(.segmented-track) {
+    grid-template-columns: repeat(auto-fill, minmax(9rem, 1fr));
+  }
+
+  .segGrid :global(.segmented-opt),
+  .segGridWide :global(.segmented-opt) {
+    border-radius: 9px;
+    padding: 0.3rem 0.4rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cell,
+  .sheetLabel,
+  .frame,
+  .stage {
+    transition-duration: 0.01s;
+  }
+}

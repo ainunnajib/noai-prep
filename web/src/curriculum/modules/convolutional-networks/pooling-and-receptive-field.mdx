@@ -1,0 +1,259 @@
+import PoolingExplorer from './visuals/pooling-and-receptive-field/PoolingExplorer'
+import PoolingShift from './visuals/pooling-and-receptive-field/PoolingShift'
+import GlobalAvgPool from './visuals/pooling-and-receptive-field/GlobalAvgPool'
+import ReceptiveFieldTower from './visuals/pooling-and-receptive-field/ReceptiveFieldTower'
+import StackVsBig from './visuals/pooling-and-receptive-field/StackVsBig'
+
+export const poolCode = `import numpy as np
+
+fmap = np.array([[1, 3, 2, 0],
+                 [5, 2, 1, 4],
+                 [0, 1, 6, 2],
+                 [2, 3, 1, 1]])
+
+def pool(x, k=2, s=2, kind="max"):
+    # floor((n - k) / s) + 1
+    n_out = (x.shape[0] - k) // s + 1
+    out = np.zeros((n_out, n_out))
+    for i in range(n_out):
+        for j in range(n_out):
+            window = x[i*s : i*s + k, j*s : j*s + k]
+            if kind == "max":
+                out[i, j] = window.max()
+            else:
+                out[i, j] = window.mean()
+    return out
+
+print(pool(fmap, kind="max"))
+print(pool(fmap, kind="avg"))
+print("global average:", fmap.mean())
+
+def receptive_field(layers):
+    r, jump = 1, 1   # an input pixel "sees" just itself
+    for k, s in layers:   # (kernel size, stride)
+        r = r + (k - 1) * jump
+        jump = jump * s
+    return r
+
+# two 3x3 convs; three 3x3 convs; conv, 2x2 pool, conv
+print(receptive_field([(3, 1), (3, 1)]))
+print(receptive_field([(3, 1), (3, 1), (3, 1)]))
+print(receptive_field([(3, 1), (2, 2), (3, 1)]))`
+
+After a few convolution layers, a network is juggling dozens of <Term def="The grid of outputs produced by sliding one filter over its input; it shows how strongly the filter's pattern appears at each position. Also called an activation map.">feature maps</Term>, each almost as large as the image. Two questions follow. How do we shrink them cheaply without losing what the filters found? And how can a neuron that only ever looks at a 3×3 patch end up recognising a whole face? The answers are **pooling** and the **receptive field**, and both turn up regularly in NOAI papers.
+
+<Analogy title="Summarising a seating plan">
+
+Picture your class seating plan as a grid of students' heights. To give the PE teacher a quick summary, you split the grid into 2×2 blocks of neighbouring desks and report only the **tallest student in each block**. The summary has a quarter of the numbers, it still tells you roughly where the tall students sit, and if two students in the same block swap seats, the summary does not change at all. That is max pooling.
+
+</Analogy>
+
+## Pooling: one number per window
+
+A <Term def="A layer that slides a small window over each feature map and replaces every window with a single summary number (its maximum or its mean). It has no learnable weights.">pooling layer</Term> slides a small window across each feature map and replaces every window with one number:
+
+- **max pooling** keeps the **largest** value in the window;
+- **average pooling** keeps the **mean** of the window.
+
+The standard setting is a 2×2 window with stride 2, so the windows sit side by side without overlapping. That halves the height and the width, leaving a quarter of the values. Pooling works on **each channel separately**, so the number of channels does not change, and it is a fixed rule with **no weights to learn**.
+
+<PoolingExplorer />
+
+How big is the output? Exactly the same counting as for a convolution (you met it in [Padding, stride, channels and parameter counts](#/learn/convolutional-networks/padding-stride-shapes)):
+
+$$
+n_{\text{out}} = \left\lfloor \frac{n + 2p - k}{s} \right\rfloor + 1
+$$
+
+Here $n$ is the input height (or width), $k$ is the window size, $s$ is the stride (how many pixels the window jumps each time), $p$ is the padding and $\lfloor\,\cdot\,\rfloor$ means "round down". In words: the window can start at positions $0, s, 2s, \dots$ as long as it still fits, and we count those positions. Pooling usually has no padding, $p = 0$: for a $32 \times 32$ map with $k = 2$, $s = 2$ that gives $\lfloor 30/2 \rfloor + 1 = 16$. One famous exception: ResNet's first pool is a $3 \times 3$ max-pool with stride 2 and $p = 1$, which takes $112 \times 112$ to $\lfloor (112 + 2 - 3)/2 \rfloor + 1 = 56$. Forget the padding and you would get 55.
+
+Here is a small feature map to pool by hand:
+
+$$
+\begin{bmatrix} 1 & 3 & 2 & 0 \\ 5 & 2 & 1 & 4 \\ 0 & 1 & 6 & 2 \\ 2 & 3 & 1 & 1 \end{bmatrix}
+$$
+
+<Steps title="Pooling a 4 × 4 feature map by hand">
+  <Step title="Split it into 2×2 windows">
+    The four windows are top-left $\{1, 3, 5, 2\}$, top-right $\{2, 0, 1, 4\}$, bottom-left $\{0, 1, 2, 3\}$ and bottom-right $\{6, 2, 1, 1\}$.
+  </Step>
+  <Step title="Max pooling: keep the largest">
+    $\max\{1,3,5,2\} = 5$, $\max\{2,0,1,4\} = 4$, $\max\{0,1,2,3\} = 3$, $\max\{6,2,1,1\} = 6$. Output: $\begin{bmatrix} 5 & 4 \\ 3 & 6 \end{bmatrix}$.
+  </Step>
+  <Step title="Average pooling: keep the mean">
+    $\tfrac{11}{4} = 2.75$, $\tfrac{7}{4} = 1.75$, $\tfrac{6}{4} = 1.5$, $\tfrac{10}{4} = 2.5$. Output: $\begin{bmatrix} 2.75 & 1.75 \\ 1.5 & 2.5 \end{bmatrix}$.
+  </Step>
+  <Step title="Check the shape">
+    $\lfloor (4 - 2)/2 \rfloor + 1 = 2$, so $4 \times 4 \to 2 \times 2$: 16 numbers became 4, and nothing was learned.
+  </Step>
+</Steps>
+
+<KeyIdea>
+
+Pooling summarises each small window of a feature map with one number: the **max** (strongest evidence) or the **average**. A 2×2 window with stride 2 halves height and width, keeps the number of channels, and has **zero learnable parameters**.
+
+</KeyIdea>
+
+<QuickCheck
+  q="A feature map has shape (64, 56, 56) in (C, H, W) order. What is its shape after 2×2 max pooling with stride 2?"
+  options={['(64, 28, 28)', '(32, 28, 28)', '(64, 55, 55)', '(16, 14, 14)']}
+  answer={0}
+  id="convolutional-networks.pooling-and-receptive-field.qc1"
+  explain="Pooling acts on each channel separately, so C stays 64, and $\lfloor (56 - 2)/2 \rfloor + 1 = 28$. Halving the channels as well is the classic slip; (64, 55, 55) is what a stride of 1 would give."
+/>
+
+<PastPaperQuestion paper="noai2025" n={11} />
+
+Which kind should you use? Max pooling asks "did this feature appear **anywhere** in the window?", which suits detectors: one strong response is what matters. It is the usual choice between convolution blocks (VGG, a 2014 network met at the end of this lesson, uses it throughout). Average pooling asks "how much of the feature is here **on average**?" and gives smoother maps; LeNet, an early CNN from 1998 that read handwritten digits, used a version of it (its "subsampling" layers averaged each 2×2 window, then applied a learned scale and bias), and modern networks use one big average pool at the very end, as you will see below.
+
+## Small shifts, same answer
+
+Recall from [The convolution operation](#/learn/convolutional-networks/convolution) that the same filter is used at every position. So if you shift the input image one pixel to the right, every feature map shifts one pixel to the right too. This property is called <Term def="A property of an operation: transforming the input (here, shifting it) transforms the output in the same way. Convolution is equivariant to shifts: shift the image and the feature map shifts by the same amount.">translation equivariance</Term>. It is useful (a cat in the corner is detected just like a cat in the middle), but the output still *changes* every time the cat moves.
+
+In the visual below, a "corner detector" has fired at four places (every other value is 0, as is typical after ReLU). What we often want for classification is <Term def="The output does not change when the input is shifted. Pooling provides an approximate version of this for small shifts.">translation invariance</Term>: the answer "cat" should not change. Pooling gives a small, approximate dose of it.
+
+<PoolingShift />
+
+After 2×2 pooling, the map only records **which 2×2 block** a detection is in, not its exact pixel. A one-pixel shift changes the pooled output only when a detection crosses a block border, and a two-pixel shift moves the whole pooled map by exactly one cell. Each pooling stage halves the resolution, so after three stages a position is only recorded to within an 8-pixel block, and the network has become quite tolerant to small wobbles in where things are.
+
+<Mistake title="Myth: pooling makes CNNs shift-invariant">
+
+Pooling gives invariance only approximately, and only for shifts smaller than the pooling window. Robustness to *large* shifts comes mainly from the architecture: equivariant convolutions followed by a final global average pool (later in this lesson), which throws away where a feature was. Strides and pooling make this imperfect, so training on shifted copies of the images (random crops) also helps.
+
+</Mistake>
+
+<QuickCheck
+  q="A feature map's only non-zero value, a 9, moves one pixel right, from column 2 to column 3 of the same row (counting columns from 0). What happens to the output of 2×2 max pooling with stride 2?"
+  options={['Nothing changes', 'The whole pooled map shifts one cell to the right', 'The pooled map shifts half a cell to the right', 'The 9 is split between two windows, so the maximum drops']}
+  answer={0}
+  id="convolutional-networks.pooling-and-receptive-field.qc2"
+  explain="With stride 2 the windows cover columns 0–1, 2–3, 4–5, …, so columns 2 and 3 are in the same window: its maximum is still 9 and every other window is still 0. The pooled map only changes when a detection crosses a window border, and pooled cells cannot move by half a cell. The windows do not overlap, so the 9 is never shared between two of them."
+/>
+
+## Global average pooling: the last pool
+
+At the end of a CNN the last feature maps must become class scores. In ResNet-50 (a 50-layer ResNet), for example, the final maps have shape $(2048, 7, 7)$: 2048 channels, each a $7 \times 7$ grid. There are two ways to hand them to the final dense (fully connected) layer:
+
+- **Flatten**: line up all $2048 \times 7 \times 7 = 100{,}352$ numbers into one long vector.
+- <Term def="Average each whole feature map down to a single number, turning a (C, H, W) tensor into C numbers. In PyTorch: nn.AdaptiveAvgPool2d(1).">Global average pooling</Term> (GAP): average each $7 \times 7$ map to one number, leaving just 2048 numbers.
+
+<GlobalAvgPool />
+
+For 1,000 classes, the dense layer after flattening needs $100{,}352 \times 1{,}000 + 1{,}000 = 100{,}353{,}000$ parameters. After GAP it needs $2048 \times 1{,}000 + 1{,}000 = 2{,}049{,}000$, about 49 times fewer. GAP has two more advantages: the network works for **any input size** (a bigger photo just gives bigger maps, which still average to 2048 numbers), and there are far fewer weights to overfit. What it gives up is *where* each feature was, which is fine for "what is in this image?" but not for tasks that need positions, such as detection.
+
+## The receptive field
+
+A first-layer neuron with a 3×3 filter sees a 3×3 patch of pixels. A second-layer neuron combines a 3×3 patch of *first-layer* neurons; each of those sees 3×3 pixels, and they overlap, so together they cover a $5 \times 5$ patch. A third layer reaches $7 \times 7$. The patch of the original image that can affect a neuron is its <Term def="The region of the original input image whose pixels can affect a particular neuron's value. It grows as layers are stacked.">receptive field</Term>.
+
+<ReceptiveFieldTower />
+
+For a stack of $L$ convolutions with kernel size $k$ and stride 1, each layer adds $k - 1$ pixels:
+
+$$
+r = 1 + L\,(k - 1) \qquad\text{so for } 3\times3 \text{ kernels: } r = 2L + 1 = 3, 5, 7, 9, \dots
+$$
+
+Strides and pooling make it grow faster, because they spread the next layer's inputs further apart. Keep track of a second number, the <Term def="The distance, in input pixels, between the centres of the receptive fields of two neighbouring neurons in a layer. It is the product of all the strides so far.">jump</Term> $j$, and add layers one at a time:
+
+$$
+r_l = r_{l-1} + (k_l - 1)\, j_{l-1}, \qquad j_l = j_{l-1}\, s_l, \qquad r_0 = j_0 = 1
+$$
+
+$r_l$ is the receptive field after layer $l$, $k_l$ and $s_l$ are that layer's kernel size and stride, and $j_{l-1}$ is how many input pixels apart the neurons of the previous layer are. In words: a new layer with kernel $k$ reaches $k - 1$ extra neighbours, and each extra neighbour is $j$ input pixels further away.
+
+<Steps title="Receptive field of conv 3×3 → max-pool 2×2 (stride 2) → conv 3×3">
+  <Step title="Start at the input">
+    One pixel sees itself: $r_0 = 1$, and neighbouring pixels are $j_0 = 1$ apart.
+  </Step>
+  <Step title="Layer 1: conv 3×3, stride 1">
+    $r_1 = 1 + (3 - 1) \times 1 = 3$ and $j_1 = 1 \times 1 = 1$.
+  </Step>
+  <Step title="Layer 2: max-pool 2×2, stride 2">
+    $r_2 = 3 + (2 - 1) \times 1 = 4$ and $j_2 = 1 \times 2 = 2$: neighbouring pooled neurons are now 2 pixels apart.
+  </Step>
+  <Step title="Layer 3: conv 3×3, stride 1">
+    $r_3 = 4 + (3 - 1) \times 2 = 8$. Swap the pool for a third 3×3 conv and you reach only 7. The pool's window is just 2, but it doubles the jump, so the conv after it reaches twice as far.
+  </Step>
+</Steps>
+
+<KeyIdea>
+
+Depth lets small filters see large areas: stacked stride-1 3×3 convs see $3 \times 3$, $5 \times 5$, $7 \times 7$, …; pooling and strides multiply the growth of every later layer. The receptive field equals the kernel size **only for the first layer**.
+
+</KeyIdea>
+
+<PastPaperQuestion paper="prelim2026" n={203} />
+
+## Why stacks of 3×3 convolutions?
+
+If two stacked 3×3 convs see the same $5 \times 5$ patch as one 5×5 conv, which is better? Count the weights. A $k \times k$ conv from $C$ channels to $C$ channels has $C$ filters, each $k \times k \times C$, so $k^2 C^2$ weights (plus $C$ biases, which we ignore here):
+
+| Same view | Big kernel | Stack of 3×3 | Weights saved |
+|---|---|---|---|
+| $5 \times 5$ | $25C^2$ | $2 \times 9C^2 = 18C^2$ | 28% |
+| $7 \times 7$ | $49C^2$ | $3 \times 9C^2 = 27C^2$ | 45% |
+
+With $C = 64$: $18 \times 4096 = 73{,}728$ weights against $25 \times 4096 = 102{,}400$. And there is a second win: every layer in the stack has its own ReLU, so the stack makes two or three non-linear decisions where the big kernel makes one, which lets it represent more complicated patterns.
+
+<StackVsBig />
+
+This is the design idea of **VGG** (Oxford, 2014): use *only* 3×3 convolutions and 2×2 max-pools, and get large receptive fields from depth. Almost every CNN since has followed it, which raises the question of the next lesson, [CNN architectures and ResNets](#/learn/convolutional-networks/cnn-architectures-and-resnets): what goes wrong when you make networks very deep?
+
+<PastPaperQuestion paper="prelim2026" n={204} />
+
+## In code
+
+Run this to pool the worked example and compute receptive fields. The pooling loop is the from-scratch version a Final task could ask for; the receptive-field function is the two-line recipe above.
+
+<PyRunner packages={['numpy']} code={poolCode} />
+
+In PyTorch, pooling layers are one line each. `nn.AdaptiveAvgPool2d(1)` is global average pooling: it averages each map down to $1 \times 1$ whatever its size.
+
+```python
+import torch
+import torch.nn as nn
+
+x = torch.randn(8, 64, 32, 32)          # (N, C, H, W): a batch of 8, 64 channels
+
+maxpool = nn.MaxPool2d(kernel_size=2)   # stride defaults to kernel_size
+avgpool = nn.AvgPool2d(kernel_size=2)
+gap = nn.AdaptiveAvgPool2d(1)           # global average pooling
+
+print(maxpool(x).shape)
+print(avgpool(x).shape)
+print(gap(x).shape)
+print(gap(x).flatten(1).shape)
+print("pooling parameters:", sum(p.numel() for p in maxpool.parameters()))
+```
+
+```text
+torch.Size([8, 64, 16, 16])
+torch.Size([8, 64, 16, 16])
+torch.Size([8, 64, 1, 1])
+torch.Size([8, 64])
+pooling parameters: 0
+```
+
+<Mistake title="Three slips that cost marks">
+
+- **Pooling does not change the number of channels.** $(64, 56, 56) \to (64, 28, 28)$, not $(32, 28, 28)$.
+- **`nn.MaxPool2d(2)` already has stride 2**, because the stride defaults to the window size. (`nn.Conv2d` defaults to stride 1.)
+- **Receptive field is not kernel size** except in the first layer; two 3×3 layers see $5 \times 5$.
+
+</Mistake>
+
+<ExamTip>
+
+Memorise the patterns so you can answer in seconds: stacked 3×3 convs see $3, 5, 7, 9$ (that is $2L + 1$); two 3×3 vs one 5×5 is $18C^2$ vs $25C^2$; three 3×3 vs one 7×7 is $27C^2$ vs $49C^2$. Pooling questions are usually about its purpose (downsampling, fewer computations, small-shift tolerance) and its **zero** parameters. If an option says pooling "learns features", "adds non-linearity" or "normalises", it is describing convolution, ReLU or BatchNorm. (Taking a maximum is technically non-linear, but adding non-linearity is not what pooling is for.)
+
+</ExamTip>
+
+<Takeaways>
+
+- **Max pooling** keeps the largest value in each window, **average pooling** the mean; 2×2 with stride 2 halves height and width, keeps the channels and has **no parameters**.
+- Output size follows $\lfloor (n + 2p - k)/s \rfloor + 1$, the same counting as convolution; pooling usually has $p = 0$.
+- Convolution is shift-**equivariant**; pooling adds approximate shift-**invariance** for small shifts.
+- **Global average pooling** turns $(C, H, W)$ into $C$ numbers: far fewer weights than flattening, and any input size works.
+- The **receptive field** grows with depth ($3 \to 5 \to 7$ for stacked 3×3) and faster after pooling or strides; stacks of 3×3 beat one big kernel with fewer weights and more ReLUs.
+
+</Takeaways>

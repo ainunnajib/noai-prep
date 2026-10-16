@@ -1,0 +1,176 @@
+import { TIMELINE, LINKS, FINAL, FUNNEL } from '../../../data/facts'
+import SkillsLadder from './visuals/study-roadmap/SkillsLadder'
+import WeeklyPlanBuilder from './visuals/study-roadmap/WeeklyPlanBuilder'
+import SyllabusCoverageGrid from './visuals/study-roadmap/SyllabusCoverageGrid'
+
+export const at = (title) => TIMELINE.find((t) => t.title === title) ?? { date: '', detail: '' }
+export const SEL = at('NTU Selection Test')
+export const TRAIN = at('Weekend training at NTU')
+export const CAMP = at('Residential camp')
+export const IOAI = at('IOAI 2027 in Singapore')
+export const RESULTS = at('Results')
+
+The Final is on {FINAL.dateLabel}, and IOAI 2027 opens in Singapore on 4 July, about four months later. Those months decide who makes the national team, and they reward a different kind of work from the one that got you through the Prelim. This lesson is your map: where your skills are now, where to practise, how to fill four months without drifting, and how to check you have not left a whole part of the IOAI syllabus untouched.
+
+<Analogy title="Grading up in a martial art">
+
+A karate student does not jump from white belt to black belt. Each belt adds something on top of the last: first the stances, then combinations, then sparring, then free fighting against an opponent you have never met. Skip a belt and the next one falls apart. Preparing for IOAI works the same way.
+
+</Analogy>
+
+## The skills ladder
+
+Every stage of the selection tests a skill that sits on top of the previous one. Picture five rungs:
+
+1. **NOAI Prelim: recall.** Recognise a concept and answer in about half a minute, with no calculator.
+2. **NOAI Final: implement.** Turn a known algorithm (k-means, gradient boosting, attention) into correct NumPy or PyTorch code inside a notebook with tests.
+3. **NTU Selection Test: complete and improve.** Take a <Term def="A notebook from the organisers that already loads the data, trains a simple model and writes a valid submission. Your job is to fill its gaps and beat its score.">baseline notebook</Term> on a real dataset, fill in its missing lines, then improve its score, often with a pretrained model on a <Term def="Graphics processing unit: a chip that does the many small multiplications of deep learning in parallel, making training tens of times faster than on a CPU.">GPU</Term>.
+4. **NTU training and camp: learn new model families.** CLIP, GANs, multilingual Transformers, speech models: new tools, learnt fast, on real hardware.
+5. **IOAI: invent under constraints.** A story-style task you have never seen, a rule sheet that forbids the obvious approach, and a <Term def="A live ranking of submissions by their score on hidden test data.">leaderboard</Term>.
+
+<SkillsLadder />
+
+The rungs are not about difficulty alone. Look at the verbs: recall, implement, improve, learn, invent. A student who has only ever practised MCQs can reach rung 1 brilliantly and still freeze on rung 3, because nobody hands you the algorithm there; you have to decide what to try.
+
+<KeyIdea>
+
+Each rung needs the one below it: you cannot improve a training pipeline you could not write, or invent under constraints with tools you cannot use. Find the lowest rung where you still have gaps and practise **that** next.
+
+</KeyIdea>
+
+<Note title="Your NOAI tier is not the last word">
+
+As you saw in [After NOAI](#/learn/road-to-ioai/after-noai), NTU re-ranks everyone it invites. Its stage tests rungs 3 to 5, which you can still build after the Final.
+
+</Note>
+
+<QuickCheck
+  q="A test gives you a runnable notebook that trains a weak CIFAR-10 classifier. You must fill in three missing lines, then raise its accuracy as far as you can with any pretrained model on a GPU. Which rung is this?"
+  options={['NTU Selection Test: complete and improve a pipeline', 'NOAI Final: implement a known algorithm from scratch', 'NOAI Prelim: recall a concept quickly', 'IOAI: invent an approach under unusual rules']}
+  answer={0}
+  explain="Filling gaps in a working baseline and then improving its score with pretrained models is exactly the Singapore selection-test format (the 2024 test used CIFAR-10 and ResNet-18). The NOAI Final asks for from-scratch code with no pretrained models, and IOAI tasks add rules that rule out the obvious approach."
+/>
+
+## Where to practise
+
+You will not find rung 3 to 5 practice in MCQ banks. These are the sources worth your time, roughly in the order to use them:
+
+| Source | What it gives you | Best for |
+| --- | --- | --- |
+| NOAI past papers: the <a href={LINKS.final2026Repo}>2026 Final notebooks</a> and <a href={LINKS.noai2025Repo}>2025 notebooks</a> | Real Final tasks with solutions | Finishing rung 2 |
+| Singapore's IOAI pre-selection and camp tasks (2024 and 2025), released as zips on AI Singapore's NOAI pages and listed on the [IOAI resources hub](https://ioai-official.org/resources/) | Baseline notebooks on CIFAR-10, Pascal VOC, survey data, tweets, GANs | Rung 3 and 4: the closest thing to the NTU tests |
+| <a href={LINKS.ioaiGithub}>IOAI task repositories</a> (2024 to 2026) | Past IOAI tasks with their baseline notebooks | Rung 5, one task per week |
+| <a href={LINKS.aicc}>AI Community Contest (AICC)</a> | Monthly IOAI-style contests run by IOAI alumni | Timed practice with a leaderboard |
+| [Kaggle](https://www.kaggle.com/competitions) Playground competitions | Small, friendly contests, mostly on tables of data | Tabular ML and leaderboard discipline |
+| [Hugging Face Learn](https://huggingface.co/learn) | Free courses on Transformers, audio, computer vision and diffusion | Practice-only syllabus items |
+
+You also need a GPU for rungs 3 to 5. Free cloud notebooks such as Google Colab and Kaggle Notebooks offer limited free GPU time, which is enough for small fine-tuning runs if you cache features and keep experiments short.
+
+<ExamTip title="Practise in IOAI conditions">
+
+IOAI 2026 ran in JupyterLab with one GPU, **no internet** apart from a whitelist of library documentation, PyTorch and scikit-learn but **no TensorFlow or Keras**, and an official in-platform assistant LLM with a short output limit. So practise in PyTorch, with the documentation open and AI autocomplete off, and time yourself.
+
+</ExamTip>
+
+**Project ideas** to fill gaps between contests (each uses free data):
+
+- **Hawker-food photo classifier.** Fine-tune a pretrained ResNet with augmentation on a few hundred photos you take or find (vision, transfer learning).
+- **Unlabelled-comment detector.** Fine-tune a small BERT on a labelled sample of comments, then add pseudo-labels from unlabelled ones (text, semi-supervised learning).
+- **HDB resale prices.** Gradient boosting with group features on data.gov.sg's resale data, as in the 2025 camp's tabular task (tabular ML, feature engineering).
+- **Spoken-digit or bird-call classifier.** Extract HuBERT or Whisper embeddings and train a small head (audio).
+- **Photo-album search.** Embed your photos with CLIP and search them with sentences (multimodal, embeddings).
+
+## A weekly plan to July
+
+The dates are fixed, so plan backwards from them:
+
+- **{RESULTS.date}:** NOAI results (award tiers only).
+- **{SEL.date}:** NTU Selection Test. {SEL.detail}
+- **{TRAIN.date}:** weekend training at NTU. {TRAIN.detail}
+- **{CAMP.date}:** residential camp. {CAMP.detail} IOAI releases its at-home tasks in June, about a month before the contest; the team picked at camp works on them afterwards.
+- **{IOAI.date}:** IOAI 2027 in Singapore, with a team of {FUNNEL[4].n} (see [After NOAI](#/learn/road-to-ioai/after-noai)).
+
+<Analogy title="Training for a marathon">
+
+Marathon plans are periodised: weeks of easy base mileage, then race-specific sessions at race pace, then a taper so you arrive fresh. Four months to IOAI split the same way.
+
+</Analogy>
+
+1. **Base (March).** Rest for a few days after the Final, then build rung 3 tools: a PyTorch training loop on a GPU, transfer learning, Hugging Face basics. One past Singapore selection task every week or two.
+2. **Selection-specific (April to 8 May).** One past selection or camp task per week, rotating vision, text and tabular, plus a timed mini-contest every other week. Do not wait for the results in early April: four weeks is not enough to build GPU fluency from zero.
+3. **Broaden (May and June).** If you are invited onwards, the NTU Saturdays and camp set the pace; add audio, multimodal and generative practice and one IOAI past task per week. Mark your school's mid-year exam weeks as rest.
+4. **Home tasks and taper (late June).** The IOAI at-home tasks if you are on the team, a couple of light timed contests, and a rest-heavy final week.
+
+<WeeklyPlanBuilder />
+
+<Steps title="How far 8 hours a week goes">
+  <Step title="Blocks per week">
+    8 hours in 2-hour blocks is $8 \div 2 = 4$ blocks a week.
+  </Step>
+  <Step title="Blocks before the Selection Test">
+    From Monday 8 March to the week of 8 May is 9 weeks, so $9 \times 4 = 36$ blocks, or 72 hours.
+  </Step>
+  <Step title="A sensible split">
+    Half on full practice tasks (18 blocks: 6 each for vision, text and tabular, which is about 2 blocks per task, so 3 tasks of each kind), a quarter on reading gaps (9 blocks), and the rest on timed contests and rest (9 blocks).
+  </Step>
+  <Step title="The lesson">
+    Nine practice tasks before the Selection Test is plenty, but only if they are spread over all three areas. Leave one area out and the test that year may be built on it.
+  </Step>
+</Steps>
+
+<QuickCheck
+  q="It is the first week of April. Since the Final you have done four vision tasks, one tabular task and no text task. What should your next two weeks of practice hold?"
+  options={['A text task each week, one tabular task and a timed mini-contest', 'Two more vision tasks, since vision is clearly your strongest area', 'A pause until the results show whether NTU has invited you', 'GAN and diffusion practice, since the camp covers new model families']}
+  answer={0}
+  explain="Text has no practice at all and tabular only one task, and the Selection Test on 8 May may be built on any of the three areas, so rotate into the gaps and keep a timed contest in the mix. More vision deepens an area you already have; pausing for the results only shortens the few weeks left before 8 May; generative and multimodal practice belongs to the broaden phase in May and June."
+/>
+
+<Mistake>
+
+Practising only what you enjoy. A student who loves vision can do ten CV tasks and feel ready, then meet a Selection Test whose text task is worth as much. The plan builder's first check exists for this reason: each area at least twice before 8 May.
+
+</Mistake>
+
+## The coverage map: find and fill your gaps
+
+The official study guidance for NOAI is to "review the IOAI syllabus". The latest published version (the IOAI 2026 syllabus; check the <a href={LINKS.ioai2027}>IOAI 2027 page</a> for a newer one) has four sections:
+
+1. Foundational skills and classical machine learning,
+2. Neural networks and deep learning,
+3. Computer vision,
+4. Natural language processing and audio.
+
+Think of it as comparing your O-level syllabus checklist with what the A-level syllabus adds: you tick off what you have, and the gaps tell you what to study next. Each subtopic is labelled **Theory** (understand how and why it works), **Practice** (know when to use it and how to run it with a library) or **Both**. Two sentences in it matter for planning: topics not listed are excluded, and "breadth should be prioritized over depth".
+
+<SyllabusCoverageGrid />
+
+This course was built for NOAI, so it goes deepest on theory and from-scratch code. Filter the map to **Practice** and the dashed cells line up: GPU training, fine-tuning with PEFT, object detection, diffusion pipelines and the audio models. None is hard to understand once you have done this course; they simply need hours with the libraries (`transformers`, `peft`, `torchvision`, `diffusers`) that only practice gives.
+
+The Prelim already asks about these practice-only topics, but only at the level of "what is it?". Two you must be able to define: **LoRA** freezes a weight matrix $W$ and trains only a small low-rank update $\Delta W = BA$, which makes fine-tuning cheap; **YOLO** is a single-stage, real-time object detector that predicts all boxes and classes in one forward pass.
+
+<PastPaperQuestion paper="prelim2026" n={235} />
+
+<PastPaperQuestion paper="prelim2026" n={197} />
+
+At IOAI the same topics come back as "use it": fine-tune with LoRA under a GPU budget, or run a detector and parse its boxes. That is the gap the plan above is for.
+
+<KeyIdea>
+
+Breadth beats depth: a dashed cell in any of the four sections is a bigger risk than a missing detail in a section you already know. Use the coverage map to choose next month's practice tasks and reading.
+
+</KeyIdea>
+
+<ExamTip>
+
+The NOAI Prelim tests the vocabulary of every syllabus section (LoRA, YOLO, CLIP, Whisper) at definition level, so this map doubles as a Prelim revision checklist. For IOAI, turn each dashed Practice cell into one small project with the library named in its card.
+
+</ExamTip>
+
+<Takeaways>
+
+- **The ladder:** recall (Prelim) → implement (Final) → complete and improve a pipeline (NTU test) → learn new model families on a GPU (camp) → invent under constraints (IOAI). Practise on the lowest rung with gaps.
+- **Practice sources:** NOAI past notebooks, Singapore's past selection and camp tasks, IOAI task repositories, AICC monthly contests, Kaggle and Hugging Face Learn; work offline in PyTorch.
+- **The plan:** anchor it to {SEL.date}, the camp ({CAMP.date}) and IOAI ({IOAI.date}); base in March, selection tasks in April, broaden in May and June, taper before July.
+- **The coverage map:** the IOAI syllabus has four sections of Theory, Practice and Both topics; prioritise breadth and give the Practice-only topics hands-on hours.
+
+</Takeaways>

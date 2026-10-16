@@ -1,0 +1,246 @@
+import BroadcastStretcher from './visuals/broadcasting/BroadcastStretcher'
+import StandardiseBroadcast from './visuals/broadcasting/StandardiseBroadcast'
+import SilentBroadcastGrid from './visuals/broadcasting/SilentBroadcastGrid'
+import { STANDARDISE_CODE } from './visuals/broadcasting/snippets'
+
+You have already used broadcasting without noticing: `marks + 1` adds 1 to every mark in the array. The same mechanism lets you subtract a whole row of averages from a whole table in one line, which is how every feature in a dataset gets standardised. It is also behind one of the most common *silent* bugs in from-scratch ML code: no error, a believable number, and a completely wrong answer.
+
+<Analogy title="The principal's announcement">
+
+The principal speaks once over the PA system, and every classroom hears its own copy of the message. Nobody records 40 separate announcements. In NumPy, a dimension of size 1 is that announcement: one value, shared with every row (or column) that needs it, without actually being copied.
+
+</Analogy>
+
+## From one number to a whole row
+
+When the two sides of `+`, `-`, `*` or `/` have different shapes, NumPy tries to **broadcast**: to stretch the smaller one until the shapes match, then work element-wise as usual.
+
+- **A number and an array.** `X + 10` adds 10 everywhere: the single number is stretched to the shape of `X`.
+- **A row and a table.** A shape-$(3,)$ row added to a shape-$(2, 3)$ table is added to *each* row:
+
+```python
+a = np.array([[1, 2, 3],
+              [4, 5, 6]])
+print(a + np.array([10, 20, 30]))
+```
+
+```text
+[[11 22 33]
+ [14 25 36]]
+```
+
+- **A column and a row.** A $(3, 1)$ column plus a $(1, 4)$ row makes a whole $(3, 4)$ table, laid out like the times table at the back of a primary-school exercise book: the column is stretched sideways, the row is stretched downwards, and every cell is "its row's value + its column's value".
+
+<Term def="NumPy's rule for combining arrays of different but compatible shapes element-wise: size-1 dimensions are virtually stretched to match, without copying any data.">Broadcasting</Term> is the name for this automatic stretching. The stretching is virtual: NumPy re-reads the same stored numbers of the smaller array instead of making copies of it, so the stretched copies cost no extra memory. (The result itself is a new, full-size array, of course.)
+
+## The rules
+
+To decide whether two shapes broadcast, and what the result is:
+
+1. **Line the shapes up from the right.** If one shape is shorter, pad it on the **left** with 1s. So $(3,)$ next to $(5, 3)$ is treated as $(1, 3)$.
+2. **Check each position.** The two sizes are compatible if they are **equal**, or if **one of them is 1**.
+3. **Stretch the 1s.** The result takes the larger size in each position.
+
+If any position fails step 2, NumPy stops with `ValueError: operands could not be broadcast together with shapes …`.
+
+<BroadcastStretcher />
+
+<KeyIdea>
+
+Line the shapes up **from the right**. In every position the sizes must be **equal or contain a 1**, and each 1 is stretched to match the other size.
+
+</KeyIdea>
+
+<Steps title="Four shape pairs, checked by hand">
+  <Step title="(5, 3) with (3,)">
+    Pad on the left: $(3,) \to (1, 3)$. Right position: $3$ and $3$, equal ✓. Left position: $5$ and $1$, the 1 stretches ✓. Result: $(5, 3)$. This is "add a row to every row".
+  </Step>
+  <Step title="(3, 1) with (1, 4)">
+    Right: $1$ and $4$ ✓ (stretch). Left: $3$ and $1$ ✓ (stretch). Result: $(3, 4)$. *Both* arrays were stretched.
+  </Step>
+  <Step title="(3,) with (4,)">
+    Only one position: $3$ and $4$. Not equal and neither is 1 ✗. `ValueError`.
+  </Step>
+  <Step title="(4, 3) with (4,): the classic surprise">
+    Pad: $(4,) \to (1, 4)$. Right position: $3$ and $4$ ✗. It fails, even though both arrays "have a 4", because the 4 of the vector is lined up with the **last** axis, not the first. To pair it with the rows, turn it into a column of shape $(4, 1)$ first (next section).
+  </Step>
+</Steps>
+
+<QuickCheck
+  q="What is the shape of `a + b` if `a.shape` is `(5, 1)` and `b.shape` is `(3,)`?"
+  options={['`(5, 3)`', '`(5, 1)`', '`(3, 5)`', 'It raises a `ValueError`']}
+  answer={0}
+  explain="Pad `b` to $(1, 3)$. Right position: $1$ and $3$, so the 1 stretches to 3. Left position: $5$ and $1$, so the 1 stretches to 5. Result $(5, 3)$. Nothing fails, because every pair contains a 1."
+/>
+
+<PastPaperQuestion paper="prelim2026" n={96} />
+
+<PastPaperQuestion paper="prelim2026" n={93} />
+
+### Making a column or a row on purpose
+
+Because the alignment always starts from the right, you sometimes need to insert a size-1 axis yourself so that the shapes line up the way you mean. Here a vector `v` of shape `(3,)` becomes a column, a row, and flat again:
+
+```python
+v = np.array([1, 2, 3])
+# three ways to make a column
+a = v[:, None]
+b = v.reshape(-1, 1)
+c = np.expand_dims(v, 1)
+print(a.shape, b.shape, c.shape)
+# two ways to make a row
+r = v[None, :]
+s = v.reshape(1, -1)
+print(r.shape, s.shape)
+# a column back to flat
+f = np.squeeze(a, axis=1)
+print(f.shape)
+```
+
+```text
+(3, 1) (3, 1) (3, 1)
+(1, 3) (1, 3)
+(3,)
+```
+
+For a table `X` of shape `(n, d)`, `X.mean(axis=1, keepdims=True)` gives the per-row means directly as an `(n, 1)` column. Here $n$ counts the rows (examples, or points) and $d$ the features, as in many books; the 2025 Final formula in the [Σ lesson](#/learn/maths-foundations/sigma-notation-and-subscripts) used $m$ for examples and $n$ for features. Always check which letter means what.
+
+Here `None` (you may also see its alias `np.newaxis`) inside the square brackets means "insert a new axis of length 1 here", and `-1` in `reshape` means "work this size out for me". `np.expand_dims` adds a length-1 axis at the position you name, and `np.squeeze` removes one.
+
+For arrays with 3 or more axes, `np.transpose(x, order)` puts the axes in any order you list. A colour image stores three values for each pixel, its red, green and blue **channels**. A batch of colour images stored as (images, height, width, channels) becomes PyTorch's (images, channels, height, width) with `np.transpose(imgs, (0, 3, 1, 2))`: shape `(32, 28, 28, 3)` turns into `(32, 3, 28, 28)`. PyTorch calls these three moves `unsqueeze`, `squeeze` and `permute`.
+
+## Centring and standardising features
+
+Features often live on very different scales: height in centimetres (around 165), mass in kilograms (around 55), CCA hours per week (around 4). Distance-based models like k-nearest neighbours and k-means (which sorts points into $k$ groups by distance; [NumPy patterns for from-scratch ML](#/learn/numpy/from-scratch-patterns) builds it), and gradient descent, behave much better when every feature is put on the same scale first. The standard recipe is to <Term def="To rescale a feature so that it has mean 0 and standard deviation 1, by subtracting its mean and dividing by its standard deviation. The results are called z-scores.">standardise</Term> each feature (each column):
+
+$$
+z_{ij} = \frac{x_{ij} - \mu_j}{\sigma_j}
+$$
+
+- $x_{ij}$ is the value of feature $j$ (column $j$) for example $i$ (row $i$).
+- $\mu_j$ (the Greek letter mu) is the **mean** of column $j$, and $\sigma_j$ (sigma) is its **standard deviation**: a typical distance of the values from that mean.
+- Subtracting $\mu_j$ **centres** the column: its new mean is 0. Dividing by $\sigma_j$ **scales** it: its new standard deviation is 1.
+- The result $z_{ij}$ (a <Term def="How many standard deviations a value lies above (positive) or below (negative) the mean of its column.">z-score</Term>) says how many standard deviations the value is above or below its column's mean.
+
+It is like adjusting every student's score by the class average *for that subject*, for every subject at once. In NumPy the whole table is done in two reductions and one broadcast line:
+
+```python
+# (3,): one mean per column
+mu = X.mean(axis=0)
+# (3,): standard deviations
+sd = X.std(axis=0)
+# (5, 3) with (3,) -> (5, 3)
+Z = (X - mu) / sd
+```
+
+<StandardiseBroadcast />
+
+<Steps title="The height column by hand">
+  <Step title="Mean">
+    Heights $170, 150, 165, 180, 160$. Total $825$, so $\mu = 825 / 5 = 165$.
+  </Step>
+  <Step title="Centre">
+    Subtract 165: $5, -15, 0, 15, -5$. These now average 0.
+  </Step>
+  <Step title="Standard deviation">
+    Square the deviations: $25, 225, 0, 225, 25$, total $500$. Divide by $n = 5$: variance $100$. Square root: $\sigma = 10$.
+  </Step>
+  <Step title="Scale">
+    Divide each deviation by 10: $0.5, -1.5, 0, 1.5, -0.5$. That is exactly the first column of `Z`, and the broadcast did the same for the other two columns in the same line.
+  </Step>
+</Steps>
+
+<Note title="Which standard deviation?">
+
+`np.std` divides by $n$ by default (as in the steps above), and so does scikit-learn's `StandardScaler`. pandas' `.std()` divides by $n - 1$ by default, giving slightly bigger values ($\approx 11.18$ instead of 10 for the heights). In a from-scratch task, use the one the question asks for; `np.std(x, ddof=1)` gives the $n - 1$ version.
+
+</Note>
+
+<PyRunner packages={['numpy']} code={STANDARDISE_CODE} />
+
+<Reveal label="Show the expected output">
+
+```text
+[165.  55.   4.]
+[10.  4.  2.]
+[[ 0.5  0.5 -1.5]
+ [-1.5 -1.5  1.5]
+ [ 0.  -0.5  0. ]
+ [ 1.5  1.5 -0.5]
+ [-0.5  0.   0.5]]
+[0. 0. 0.]
+[1. 1. 1.]
+```
+
+</Reveal>
+
+<Mistake title="Wrong axis, or a constant column">
+
+`X - X.mean(axis=1)` subtracts *row* means, shape $(5,)$, which lines up with the 3 columns and raises a `ValueError`. Worse, on a square table (say $100 \times 100$) the same mistake runs without error and quietly subtracts the wrong numbers. And if a feature is constant, its standard deviation is 0, or a rounding-error value such as `1.4e-17`, so you get `nan` or meaningless values of exactly $\pm 1$; a common guard is `(X - mu) / (sd + 1e-8)`.
+
+</Mistake>
+
+## Silent bugs: when broadcasting is too helpful
+
+Broadcasting never asks "did you mean that?". The most famous trap: your model's predictions come out as a **column**, shape $(n, 1)$, for example from `X @ w` with `w` of shape $(d, 1)$, or from a PyTorch layer with one output unit. Your targets `y` are **flat**, shape $(n,)$. Line them up from the right: $(n, 1)$ against $(1, n)$. Both positions contain a 1, so both stretch, and `pred - y` becomes an $(n, n)$ grid of *every* prediction minus *every* target.
+
+First, what the code is trying to compute: the **mean squared error** (MSE) from [fitting a line by hand](#/learn/ai-first-look/fit-a-line-by-hand), `np.mean((pred - y) ** 2)`, the loss that training makes small. With `pred = [4, 5, 1, 6]` and `y = [3, 5, 2, 6]` the gaps are $1, 0, -1, 0$, so the MSE is $(1 + 0 + 1 + 0) / 4 = 0.5$.
+
+<SilentBroadcastGrid />
+
+With $n = 4$ the true mean squared error is 0.5, but `np.mean((pred - y) ** 2)` happily returns 6.0. With $n = 60{,}000$ (the size of the MNIST training set) the accidental grid would hold $3.6$ billion numbers, about 29 GB, so at least that version crashes; with 100 examples it just trains your model on a nonsense loss.
+
+<Mistake title="(n, 1) minus (n,)">
+
+Whenever two arrays are *meant* to be compared position by position, make their shapes identical first: `pred.reshape(-1)` (or `pred[:, 0]`, or `np.squeeze(pred, axis=1)`) to flatten the column, or `y[:, None]` to turn the targets into a column too. A one-line guard catches it immediately: `assert pred.shape == y.shape, (pred.shape, y.shape)`.
+
+</Mistake>
+
+PyTorch has exactly the same broadcasting rules. Its built-in loss at least warns you (real output below, with the file details trimmed and the long warning wrapped to fit):
+
+```python
+import torch
+import torch.nn as nn
+
+# model output: shape (4, 1)
+pred = torch.tensor([[4.], [5.],
+                     [1.], [6.]])
+# targets: shape (4,)
+y = torch.tensor([3., 5.,
+                  2., 6.])
+
+loss = nn.MSELoss()
+print(loss(pred, y))
+# squeeze(1): (4, 1) -> (4,)
+print(loss(pred.squeeze(1), y))
+```
+
+```text
+UserWarning: Using a target size
+(torch.Size([4])) that is
+different to the input size
+(torch.Size([4, 1])). This will
+likely lead to incorrect results
+due to broadcasting. Please
+ensure they have the same size.
+tensor(6.)
+tensor(0.5000)
+```
+
+A hand-written NumPy loss gives no warning at all, which is why from-scratch code needs the shape checks.
+
+<ExamTip>
+
+In the Prelim, broadcasting shows up as definitions: it is *automatic shape adjustment for element-wise operations* (nothing to do with GPUs, parallel processing or networks), and `a * b` needs the **same shape or broadcastable** shapes, not merely the same number of elements. For a shape question, write both shapes right-aligned, one above the other, and check column by column: equal or 1. In the Final, print `.shape` after every new line of a from-scratch function; it is the cheapest debugger you have.
+
+</ExamTip>
+
+<Takeaways>
+
+- Broadcasting lets element-wise operations combine different shapes by **virtually stretching size-1 dimensions**; the smaller array is never actually copied.
+- The rules: line up from the **right**, pad short shapes with 1s on the left, and each pair must be **equal or contain a 1**. Otherwise you get `ValueError: operands could not be broadcast together`.
+- Standardising is one broadcast line: `(X - X.mean(axis=0)) / X.std(axis=0)` gives every column mean 0 and standard deviation 1.
+- Use `v[:, None]`, `reshape(-1, 1)` or `keepdims=True` to add a size-1 axis exactly where you mean it.
+- `(n, 1) - (n,)` silently makes an `(n, n)` grid. Make shapes identical before comparing predictions with targets, and assert it.
+
+</Takeaways>

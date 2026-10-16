@@ -1,0 +1,252 @@
+/* Boxes, grids and flashes for the lists lesson visuals. */
+.track {
+  position: relative;
+  width: 100%;
+  margin: 0 auto;
+}
+.box {
+  position: absolute;
+  top: 22px;
+  display: grid;
+  place-items: center;
+  border: 2px solid var(--viz-1);
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--viz-1) 12%, var(--surface));
+  color: var(--ink);
+  font-family: var(--font-mono);
+  font-weight: 700;
+  transition:
+    left 0.35s cubic-bezier(0.3, 0.7, 0.2, 1),
+    background-color 0.2s,
+    border-color 0.2s,
+    transform 0.2s;
+}
+.boxSel {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 30%, transparent);
+}
+.boxNew {
+  animation: pop 0.45s ease-out;
+}
+.boxRead {
+  animation: read 0.7s ease-out;
+}
+.ghost {
+  position: absolute;
+  top: 22px;
+  display: grid;
+  place-items: center;
+  border: 2px dashed var(--bad);
+  border-radius: 8px;
+  color: var(--bad);
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  font-weight: 700;
+  background: var(--bad-soft);
+}
+.flashBad {
+  animation: bad 0.7s ease-out;
+}
+.idx {
+  position: absolute;
+  text-align: center;
+  font-family: var(--font-mono);
+  font-size: 0.74rem;
+  color: var(--ink-3);
+  transition: left 0.35s cubic-bezier(0.3, 0.7, 0.2, 1);
+}
+.idxSel {
+  color: var(--accent);
+  font-weight: 800;
+}
+.ops {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 0.4rem;
+  width: 100%;
+}
+.opWide {
+  grid-column: span 2;
+}
+.op {
+  font: inherit;
+  font-family: var(--font-mono);
+  font-size: 0.82rem;
+  padding: 0.4rem 0.5rem;
+  border: 1.5px solid var(--rule);
+  border-radius: var(--radius-s);
+  background: var(--surface);
+  color: var(--ink);
+  cursor: pointer;
+  text-align: left;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.op:hover:not(:disabled) {
+  border-color: var(--accent-line);
+  background: var(--accent-soft);
+}
+.op:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+.log {
+  display: grid;
+  align-content: start;
+  gap: 0.15rem;
+  margin: 0;
+  padding: 0.45rem 0.7rem;
+  list-style: none;
+  font-family: var(--font-mono);
+  font-size: 0.84rem;
+  background: var(--surface);
+  min-height: 5.6rem;
+}
+.logRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.1rem 0.6rem;
+  align-items: baseline;
+  padding: 0.05rem 0.3rem;
+  margin: 0 -0.3rem;
+  border-radius: 5px;
+}
+.logNew {
+  background: var(--highlight-soft);
+}
+.logOld {
+  opacity: 0.6;
+}
+.logRes {
+  color: var(--ink-2);
+}
+.logErr {
+  color: var(--bad);
+  font-weight: 700;
+}
+
+/* ---------- grid indexer ---------- */
+.gridWrap {
+  display: grid;
+  justify-content: center;
+  width: 100%;
+  overflow-x: auto;
+}
+.grid {
+  display: grid;
+  gap: 4px;
+  align-items: center;
+}
+.colHead,
+.rowHead {
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  color: var(--ink-3);
+  text-align: center;
+}
+.colHead {
+  padding-bottom: 2px;
+}
+.colHeadOn,
+.rowHeadOn {
+  color: var(--accent);
+  font-weight: 800;
+}
+.rowHead {
+  font: inherit;
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  border: 1.5px solid var(--rule);
+  border-radius: 6px;
+  background: var(--surface);
+  padding: 0 0.35rem;
+  height: 100%;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.rowHead:hover {
+  border-color: var(--accent-line);
+  background: var(--accent-soft);
+}
+.rowHeadOn {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+.cell {
+  font: inherit;
+  font-family: var(--font-mono);
+  font-weight: 700;
+  border: 1.5px solid var(--rule);
+  border-radius: 6px;
+  background: var(--surface);
+  color: var(--ink);
+  cursor: pointer;
+  padding: 0;
+  transition: background-color 0.15s, border-color 0.15s;
+}
+.cell:hover {
+  border-color: var(--accent-line);
+}
+.cellRow {
+  background: color-mix(in srgb, var(--viz-1) 16%, var(--surface));
+  border-color: color-mix(in srgb, var(--viz-1) 50%, var(--rule));
+}
+.cellOn {
+  background: var(--highlight-soft);
+  border-color: var(--highlight);
+  box-shadow: 0 0 0 2px var(--highlight);
+}
+
+@keyframes pop {
+  from {
+    transform: scale(0.4);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+@keyframes read {
+  0% {
+    transform: translateY(0);
+  }
+  35% {
+    transform: translateY(-8px);
+  }
+  100% {
+    transform: translateY(0);
+  }
+}
+@keyframes bad {
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+  20% {
+    transform: translateX(-6px);
+  }
+  40% {
+    transform: translateX(6px);
+  }
+  60% {
+    transform: translateX(-4px);
+  }
+  80% {
+    transform: translateX(4px);
+  }
+}
+
+@media (max-width: 520px) {
+  .ops {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .op {
+    font-size: 0.76rem;
+  }
+  .log {
+    font-size: 0.78rem;
+  }
+}

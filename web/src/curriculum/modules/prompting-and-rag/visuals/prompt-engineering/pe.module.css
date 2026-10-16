@@ -1,0 +1,562 @@
+/* Shared styles for the prompt-engineering visuals. Colours come only from theme tokens. */
+
+.wrap {
+  width: 100%;
+  display: grid;
+  gap: 0.85rem;
+  min-width: 0;
+}
+
+.panelHead {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.2rem 0.75rem;
+  font-size: var(--step--1);
+  font-weight: 800;
+  color: var(--ink-2);
+  margin-bottom: 0.35rem;
+}
+.panelHead small {
+  font-weight: 600;
+  color: var(--ink-3);
+}
+
+/* ---------- the prompt as a text box ---------- */
+.prompt {
+  border: 1.5px solid var(--rule);
+  border-radius: 10px;
+  background: var(--surface-2);
+  padding: 0.55rem 0.6rem;
+  display: grid;
+  gap: 0.45rem;
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  line-height: 1.45;
+  color: var(--ink);
+  min-width: 0;
+}
+.pLine {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+.pTag {
+  display: inline-block;
+  font-family: var(--font-body);
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  padding: 0 0.35rem;
+  border-radius: 4px;
+  margin-right: 0.35rem;
+  vertical-align: 1px;
+  color: var(--ink);
+}
+.cursor {
+  display: inline-block;
+  width: 0.55em;
+  height: 1em;
+  vertical-align: -2px;
+  background: var(--viz-2);
+  margin-left: 2px;
+  animation: blink 1.1s steps(2, start) infinite;
+}
+@keyframes blink {
+  to {
+    visibility: hidden;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .cursor {
+    animation: none;
+  }
+}
+
+/* ---------- example blocks inside the prompt ---------- */
+.exBlock {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 0.2rem 0.4rem;
+  align-items: start;
+  padding: 0.35rem 0.4rem 0.35rem 0.55rem;
+  border-radius: 8px;
+  border-left: 4px solid var(--viz-3);
+  background: color-mix(in srgb, var(--viz-3) 9%, var(--surface));
+}
+.exBad {
+  border-left-color: var(--viz-neg);
+  background: color-mix(in srgb, var(--viz-neg) 10%, var(--surface));
+}
+.exText {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.exTools {
+  display: flex;
+  gap: 2px;
+}
+.iconBtn {
+  font: inherit;
+  font-family: var(--font-body);
+  font-size: 0.85rem;
+  font-weight: 800;
+  line-height: 1;
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  border: 1.5px solid var(--rule);
+  background: var(--surface);
+  color: var(--ink-2);
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+  padding: 0;
+}
+.iconBtn:hover:not([disabled]) {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+.iconBtn[disabled] {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+.iconBtn:focus-visible,
+.bankBtn:focus-visible,
+.partToggle:focus-visible {
+  outline: 3px solid var(--accent);
+  outline-offset: 1px;
+}
+.labelOk {
+  color: var(--ok);
+  font-weight: 800;
+}
+.labelBad {
+  color: var(--bad);
+  font-weight: 800;
+}
+.badNote {
+  font-family: var(--font-body);
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--viz-neg);
+  margin-left: 0.3rem;
+}
+.testBlock {
+  padding: 0.35rem 0.55rem;
+  border-radius: 8px;
+  border-left: 4px solid var(--viz-2);
+  background: color-mix(in srgb, var(--viz-2) 10%, var(--surface));
+}
+.empty {
+  font-family: var(--font-body);
+  font-size: 0.78rem;
+  color: var(--ink-3);
+  font-style: italic;
+  margin: 0;
+}
+
+/* ---------- example bank ---------- */
+.bank {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 230px), 1fr));
+  gap: 0.4rem;
+}
+.bankBtn {
+  font: inherit;
+  text-align: left;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 0.1rem 0.45rem;
+  align-items: start;
+  padding: 0.4rem 0.5rem;
+  border-radius: 8px;
+  border: 1.5px dashed var(--rule);
+  background: var(--surface);
+  color: var(--ink);
+  cursor: pointer;
+  font-size: 0.78rem;
+  line-height: 1.35;
+}
+.bankBtn:hover:not([disabled]) {
+  border-style: solid;
+  border-color: var(--viz-3);
+}
+.bankBtn[disabled] {
+  opacity: 0.4;
+  cursor: default;
+}
+.bankBad:not([disabled]) {
+  border-color: color-mix(in srgb, var(--viz-neg) 60%, var(--rule));
+}
+.plus {
+  font-weight: 900;
+  color: var(--viz-3);
+  font-size: 0.95rem;
+  line-height: 1.1;
+}
+.bankBad .plus {
+  color: var(--viz-neg);
+}
+.bankMeta {
+  grid-column: 2;
+  font-size: 0.74rem;
+  color: var(--ink-3);
+  font-weight: 700;
+}
+
+/* ---------- output distribution ---------- */
+.outs {
+  display: grid;
+  gap: 0.5rem;
+}
+.out {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 3.2rem;
+  gap: 0.2rem 0.5rem;
+  align-items: center;
+}
+.outText {
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  color: var(--ink);
+  overflow-wrap: anywhere;
+  line-height: 1.35;
+}
+.outBadges {
+  display: inline-flex;
+  gap: 0.25rem;
+  margin-left: 0.35rem;
+  vertical-align: 1px;
+}
+.badge {
+  font-family: var(--font-body);
+  font-size: 0.72rem;
+  font-weight: 800;
+  padding: 0 0.3rem;
+  border-radius: 4px;
+  white-space: nowrap;
+}
+.good {
+  background: color-mix(in srgb, var(--viz-pos) 18%, var(--surface));
+  color: var(--ink);
+}
+.bad {
+  background: color-mix(in srgb, var(--viz-neg) 18%, var(--surface));
+  color: var(--ink);
+}
+.pct {
+  font-family: var(--font-mono);
+  font-weight: 800;
+  font-size: 0.85rem;
+  text-align: right;
+  color: var(--ink);
+}
+.track {
+  grid-column: 1 / 3;
+  height: 9px;
+  border-radius: 5px;
+  background: var(--surface-3);
+  overflow: hidden;
+}
+.fill {
+  display: block;
+  height: 100%;
+  border-radius: 5px;
+  transition: width 0.3s ease;
+}
+
+/* ---------- frozen weights ---------- */
+.weights {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.35rem 0.6rem;
+  font-size: 0.78rem;
+  color: var(--ink-2);
+}
+.wCells {
+  display: inline-grid;
+  grid-template-columns: repeat(8, auto);
+  gap: 2px;
+}
+.wCell {
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  padding: 1px 3px;
+  border-radius: 3px;
+  background: var(--surface-3);
+  color: var(--ink-2);
+}
+.lock {
+  font-weight: 800;
+  color: var(--ink);
+}
+
+/* ---------- two-column layout on wide screens ---------- */
+.cols {
+  display: grid;
+  grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr);
+  gap: 1rem;
+  align-items: start;
+}
+.stack {
+  display: grid;
+  gap: 0.85rem;
+}
+
+/* ---------- prompt anatomy ---------- */
+.parts {
+  display: grid;
+  gap: 0.35rem;
+}
+.part {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 0.15rem 0.55rem;
+  align-items: start;
+  padding: 0.35rem 0.5rem;
+  border-radius: 8px;
+  border: 1.5px solid transparent;
+  border-left-width: 5px;
+  background: var(--surface-2);
+}
+.partOff {
+  background: transparent;
+  border-color: var(--rule);
+  border-style: dashed;
+  border-left-style: solid;
+}
+.partToggle {
+  font: inherit;
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  min-width: 6.4rem;
+  padding: 0.25rem 0.4rem;
+  border-radius: 6px;
+  border: 1.5px solid currentColor;
+  background: var(--surface);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  justify-content: flex-start;
+}
+.partText {
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  line-height: 1.4;
+  color: var(--ink);
+  overflow-wrap: anywhere;
+}
+.partOff .partText {
+  color: var(--ink-3);
+  text-decoration: line-through;
+  text-decoration-color: color-mix(in srgb, var(--ink-3) 60%, transparent);
+}
+.dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  border: 1.5px solid currentColor;
+  flex: none;
+}
+
+.reply {
+  border: 1.5px solid var(--rule);
+  border-radius: 10px;
+  padding: 0.6rem 0.7rem;
+  background: var(--surface);
+  font-size: 0.84rem;
+  line-height: 1.45;
+  color: var(--ink);
+  display: grid;
+  gap: 0.45rem;
+  min-width: 0;
+}
+.reply p {
+  margin: 0;
+}
+.working {
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  padding: 0.3rem 0.45rem;
+  border-radius: 6px;
+  border-left: 3px solid var(--viz-6);
+  background: color-mix(in srgb, var(--viz-6) 10%, var(--surface));
+}
+.flag {
+  display: inline;
+  font-size: 0.74rem;
+  font-weight: 800;
+  color: var(--viz-neg);
+  margin-left: 0.3rem;
+}
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.78rem;
+  line-height: 1.3;
+}
+.table th,
+.table td {
+  text-align: left;
+  vertical-align: top;
+  padding: 0.25rem 0.35rem;
+  border-bottom: 1px solid var(--rule);
+}
+.table th {
+  font-weight: 800;
+  color: var(--ink-2);
+  border-bottom-width: 2px;
+}
+
+.checks {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0.25rem;
+  font-size: 0.8rem;
+}
+.checks li {
+  display: grid;
+  grid-template-columns: 1.3rem minmax(0, 1fr);
+  gap: 0.3rem;
+  align-items: start;
+  color: var(--ink);
+}
+.tick {
+  font-weight: 900;
+  text-align: center;
+  border-radius: 4px;
+}
+.tickYes {
+  color: var(--viz-pos);
+}
+.tickNo {
+  color: var(--viz-neg);
+}
+.checkWhy {
+  color: var(--ink-3);
+  font-size: 0.74rem;
+}
+.score {
+  font-family: var(--font-mono);
+  font-weight: 800;
+  font-size: 0.9rem;
+  color: var(--ink);
+}
+
+/* ---------- chain of thought ---------- */
+.ctx {
+  border: 1.5px solid var(--rule);
+  border-radius: 10px;
+  background: var(--surface-2);
+  padding: 0.55rem 0.65rem;
+  font-size: 0.84rem;
+  line-height: 1.6;
+  color: var(--ink);
+  min-width: 0;
+}
+.ctxRole {
+  font-family: var(--font-body);
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+  display: block;
+}
+.genLine {
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  display: block;
+  padding: 0.05rem 0.3rem;
+  border-radius: 5px;
+}
+.genLineNow {
+  background: color-mix(in srgb, var(--viz-2) 14%, var(--surface));
+  box-shadow: inset 3px 0 0 var(--viz-2);
+}
+.genLineLater {
+  opacity: 0.28;
+}
+.num {
+  font-family: var(--font-mono);
+  font-weight: 700;
+  padding: 0 2px;
+  border-radius: 4px;
+}
+.numRead {
+  background: color-mix(in srgb, var(--viz-1) 26%, var(--surface));
+  box-shadow: 0 0 0 1.5px var(--viz-1);
+}
+.numMade {
+  background: color-mix(in srgb, var(--viz-2) 30%, var(--surface));
+  box-shadow: 0 0 0 1.5px var(--viz-2);
+}
+.verdictOk {
+  color: var(--viz-pos);
+  font-weight: 800;
+}
+.verdictBad {
+  color: var(--viz-neg);
+  font-weight: 800;
+}
+.tokens {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 3px;
+  align-items: center;
+}
+.tokSq {
+  width: 11px;
+  height: 11px;
+  border-radius: 2px;
+  background: var(--viz-1);
+  opacity: 0.85;
+}
+.tokKey {
+  display: inline-block;
+  width: 11px;
+  height: 11px;
+  border-radius: 2px;
+  vertical-align: -1px;
+  margin-right: 0.25rem;
+}
+.tokSqLater {
+  background: var(--surface-3);
+  opacity: 1;
+}
+.legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem 1rem;
+  font-size: 0.74rem;
+  color: var(--ink-2);
+}
+.note {
+  font-size: 0.8rem;
+  color: var(--ink-2);
+  margin: 0;
+  line-height: 1.45;
+}
+
+/* ---------- "Try" prompt at the top of a figure ---------- */
+.tryLine {
+  width: 100%;
+  margin: 0;
+  font-size: 0.86rem;
+  line-height: 1.45;
+  color: var(--ink);
+  padding: 0.35rem 0.6rem;
+  border-radius: 8px;
+  border: 1.5px dashed color-mix(in srgb, var(--accent) 60%, var(--rule));
+}
+.tryLine > b:first-child {
+  color: var(--accent);
+}

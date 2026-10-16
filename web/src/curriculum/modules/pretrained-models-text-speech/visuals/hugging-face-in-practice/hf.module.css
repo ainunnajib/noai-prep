@@ -1,0 +1,389 @@
+/* Styles for the hugging-face-in-practice visuals. Colours come only from theme tokens. */
+
+.hint {
+  font-size: var(--step--1);
+  color: var(--ink-2);
+  line-height: 1.45;
+  margin: 0;
+  width: 100%;
+}
+.hint b {
+  color: var(--ink);
+}
+.status {
+  width: 100%;
+  font-size: var(--step--1);
+  line-height: 1.45;
+  padding: 0.5rem 0.7rem;
+  border-radius: var(--radius-s);
+  background: var(--surface-2);
+  color: var(--ink);
+  border-left: 4px solid var(--accent);
+}
+.statusOk {
+  border-left-color: var(--ok);
+  background: var(--ok-soft);
+}
+.statusBad {
+  border-left-color: var(--bad);
+  background: var(--bad-soft);
+}
+
+/* ---------- pipeline stages ---------- */
+.stages {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+  align-items: center;
+  width: 100%;
+}
+.stage {
+  font: inherit;
+  font-size: 0.82rem;
+  font-weight: 700;
+  padding: 0.3rem 0.6rem;
+  border-radius: 8px;
+  border: 1.5px solid var(--rule);
+  background: var(--surface-2);
+  color: var(--ink-2);
+  cursor: pointer;
+}
+.stage:focus-visible {
+  outline: 3px solid var(--accent);
+  outline-offset: 1px;
+}
+.stageOn {
+  border-color: var(--accent);
+  background: var(--accent);
+  color: var(--accent-ink);
+}
+.stageDone {
+  border-color: var(--accent-line);
+  color: var(--ink);
+}
+.arrow {
+  color: var(--ink-3);
+  font-size: 0.85rem;
+}
+.code {
+  width: 100%;
+  margin: 0;
+  padding: 0.55rem 0.75rem;
+  border-radius: var(--radius-s);
+  background: var(--surface-2);
+  border: 1px solid var(--rule);
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  line-height: 1.5;
+  color: var(--ink);
+  /* wrap long lines (model names) instead of hiding them; wrapped parts get a hanging indent */
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  overflow-x: auto;
+}
+.code > div {
+  padding-left: 2ch;
+  text-indent: -2ch;
+}
+.codeCmt {
+  color: var(--ink-3);
+}
+.panel {
+  width: 100%;
+  border: 1px solid var(--rule);
+  border-radius: var(--radius-m);
+  padding: 0.7rem 0.75rem;
+  display: grid;
+  gap: 0.6rem;
+  min-width: 0;
+}
+.panelTitle {
+  font-weight: 800;
+  font-size: 0.95rem;
+  color: var(--ink);
+}
+
+/* ---------- token / id units ---------- */
+.units {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+  width: 100%;
+  min-width: 0;
+}
+.unit {
+  display: grid;
+  gap: 2px;
+  justify-items: center;
+  padding: 3px;
+  border-radius: 7px;
+  border: 1.5px solid transparent;
+  min-width: 2.6rem;
+}
+.unitDim {
+  opacity: 0.5;
+}
+.uTok {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--ink);
+  background: var(--surface-2);
+  border-radius: 5px;
+  padding: 0.15rem 0.35rem;
+  white-space: nowrap;
+}
+.uSpecial {
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  color: var(--ink-3);
+  background: transparent;
+  border: 1px dashed var(--rule);
+}
+.uId,
+.uMask {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  font-size: 0.72rem;
+  color: var(--ink-3);
+}
+.uMask0 {
+  color: var(--bad);
+  font-weight: 800;
+}
+.rowLegend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.2rem 0.9rem;
+  font-size: 0.75rem;
+  color: var(--ink-3);
+}
+
+/* ---------- entity label chips ---------- */
+.ent {
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  font-weight: 800;
+  padding: 0.05rem 0.3rem;
+  border-radius: 4px;
+  white-space: nowrap;
+}
+.entO {
+  color: var(--ink-3);
+}
+.entPER {
+  background: color-mix(in srgb, var(--viz-2) 30%, var(--surface));
+  color: var(--ink);
+}
+.entLOC {
+  background: color-mix(in srgb, var(--viz-3) 30%, var(--surface));
+  color: var(--ink);
+}
+.entORG {
+  background: color-mix(in srgb, var(--viz-5) 30%, var(--surface));
+  color: var(--ink);
+}
+.entMISC {
+  background: color-mix(in srgb, var(--viz-6) 30%, var(--surface));
+  color: var(--ink);
+}
+
+/* ---------- result box ---------- */
+.result {
+  width: 100%;
+  margin: 0;
+  padding: 0.6rem 0.75rem;
+  border-radius: var(--radius-s);
+  background: var(--slate);
+  color: var(--slate-ink);
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  line-height: 1.5;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+/* ---------- heat grid ---------- */
+.heat {
+  display: grid;
+  gap: 2px;
+  align-items: center;
+  max-width: 100%;
+}
+.hLab {
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: var(--ink-3);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.hColLab {
+  font-family: var(--font-mono);
+  font-size: 0.66rem;
+  font-weight: 700;
+  color: var(--ink-3);
+  white-space: nowrap;
+  writing-mode: vertical-rl;
+  transform: rotate(180deg);
+  justify-self: center;
+  align-self: end;
+  padding-bottom: 2px;
+}
+.hCell {
+  height: 15px;
+  border-radius: 3px;
+}
+.hCellTop {
+  outline: 2px solid var(--viz-2);
+  outline-offset: -2px;
+}
+
+/* ---------- ignore-index units ---------- */
+.lossUnits {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+  width: 100%;
+  align-items: flex-end;
+}
+.lu {
+  display: grid;
+  gap: 3px;
+  justify-items: center;
+  width: 3rem;
+}
+.luBarBox {
+  height: 72px;
+  width: 1.4rem;
+  display: flex;
+  align-items: flex-end;
+  background: var(--surface-2);
+  border-radius: 4px;
+  overflow: hidden;
+}
+.luBar {
+  width: 100%;
+  border-radius: 4px 4px 0 0;
+  transition: height 0.2s ease;
+}
+.luLoss {
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  color: var(--ink-2);
+}
+.luLab {
+  font: inherit;
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  font-weight: 800;
+  border-radius: 5px;
+  border: 1.5px solid var(--rule);
+  background: var(--surface);
+  color: var(--ink);
+  padding: 0.1rem 0.25rem;
+  cursor: pointer;
+  width: 100%;
+}
+.luLab:focus-visible {
+  outline: 3px solid var(--accent);
+}
+.luIgnored {
+  color: var(--ink-3);
+  border-style: dashed;
+  background: transparent;
+}
+.luTok {
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--ink);
+  white-space: nowrap;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.luSkipped {
+  opacity: 0.6;
+}
+.luBarSkipped {
+  background: transparent !important;
+  border: 1.5px dashed var(--viz-muted);
+  border-bottom: none;
+}
+
+/* ---------- matrices for tokenizer batch ---------- */
+.mats {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 0.8rem;
+  width: 100%;
+  min-width: 0;
+}
+.mats > * {
+  min-width: 0;
+}
+.matTitle {
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--ink);
+  margin-bottom: 0.25rem;
+}
+.mat {
+  display: grid;
+  gap: 2px;
+  width: max-content;
+  max-width: 100%;
+}
+.mCell {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  font-size: 0.68rem;
+  text-align: center;
+  padding: 0.2rem 0;
+  border-radius: 3px;
+  background: var(--surface-2);
+  color: var(--ink);
+  min-width: 0;
+  overflow: hidden;
+}
+.mPad {
+  background: color-mix(in srgb, var(--viz-neg) 16%, var(--surface));
+  color: var(--ink-3);
+}
+.mSpecial {
+  background: color-mix(in srgb, var(--viz-1) 16%, var(--surface));
+}
+.mOne {
+  background: color-mix(in srgb, var(--viz-3) 30%, var(--surface));
+  font-weight: 800;
+}
+.mCut {
+  text-decoration: line-through;
+  color: var(--ink-3);
+}
+.scroll {
+  width: 100%;
+  overflow-x: auto;
+}
+
+/* phone: a fade on the right edge says "there is more to scroll to" */
+.scrollFade {
+  position: relative;
+  min-width: 0;
+}
+.scrollFade::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: 1.6rem;
+  background: linear-gradient(to right, transparent, var(--surface));
+  pointer-events: none;
+}
+
+@media (max-width: 480px) {
+  .code {
+    font-size: 0.74rem;
+  }
+}

@@ -1,0 +1,338 @@
+import GradientPieces from './visuals/regression-by-gradient-descent/GradientPieces'
+import GDLineFitLive from './visuals/regression-by-gradient-descent/GDLineFitLive'
+import SimultaneousUpdateCheck from './visuals/regression-by-gradient-descent/SimultaneousUpdateCheck'
+
+export const loopCode = `import numpy as np
+
+# distance (km) and fare ($)
+x = np.array([1., 2., 3., 4., 5.])
+y = np.array([3., 4., 7., 7., 9.])
+n = len(x)
+
+# start from the flat line at 0
+w, b = 0.0, 0.0
+# also try 0.08 and 0.09
+lr = 0.05
+history = []
+
+for step in range(1000):
+    # 1. predict
+    y_hat = w * x + b
+    # 2. errors
+    e = y_hat - y
+    # 3. record the loss
+    history.append(np.mean(e ** 2))
+    # 4. gradients
+    dw = 2 / n * np.sum(e * x)
+    db = 2 / n * np.sum(e)
+    # 5. update both
+    w = w - lr * dw
+    b = b - lr * db
+
+print("step  loss")
+for s in [0, 1, 2, 10, 100, 999]:
+    print(f"{s:4d}  {history[s]:.4f}")
+print(f"w = {w:.4f}, b = {b:.4f}")`
+
+export const finalCode = `import numpy as np
+
+def linear_regression_gradient_descent(
+        X, y, alpha, iterations):
+    m, n = X.shape
+    # start from zeros
+    theta = np.zeros(n)
+    for _ in range(iterations):
+        # errors, shape (m,)
+        error = X @ theta - y
+        # 1/m gradient, shape (n,)
+        gradient = X.T @ error / m
+        # update all theta_j at once
+        theta -= alpha * gradient
+    # round once, at the end
+    return np.round(theta, 4)
+
+# column 0 is the intercept column
+X = np.array([[2, 2], [2, 4], [2, 6]])
+y = np.array([2, 4, 6])
+print(linear_regression_gradient_descent(
+    X, y, 0.01, 1000))`
+
+In the last lesson, [Linear regression and least squares](#/learn/linear-regression/least-squares), a formula gave the best line in one shot. That formula only exists for linear regression; neural networks have nothing like it, and are trained by walking downhill instead. Linear regression is the perfect place to learn that walk, because you can check every number by hand. It is also a real exam task: **Question 1 of the 2025 NOAI Final** asked for exactly this, from scratch in NumPy, with the answer rounded to 4 decimal places. This lesson builds it piece by piece and shows the three traps that cost marks.
+
+<Analogy title="Practising free throws">
+
+Each attempt, you see how you missed (short and to the left) and adjust a little: more power if you were short, aim right if you were left. Your misses shrink quickly at first, then more slowly as you get close. Gradient descent is the same loop for $w$ and $b$: predict, measure the miss, adjust each parameter by how much it was to blame, repeat.
+
+</Analogy>
+
+## The recipe and the missing piece
+
+As in [Gradient descent on a loss landscape](#/learn/calculus-and-gradient-descent/gradient-descent), gradient descent repeats one update for every parameter:
+
+$$
+w \leftarrow w - \eta\,\frac{\partial L}{\partial w}, \qquad b \leftarrow b - \eta\,\frac{\partial L}{\partial b}
+$$
+
+$\eta$ (eta) is the learning rate, and $\partial L/\partial w$ is the <Term def="The slope of the loss in one parameter's direction, with every other parameter held fixed.">partial derivative</Term> of the loss with respect to $w$: how fast the loss changes when you nudge $w$ alone. The arrow means "replace with". The only missing piece is those two partial derivatives for the MSE.
+
+## The gradient, piece by piece
+
+We use the Grab rides again: $x = 1, 2, 3, 4, 5$ km and fares $y = 3, 4, 7, 7, 9$ dollars, $n = 5$. For ride $i$, the prediction is $\hat{y}_i = w x_i + b$, and we write its **error** as
+
+$$
+e_i = \hat{y}_i - y_i \quad \text{(prediction minus truth)}.
+$$
+
+This is the residual from [Linear regression and least squares](#/learn/linear-regression/least-squares) with the sign flipped ($e_i = -r_i$). Code almost always uses $e$, because then the gradient has no minus sign. The loss is $L = \frac{1}{n}\sum_i e_i^2$, the MSE, unchanged, since squaring removes the sign.
+
+Now nudge $w$ and follow the effect through one ride:
+
+- $e_i = w x_i + b - y_i$, so increasing $w$ by a tiny amount increases $e_i$ by $x_i$ times that amount: $\partial e_i / \partial w = x_i$.
+- The loss piece $e_i^2$ changes $2e_i$ times as fast as $e_i$ (the derivative of a square), so by the <Term def="To differentiate a function inside a function, multiply the rates: d(outer)/d(inner) × d(inner)/d(input).">chain rule</Term> $\partial (e_i^2) / \partial w = 2e_i \cdot x_i$.
+- For $b$, $e_i$ moves one-for-one with $b$, so $\partial (e_i^2) / \partial b = 2e_i \cdot 1$.
+
+Average over the $n$ rides and you have the gradient:
+
+$$
+\frac{\partial L}{\partial w} = \frac{2}{n}\sum_{i=1}^{n} e_i\,x_i, \qquad \frac{\partial L}{\partial b} = \frac{2}{n}\sum_{i=1}^{n} e_i.
+$$
+
+Many books write the same thing with residuals: $\partial L/\partial w = -\tfrac{2}{n}\sum_i x_i\,(y_i - \hat{y}_i)$. The minus sign outside just undoes the flipped sign inside.
+
+<KeyIdea>
+
+Each parameter's gradient is the **average of (error × that parameter's input)**, times 2. For $w$ the input is $x$; for $b$ it is always 1. Rides with big errors *and* big $x$ push the slope hardest.
+
+</KeyIdea>
+
+Read the gradient's sign as an instruction. If the errors are positive (the line is too high), especially where $x$ is large, then $\sum e_i x_i > 0$, so $\partial L/\partial w > 0$ and the update *lowers* $w$: the line gets flatter. Replay the computation column by column, then change $w$ and $b$ and watch the signs flip:
+
+<GradientPieces />
+
+<Steps title="One gradient descent step by hand (w = 2, b = 1, η = 0.05)">
+  <Step title="Predict">
+    $\hat{y} = 2x + 1$ gives $3, 5, 7, 9, 11$.
+  </Step>
+  <Step title="Errors">
+    $e = \hat{y} - y$: $3 - 3 = 0$, $5 - 4 = 1$, $7 - 7 = 0$, $9 - 7 = 2$, $11 - 9 = 2$. None of the errors is negative: the line is too high (or exactly right) at every ride.
+  </Step>
+  <Step title="Error × x, and the sums">
+    $e \cdot x$: $0, 2, 0, 8, 10$. So $\sum e_i x_i = 20$ and $\sum e_i = 5$.
+  </Step>
+  <Step title="Scale by 2/n">
+    $\partial L/\partial w = \tfrac{2}{5} \times 20 = 8$ and $\partial L/\partial b = \tfrac{2}{5} \times 5 = 2$. Both positive: lower both.
+  </Step>
+  <Step title="Update">
+    $w \leftarrow 2 - 0.05 \times 8 = 1.6$ and $b \leftarrow 1 - 0.05 \times 2 = 0.9$. The MSE falls from $1.8$ to $0.41$.
+  </Step>
+</Steps>
+
+<QuickCheck
+  q="For some line, every prediction is **below** the true fare (every error $e_i = \hat{y}_i - y_i$ is negative). What does one gradient descent step do to the intercept $b$?"
+  options={['It increases b, because ∂L/∂b is negative', 'It decreases b, because ∂L/∂b is negative', 'It increases b, because ∂L/∂b is positive', 'It leaves b unchanged, because only w has a gradient']}
+  answer={0}
+  explain="$\partial L/\partial b = \frac{2}{n}\sum e_i$ is a sum of negative numbers, so it is negative. The update $b \leftarrow b - \eta \times (\text{negative})$ adds a positive amount, raising the whole line towards the points. Subtracting a negative is the step people most often get backwards."
+/>
+
+## Vectorised: the whole gradient in one line
+
+Real data has many features. Put the examples in the rows of a matrix $X$ of shape `(n, d)`: $n$ examples, $d$ features, and one weight per feature in the vector $\mathbf{w}$ of shape `(d,)`. Then all the predictions are one matrix product, and the sum $\sum_i e_i x_{ij}$ for every weight $j$ at once is $X^T \mathbf{e}$ ($X^T$, "X transpose", is $X$ with rows and columns swapped):
+
+$$
+\begin{aligned}
+\mathbf{e} &= X\mathbf{w} + b - \mathbf{y} \\
+\nabla_{\mathbf{w}} L &= \frac{2}{n}\,X^T \mathbf{e} \\
+\frac{\partial L}{\partial b} &= \frac{2}{n}\sum_i e_i
+\end{aligned}
+$$
+
+Here $\nabla_{\mathbf{w}} L$ ("grad L") is the vector of all the partial derivatives $\partial L/\partial w_j$. Check the shapes: $X^T$ is `(d, n)` and $\mathbf{e}$ is `(n,)`, so $X^T\mathbf{e}$ is `(d,)`: one gradient per weight, exactly what the update needs. Writing whole-array operations like this instead of Python loops is called <Term def="Writing one NumPy operation on whole arrays instead of a Python loop over elements. NumPy runs the loop in fast compiled code.">vectorisation</Term>.
+
+Here is the full training loop for the rides (one feature, so `np.sum(e * x)` plays the role of $X^T\mathbf{e}$). Run it, then try `lr = 0.08` and `lr = 0.09`:
+
+<PyRunner packages={['numpy']} code={loopCode} rows={33} />
+
+<Reveal label="Expected output (press Run first)">
+
+```text
+step  loss
+   0  40.8000
+   1  1.8300
+   2  0.5178
+  10  0.4313
+ 100  0.3061
+ 999  0.3000
+w = 1.5000, b = 1.5000
+```
+
+</Reveal>
+
+Gradient descent lands on $w = 1.5$, $b = 1.5$, the same line the formula gave in [Linear regression and least squares](#/learn/linear-regression/least-squares). With any number of features the loop is the same few lines:
+
+```python
+def fit_linear_gd(X, y, lr=0.05, iterations=1000):
+    n, d = X.shape                    # n examples, d features
+    w = np.zeros(d)                   # one weight per feature
+    b = 0.0
+    for _ in range(iterations):
+        e = X @ w + b - y             # (n,) errors for every example
+        w -= lr * 2 / n * (X.T @ e)   # (d,) one gradient per weight
+        b -= lr * 2 / n * e.sum()     # scalar
+    return w, b
+```
+
+Called as `fit_linear_gd(x.reshape(-1, 1), y)` (the reshape turns `x` into a 2-D array of shape `(5, 1)`), it returns approximately `[1.5]` and `1.5`. Printing the raw values shows `[1.50000001] 1.4999999603075997`: after 1000 steps gradient descent is extremely close but not exact, so round before comparing.
+
+## Watching the line learn
+
+Here is the whole loop running on the rides, from the flat line $\hat{y} = 0$:
+
+<GDLineFitLive />
+
+The bottom chart, the <Term def="The list of loss values recorded after every iteration of training, usually plotted against the iteration number.">loss history</Term>, is how you check training without seeing any picture of the model:
+
+- **It should go down every iteration.** For full-batch gradient descent on the MSE with a sensible learning rate, the loss falls at every single step.
+- **Flattening out means converged.** A common stopping rule is a fixed number of iterations, or stopping once the loss improves by less than a small tolerance.
+- **Fast drop, then a slow crawl** is the long valley from [Linear regression and least squares](#/learn/linear-regression/least-squares). The first few steps fix the slope; then the dot creeps along the valley floor, adjusting $w$ and $b$ together.
+- **Going up, bouncing or becoming `nan`** means the learning rate is too high. Here the bowl's steepest curvature is about $23.66$ (see [Curvature: second derivatives, convexity and the Hessian](#/learn/calculus-and-gradient-descent/curvature-convexity)), so gradient descent diverges for $\eta > 2/23.66 \approx 0.0845$. In the figure, set $\eta$ to $0.085$ and watch each step overshoot further; run the code with `lr = 0.09` to see the loss explode.
+
+<Mistake title="More iterations will not rescue a diverging run">
+
+If the loss is growing, every extra iteration makes it worse. Lower the learning rate first (try 10 times smaller). More iterations only help when the loss is still falling steadily.
+
+</Mistake>
+
+<PastPaperQuestion paper="prelim2026" n={130} />
+
+## The 2025 Final: θ, the ½, and simultaneous updates
+
+Here is the 2025 Final task, in brief. Write `linear_regression_gradient_descent(X, y, alpha, iterations)` returning the coefficients rounded to 4 decimal places, for
+
+$$
+X = \begin{bmatrix} 2 & 2 \\ 2 & 4 \\ 2 & 6 \end{bmatrix}, \qquad y = \begin{bmatrix} 2 \\ 4 \\ 6 \end{bmatrix},
+$$
+
+with learning rate $\alpha = 0.01$ and 1000 iterations, using the update rule
+
+$$
+\theta_j := \theta_j - \alpha \, \frac{1}{m} \sum_{i=1}^{m} \left( h_\theta(x^{(i)}) - y^{(i)} \right) x_j^{(i)}.
+$$
+
+The symbols are new, but the idea is identical to ours:
+
+- $\theta$ (theta) is the vector of **all** parameters, $\theta_j$ is one of them, and $\alpha$ (alpha) is the learning rate.
+- $m$ is the number of examples (our $n$). The superscript $(i)$ picks example $i$; the subscript $j$ picks a column of $X$.
+- $h_\theta(x) = \theta_0 x_0 + \theta_1 x_1$ is the "hypothesis", i.e. the prediction, so $h_\theta(x^{(i)}) - y^{(i)}$ is our error $e_i$. (The task's notes call it "the hypothesis function at iteration $i$", but $i$ counts training examples, not iterations.)
+
+Three details decide whether you get the official answer `[0.003, 0.9987]`:
+
+1. **The intercept column is already in $X$.** The first column (all 2s) is a constant column, so $\theta_0 \times 2$ is the intercept: $\theta$ already contains the bias. Do not add a separate $b$ or another column of 1s: that gives three numbers, `[0.0005, 0.0011, 0.9994]`.
+2. **1/m, not 2/m.** The task's rule uses $\frac{1}{m}$, which is the gradient of the cost $J(\theta) = \frac{1}{2m}\sum_i (h_\theta(x^{(i)}) - y^{(i)})^2$ that many textbooks use: half the MSE. The $\frac{1}{2}$ is there so the 2 from differentiating the square cancels, leaving $\frac{1}{m}X^T(X\theta - y)$. Using our plain-MSE $\frac{2}{m}$ is the same as doubling $\alpha$: the walk is faster, and after exactly 1000 steps it rounds to `[0.0, 1.0]` instead. Both head for the same bottom, $\theta = (0, 1)$, but the task asks for the value after exactly 1000 steps.
+3. **Update all θⱼ at the same time.** Compute every gradient from the *same* old $\theta$, then change them all.
+
+<Analogy title="A group photo">
+
+The photographer shouts "everyone shuffle left a bit". If everyone moves at once, based on the same view, the group shifts neatly. If each person waits to see where the previous person moved before adjusting, you get a different arrangement. Gradient descent is the first kind: every parameter moves based on the same snapshot of $\theta$.
+
+</Analogy>
+
+<SimultaneousUpdateCheck />
+
+<Steps title="Iteration 1 of the 2025 task, by hand">
+  <Step title="Predict and find the errors">
+    $\theta$ starts at $(0, 0)$, so every prediction is $0$ and the errors $h - y$ are $-2, -4, -6$.
+  </Step>
+  <Step title="Gradient for θ₀ (column of 2s)">
+    $\frac{1}{3}\left[(-2)(2) + (-4)(2) + (-6)(2)\right] = \frac{-24}{3} = -8$.
+  </Step>
+  <Step title="Gradient for θ₁ (column 2, 4, 6)">
+    $\frac{1}{3}\left[(-2)(2) + (-4)(4) + (-6)(6)\right] = \frac{-56}{3} \approx -18.667$.
+  </Step>
+  <Step title="Update both together">
+    $\theta_0 = 0 - 0.01 \times (-8) = 0.08$ and $\theta_1 = 0 - 0.01 \times (-18.667) \approx 0.1867$.
+  </Step>
+  <Step title="The in-place bug">
+    Updating $\theta_0$ first and recomputing the predictions ($0.08 \times 2 = 0.16$ each) gives errors $-1.84, -3.84, -5.84$, so $\theta_1 \approx 0.1803$ instead of $0.1867$. It is already a different algorithm after one step.
+  </Step>
+</Steps>
+
+The vectorised line `theta -= alpha * X.T @ (X @ theta - y) / m` does all of this correctly, because the right-hand side is computed in full before $\theta$ changes:
+
+<PyRunner packages={['numpy']} code={finalCode} rows={22} />
+
+It prints the official answer. Why not exactly $(0, 1)$? The bowl for this data is a very long valley (its two curvatures differ by a factor of about 46), so after 1000 small steps the walk along the valley floor is not quite finished. The answer depends on the exact $\alpha$, number of iterations and starting point, which is why you must use the task's.
+
+<Reveal label="A shape trap in Final tasks: mixing 1-D and 2-D arrays">
+
+<Mistake title="Mixing 1-D and 2-D arrays">
+
+If `theta` has shape `(2, 1)` but `y` has shape `(3,)`, then `X @ theta - y` is `(3, 1) - (3,)`, which NumPy <Term def="Broadcasting: NumPy's rule for combining arrays of different shapes by stretching dimensions of size 1 to match. Handy, but it can silently build a bigger array than you meant.">broadcasts</Term> to a `(3, 3)` matrix without any error. The update then crashes (`non-broadcastable output operand with shape (2,1) doesn't match the broadcast shape (2,3)`), or, with `theta = theta - ...`, silently turns `theta` into a `(2, 3)` matrix. Keep everything 1-D as above, or reshape `y` with `y.reshape(-1, 1)`. Print `.shape` whenever in doubt.
+
+</Mistake>
+
+</Reveal>
+
+<Reveal label="Going further: the same thing in PyTorch">
+
+PyTorch can compute the gradient for you with <Term def="PyTorch's automatic differentiation: it records the operations you do on tensors and computes their gradients when you call .backward().">autograd</Term>. It confirms the hand calculation, $\partial L/\partial w = 8$ and $\partial L/\partial b = 2$ at $w = 2$, $b = 1$, and its built-in optimiser reproduces the NumPy training loop:
+
+```python
+import torch
+
+x = torch.tensor([1., 2., 3., 4., 5.])   # distance (km)
+y = torch.tensor([3., 4., 7., 7., 9.])   # fare ($)
+
+# 1. Autograd checks our hand-computed gradient at w = 2, b = 1
+w = torch.tensor(2.0, requires_grad=True)
+b = torch.tensor(1.0, requires_grad=True)
+loss = ((w * x + b - y) ** 2).mean()     # MSE
+loss.backward()                          # fills w.grad and b.grad
+print(f"loss = {loss.item():.4f}, dL/dw = {w.grad.item():.4f}, dL/db = {b.grad.item():.4f}")
+
+# 2. The same training loop, with PyTorch doing the calculus
+w = torch.tensor(0.0, requires_grad=True)
+b = torch.tensor(0.0, requires_grad=True)
+optimizer = torch.optim.SGD([w, b], lr=0.05)
+for step in range(1000):
+    loss = ((w * x + b - y) ** 2).mean()
+    optimizer.zero_grad()                # clear old gradients
+    loss.backward()                      # compute new ones
+    optimizer.step()                     # w -= lr * w.grad, b -= lr * b.grad
+print(f"w = {w.item():.4f}, b = {b.item():.4f}, loss = {loss.item():.4f}")
+```
+
+```text
+loss = 1.8000, dL/dw = 8.0000, dL/db = 2.0000
+w = 1.5000, b = 1.5000, loss = 0.3000
+```
+
+`torch.optim.SGD` with the whole dataset in every step is exactly our update, and it updates `w` and `b` simultaneously.
+
+</Reveal>
+
+<ExamTip>
+
+How this is tested:
+
+- **Final (programming)**: implement the given update rule *exactly*. Start from zeros unless told otherwise, use the task's $\frac{1}{m}$ or $\frac{2}{m}$, do not add a bias if $X$ already has an intercept column, update all parameters together, and round only at the end. Check your answer on the example given before moving on.
+- **Prelim (MCQ)**: know that for $\hat{y} = wx$, $\partial(\hat{y} - y)^2/\partial w = 2(\hat{y} - y)\,x$; a positive gradient means the parameter goes *down*; a loss that oscillates, explodes or becomes NaN means the learning rate is too high; a loss that falls very slowly means it is too low.
+- **One-step arithmetic** without a calculator: predictions, errors, average of error × feature, times 2 (or not), times $\eta$, subtract.
+
+</ExamTip>
+
+<QuickCheck
+  q="Your code uses the gradient $\frac{2}{m}X^T(X\theta - y)$, but the task's rule uses $\frac{1}{m}X^T(X\theta - y)$ with the same $\alpha$ and 1000 iterations. What happens?"
+  options={['It acts like the task method with twice the learning rate, so the 4 d.p. answer can differ', 'Nothing changes, because a constant factor in the gradient never changes where gradient descent ends up', 'It heads to a different minimum, because doubling the loss moves the position of its lowest point', 'It diverges, because doubling the step size pushes it past the stability limit']}
+  answer={0}
+  explain="$\frac{2}{m}$ with $\alpha$ is identical to $\frac{1}{m}$ with $2\alpha$. Both losses have the same lowest point, so the destination is the same, but after a fixed 1000 steps the faster walk is at a different place: on the 2025 data it rounds to $[0.0, 1.0]$ instead of $[0.003, 0.9987]$. It only diverges if $2\alpha$ passes the stability limit, which $0.02$ does not."
+/>
+
+<Takeaways>
+
+- For MSE with $\hat{y} = wx + b$ and error $e = \hat{y} - y$: $\partial L/\partial w = \tfrac{2}{n}\sum e_i x_i$ and $\partial L/\partial b = \tfrac{2}{n}\sum e_i$.
+- Vectorised: $\nabla_{\mathbf{w}} L = \frac{2}{n}X^T(X\mathbf{w} + b - \mathbf{y})$, one line of NumPy: `X.T @ e`.
+- The training loop is predict, error, gradient, update, repeated; the loss history should fall every step and level off. Rising or `nan` means the learning rate is too high.
+- With a $\frac{1}{2m}$ loss the gradient is $\frac{1}{m}X^T(X\theta - y)$; that only rescales the learning rate, but it changes a fixed-iteration answer.
+- Update all parameters simultaneously, and if $X$ already has an intercept column, $\theta$ already contains the bias.
+
+</Takeaways>

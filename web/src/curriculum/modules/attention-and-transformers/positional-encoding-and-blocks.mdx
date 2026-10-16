@@ -1,0 +1,334 @@
+import ShuffleInvariance from './visuals/positional-encoding-and-blocks/ShuffleInvariance'
+import PositionalEncodingHeatmap from './visuals/positional-encoding-and-blocks/PositionalEncodingHeatmap'
+import TransformerBlockFlow from './visuals/positional-encoding-and-blocks/TransformerBlockFlow'
+import QuadraticCost from './visuals/positional-encoding-and-blocks/QuadraticCost'
+
+You now have the engine of a Transformer: multi-head attention. Two things are still missing before it can read a sentence. First, attention on its own **cannot see word order**: to it, *dog bites man* and *man bites dog* are the same bag of words. Second, an engine is not a car: attention has to be wrapped with a small neural network, shortcut connections and normalisation to form the **Transformer block** that BERT and GPT stack dozens of times. This lesson fixes the first problem, builds the block, and ends with the price every Transformer pays: a cost that grows with the *square* of the text length. Task 3 of the 2026 NOAI Final asked for positional encoding alongside attention, and the Prelim asks about all three ideas.
+
+## Attention cannot see word order
+
+<Analogy title="Exam scripts on the floor">
+
+Your teacher drops a pile of unnumbered exam scripts. Every page is still there and every answer is still readable, but nobody can tell which page came first. Self-attention receives a sentence like that pile: all the words, and no page numbers.
+
+</Analogy>
+
+Look at the formula for one token's output. Token $i$ compares its query with every key, and the output is a weighted average of the values:
+
+$$
+\begin{aligned}
+\text{out}_i &= \sum_{j=1}^T a_{ij}\, v_j \\[6pt]
+a_{ij} &= \text{softmax}_j\!\left(\frac{q_i \cdot k_j}{\sqrt{d_k}}\right)
+\end{aligned}
+$$
+
+Every ingredient, $q_i$, $k_j$ and $v_j$, is computed from a token's **content** alone. Nothing in the formula says *where* token $j$ sits, and a sum gives the same answer whatever order you add its terms in. So if you shuffle the words (in self-attention with no causal mask, as in an encoder), each word sees exactly the same set of keys and values as before and produces exactly the same output, which just appears at its new place. This property is called being <Term def="Shuffling the inputs shuffles the outputs in exactly the same way, and nothing else changes. Self-attention without positions has this property. Exam questions often say 'permutation-invariant' for the same idea: the model is blind to order.">permutation-equivariant</Term>; exam questions often say *permutation-invariant* for the same idea. A causal mask already breaks this symmetry, because each position then sees a different set of earlier words, but decoders such as GPT still add position information.
+
+<ShuffleInvariance />
+
+The two copies of *the* are a telling detail: without positions they get identical outputs, because the model has no way to tell them apart. A [recurrent network](#/learn/text-as-data/rnns-and-lstms) never had this problem, because it reads the words one at a time, in order. Transformers gave that up on purpose so they can process every token at once, in parallel, and they pay for it by needing position information to be added by hand.
+
+<KeyIdea>
+
+Without a causal mask, self-attention treats a sentence as a **set** of tokens: shuffle the input and the output is only shuffled the same way. To give a Transformer word order, we **add a position vector to every token's embedding** before the first layer.
+
+</KeyIdea>
+
+## Positional encoding: a timestamp for every token
+
+The fix is simple. For each position $\text{pos} = 0, 1, 2, \dots$ we make a vector $p_\text{pos}$ with the same length $d_\text{model}$ as the [word embeddings](#/learn/text-as-data/word-embeddings), and **add** it:
+
+$$
+x_\text{pos} = \text{embedding}(\text{token at pos}) + p_\text{pos}
+$$
+
+Now *dog* at position 1 and *dog* at position 4 enter attention as different vectors. (In the original paper, and in the 2026 Final's code, the embedding is first multiplied by $\sqrt{d_\text{model}}$, as in `embed(tokens) * math.sqrt(d_model) + pe`, which keeps the word signal large compared with the position signal.) There are two common ways to make the $p_\text{pos}$:
+
+- **Learned position embeddings**: a table with one trainable vector per position, `nn.Embedding(max_len, d_model)`, learned like word embeddings. BERT and GPT-2 do this. The catch: a table with 512 rows cannot handle position 600.
+- **Sinusoidal positional encoding**: fixed waves from the original Transformer paper. Nothing to learn, and it works for any position.
+
+<Analogy title="A clock with three hands">
+
+The second hand spins fast, the minute hand slowly, the hour hand very slowly. Any single hand repeats itself, but the three together give every moment of the day a unique reading, and two moments a few seconds apart have almost the same reading. Sinusoidal encoding uses $d_\text{model}/2$ "hands", each a wave spinning at its own speed.
+
+</Analogy>
+
+The formula fills dimension pairs $(2i, 2i+1)$ with a sine and a cosine of the same wave:
+
+$$
+\begin{aligned}
+\text{PE}(\text{pos}, 2i) &= \sin\!\left(\frac{\text{pos}}{10000^{2i/d}}\right) \\[10pt]
+\text{PE}(\text{pos}, 2i+1) &= \cos\!\left(\frac{\text{pos}}{10000^{2i/d}}\right)
+\end{aligned}
+$$
+
+- $\text{pos}$ is the token's position, counting from 0.
+- $d$ is $d_\text{model}$, the length of the vector.
+- $i$ numbers the pairs: $i = 0$ fills dimensions 0 and 1, $i = 1$ fills dimensions 2 and 3, and so on up to $i = d/2 - 1$. Even dimensions get **sin**, odd dimensions get **cos**.
+- $10000^{2i/d}$ is how much this pair slows its wave down. For $i = 0$ it is $10000^0 = 1$, so dimension 0 is just $\sin(\text{pos})$, a fast wave that repeats every $2\pi \approx 6.3$ positions. As $i$ grows the denominator climbs towards 10000, so the last dimensions change very slowly. One pair repeats every $2\pi \cdot 10000^{2i/d}$ positions.
+
+<PositionalEncodingHeatmap />
+
+<Steps title="Sinusoidal encoding by hand: d_model = 4, pos = 1">
+  <Step title="Pair up the dimensions">
+    Dimensions 0 and 1 form pair $i = 0$; dimensions 2 and 3 form pair $i = 1$.
+  </Step>
+  <Step title="Find each pair's denominator">
+    $i = 0$: $10000^{0/4} = 1$. $\quad i = 1$: $10000^{2/4} = 10000^{1/2} = 100$.
+  </Step>
+  <Step title="Divide the position">
+    The angles are $1 / 1 = 1$ and $1 / 100 = 0.01$ (radians).
+  </Step>
+  <Step title="Apply sin to even, cos to odd dimensions">
+    $\text{PE}(1) = [\sin 1,\ \cos 1,\ \sin 0.01,\ \cos 0.01] \approx [0.841,\ 0.540,\ 0.010,\ 1.000]$.
+  </Step>
+  <Step title="Bonus: position 0">
+    Every angle is $0$, and $\sin 0 = 0$, $\cos 0 = 1$, so $\text{PE}(0) = [0, 1, 0, 1]$ for every $d_\text{model}$: zeros and ones, alternating.
+  </Step>
+</Steps>
+
+<QuickCheck
+  q="With sinusoidal positional encoding and $d_\text{model} = 6$, what is the encoding of position 0?"
+  options={['[0, 1, 0, 1, 0, 1]', '[0, 0, 0, 0, 0, 0]', '[1, 0, 1, 0, 1, 0]', '[0, 1, 2, 3, 4, 5]']}
+  answer={0}
+  explain="At position 0 every angle is $0/10000^{2i/d} = 0$. Even dimensions use $\sin 0 = 0$ and odd dimensions use $\cos 0 = 1$, giving $[0, 1, 0, 1, 0, 1]$. All zeros would only happen if every dimension used sin; $[1, 0, 1, 0, \dots]$ swaps sin and cos."
+/>
+
+Why this design? Every position gets a **different** code (the slow hands make sure no two positions within a realistic length collide), all values stay between $-1$ and $1$ (so they do not swamp the embeddings), and, for a realistic $d_{\text{model}}$ (12 or more; real models use 64 or more), **nearby positions get similar codes**, which you can see as the strong band along the diagonal of the similarity map. A neat extra: moving $k$ positions along turns each sin–cos pair by a fixed angle, so the model can learn "look 3 words back" as one operation that works anywhere in the sentence. The original paper found learned and sinusoidal encodings worked about equally well. (Many modern LLMs use *RoPE*, which applies the same sin–cos rotation idea directly to the queries and keys.)
+
+<PastPaperQuestion paper="prelim2026" n={214} />
+
+In PyTorch the whole table is a few lines. `0::2` picks the even columns and `1::2` the odd ones:
+
+```python
+import torch
+
+def sinusoidal_pe(max_len, d_model):
+    pos = torch.arange(max_len).unsqueeze(1)   # (max_len, 1): 0, 1, 2, ...
+    i2 = torch.arange(0, d_model, 2)           # 0, 2, 4, ... (this is 2i)
+    div = 10000 ** (i2 / d_model)              # 10000^(2i/d), one per pair
+    pe = torch.zeros(max_len, d_model)
+    pe[:, 0::2] = torch.sin(pos / div)         # even dimensions
+    pe[:, 1::2] = torch.cos(pos / div)         # odd dimensions
+    return pe
+
+pe = sinusoidal_pe(max_len=50, d_model=4)
+print(pe.shape)
+print(pe[:3])
+```
+
+```text
+torch.Size([50, 4])
+tensor([[ 0.0000,  1.0000,  0.0000,  1.0000],
+        [ 0.8415,  0.5403,  0.0100,  0.9999],
+        [ 0.9093, -0.4161,  0.0200,  0.9998]])
+```
+
+`pos / div` has shape $(\text{max\_len}, 1)$ divided by $(d/2,)$, which <Term def="PyTorch and NumPy stretch a size-1 axis to match the other tensor, so (50, 1) combined with (2,) gives (50, 2) without copying data by hand.">broadcasts</Term> to a $(\text{max\_len}, d/2)$ table of angles. Many codebases write the same thing as `torch.exp(torch.arange(0, d_model, 2) * (-math.log(10000.0) / d_model))` and **multiply** by it. That is just $10000^{-2i/d}$ computed through $e$ and $\ln$, and it gives the same table.
+
+<Mistake title="Breaking the pattern">
+
+Dimensions $2i$ and $2i+1$ share **one** frequency, $10000^{2i/d}$. Classic slips: using the dimension number itself in the exponent for the cos columns, swapping sin and cos, multiplying by $10000^{2i/d}$ instead of dividing, or concatenating the encoding instead of adding it (which changes the vector length). A one-line test catches most of them: row 0 of your table must be $[0, 1, 0, 1, \dots]$, and row 1 must start $[0.841, 0.540, \dots]$.
+
+</Mistake>
+
+<ExamTip>
+
+For quick PE questions: sin on even dimensions, cos on odd; the **first** dimensions oscillate fastest and the last slowest; $\text{PE}(0) = [0, 1, 0, 1, \dots]$; the encoding is **added** to the embedding, so it has length $d_\text{model}$; the sinusoidal version has **no learnable parameters**. With $d_\text{model} = 8$ the denominators are the friendly $1, 10, 100, 1000$.
+
+</ExamTip>
+
+## The Transformer block: talk, then think
+
+Attention lets tokens exchange information, but each output is just a weighted average of value vectors: nothing *processes* what was gathered. So each block has two sub-layers with different jobs.
+
+<Analogy title="A study group round">
+
+First everyone discusses the problem together and takes notes from whoever is most useful (attention: **tokens talk**). Each person keeps their original notes and adds the new points to them (residual connection), tidies them up (normalisation), and then works alone for a while to make sense of it all (feed-forward network: **each token thinks alone**).
+
+</Analogy>
+
+In the original Transformer each sub-layer is wrapped as "Add & Norm". For an input $x$ of shape $(B, T, d_\text{model})$:
+
+$$
+\begin{aligned}
+h &= \text{LayerNorm}\big(x + \text{MHA}(x)\big) \\[4pt]
+y &= \text{LayerNorm}\big(h + \text{FFN}(h)\big)
+\end{aligned}
+$$
+
+- $\text{MHA}$ is the multi-head self-attention from the [previous lesson](#/learn/attention-and-transformers/multi-head-attention).
+- $x + \text{MHA}(x)$ is a <Term def="A shortcut that adds a layer's input to its output: y = x + F(x). The layer only has to learn a change to x, and gradients can flow straight back through the + without shrinking.">residual connection</Term>, the same trick that let [ResNets](#/learn/convolutional-networks/cnn-architectures-and-resnets) train 100+ layers. The sub-layer only learns a *correction* to $x$, and during backpropagation the $+x$ path passes gradients straight through, so deep stacks still train.
+
+**LayerNorm** is <Term def="Layer normalisation: for each token separately, subtract the mean of its d_model numbers and divide by their standard deviation, then multiply by a learned γ and add a learned β. It does not depend on the batch.">layer normalisation</Term>. For **each token on its own**, it subtracts the mean $\mu$ of that token's $d_\text{model}$ numbers and divides by their standard deviation, then rescales with two learned vectors $\gamma$ and $\beta$:
+
+$$
+\text{LayerNorm}(x) = \gamma \odot \frac{x - \mu}{\sqrt{\sigma^2 + \epsilon}} + \beta
+$$
+
+Here $\sigma^2$ is the variance of the token's numbers, dividing by $d_\text{model}$ rather than $d_\text{model} - 1$ (which is why the code below passes `unbiased=False`); $\epsilon$ is a tiny constant such as $10^{-5}$ that prevents division by zero, and $\odot$ means multiply entry by entry. For example $[1, 3, 3, 9]$ has mean 4 and variance $\tfrac{9 + 1 + 1 + 25}{4} = 9$, so standard deviation 3, and normalises to $[-1, -\tfrac13, -\tfrac13, \tfrac53]$ (with $\gamma = 1$, $\beta = 0$). Keeping every token's numbers on the same scale stops values drifting as they pass through many blocks. You met it in [Initialisation and normalisation](#/learn/training-deep-networks/initialisation-and-normalisation); Transformers prefer it to batch norm because it does not depend on the batch.
+
+**FFN** is the <Term def="Position-wise feed-forward network: a small two-layer MLP, Linear(d_model, d_ff), ReLU, Linear(d_ff, d_model), applied to every token separately with the same weights.">position-wise feed-forward network</Term>, a two-layer MLP applied to **each token separately**, with the same weights for every position:
+
+$$
+\text{FFN}(x) = \text{ReLU}(x W_1 + b_1)\, W_2 + b_2
+$$
+
+$W_1$ is $d_\text{model} \times d_\text{ff}$ and $W_2$ is $d_\text{ff} \times d_\text{model}$, with the hidden size usually $d_\text{ff} = 4\,d_\text{model}$ (2048 for $d_\text{model} = 512$). No token looks at another inside the FFN: **only attention mixes tokens**.
+
+Every sub-layer returns the shape it was given, $(B, T, d_\text{model})$, so the block's output can feed straight into an identical block. The original Transformer stacked 6, BERT-base stacks 12. The same block reads images too: a [Vision Transformer](#/learn/multimodal-ai/vision-transformers) cuts an image into small patches, treats each patch as a token, adds positions and runs a stack of encoder blocks.
+
+<TransformerBlockFlow />
+
+The block comes in three flavours, and NOAI likes to ask which is which:
+
+| Block (famous model) | Attention inside | Used for |
+|---|---|---|
+| Encoder (BERT) | self-attention with **no mask**: every token sees the whole text | understanding: classifying, tagging |
+| Decoder-only (GPT) | **causally masked** self-attention: each token sees only the past | generating text, one token at a time |
+| Decoder of an encoder–decoder (original Transformer, T5) | masked self-attention, then **cross-attention** to the encoder | translating, summarising |
+
+<PastPaperQuestion paper="prelim2026" n={213} />
+
+In <Term def="Attention where the queries come from one sequence and the keys and values come from another. In an encoder-decoder Transformer, the decoder's tokens (queries) look at the encoder's output (keys and values).">cross-attention</Term> the **queries** come from the decoder's own tokens, while the **keys and values** come from the encoder's output. The `MultiHeadAttention` class from [Multi-head attention](#/learn/attention-and-transformers/multi-head-attention) already handles this: call it as `mha(dec_x, enc_out, enc_out)`. The weight table then has shape $(B, h, T_\text{tgt}, T_\text{src})$: one row per target word, one column per source word.
+
+<Mistake title="Mixing up cross-attention">
+
+It is **Q from the decoder, K and V from the encoder**, not the other way round: the word being generated asks the question, and the source sentence supplies the answers. Also, the causal mask belongs to the decoder's **self**-attention. Cross-attention needs no causal mask because the whole source sentence is already known.
+
+</Mistake>
+
+<QuickCheck
+  q="A translation model's decoder is generating French from an English sentence. In its cross-attention layer, where do the queries, keys and values come from?"
+  options={['Queries from the French decoder tokens; keys and values from the English encoder output', 'Queries from the English encoder output; keys and values from the French decoder tokens', 'Queries, keys and values all from the English encoder output', 'Queries, keys and values all from the French decoder tokens']}
+  answer={0}
+  explain="The French word being produced asks the question (query), and the encoded English sentence supplies the keys to match and the values to mix in. All three from the decoder is ordinary self-attention; all three from the encoder would never let the French side ask anything."
+/>
+
+<Reveal label="Two more facts: pre-norm, and where the parameters live">
+
+**Pre-norm.** GPT-2 and most modern LLMs move each LayerNorm to the *start* of its sub-layer, $x + \text{MHA}(\text{LayerNorm}(x))$, which trains more stably in very deep stacks; the parts are the same, only the order changes.
+
+**Where the parameters live.** With $d_\text{model} = 512$, $h = 8$ and $d_\text{ff} = 2048$, one encoder block has $1{,}050{,}624$ attention parameters (from $4(d^2 + d)$), $2{,}099{,}712$ in the FFN and $2{,}048$ in its two LayerNorms: $3{,}152{,}384$ in total, two-thirds of them in the FFN.
+
+</Reveal>
+
+<PastPaperQuestion paper="prelim2026" n={174} />
+
+Here is a complete block in PyTorch, reusing the `MultiHeadAttention` class you built in [Multi-head attention](#/learn/attention-and-transformers/multi-head-attention). Dropout is applied to each sub-layer's output before it is added, as in the original paper; `.eval()` switches it off for this demonstration.
+
+```python
+import torch
+import torch.nn as nn
+
+class TransformerBlock(nn.Module):
+    def __init__(self, d_model, num_heads, d_ff, dropout=0.1):
+        super().__init__()
+        self.attn = MultiHeadAttention(d_model, num_heads)  # previous lesson
+        self.ff = nn.Sequential(
+            nn.Linear(d_model, d_ff), nn.ReLU(), nn.Linear(d_ff, d_model)
+        )
+        self.norm1 = nn.LayerNorm(d_model)
+        self.norm2 = nn.LayerNorm(d_model)
+        self.drop = nn.Dropout(dropout)
+
+    def forward(self, x, mask=None):
+        a, _ = self.attn(x, x, x, mask)     # tokens talk
+        x = self.norm1(x + self.drop(a))    # Add & Norm
+        f = self.ff(x)                      # each token thinks alone
+        x = self.norm2(x + self.drop(f))    # Add & Norm
+        return x
+
+torch.manual_seed(0)
+vocab, d_model, T = 100, 16, 6
+embed = nn.Embedding(vocab, d_model)
+block = TransformerBlock(d_model, num_heads=4, d_ff=64).eval()  # dropout off
+
+tokens = torch.tensor([[5, 17, 42, 5, 8, 99]])   # B = 1 sentence, T = 6 tokens
+x = embed(tokens) + sinusoidal_pe(T, d_model)    # (1, 6, 16) + (6, 16) broadcasts
+y = block(x)
+print("in:", tuple(x.shape), " out:", tuple(y.shape))
+print("parameters:", sum(p.numel() for p in block.parameters()))
+m, sd = y.mean(-1), y.std(-1, unbiased=False)    # per token, over its 16 numbers
+print("every token has mean 0:", torch.allclose(m, torch.zeros_like(m), atol=1e-5))
+print("every token has std 1: ", torch.allclose(sd, torch.ones_like(sd), atol=1e-3))
+
+causal = torch.tril(torch.ones(T, T))            # 1 = may look, 0 = future
+print("decoder-style:", tuple(block(x, causal).shape))
+```
+
+```text
+in: (1, 6, 16)  out: (1, 6, 16)
+parameters: 3280
+every token has mean 0: True
+every token has std 1:  True
+decoder-style: (1, 6, 16)
+```
+
+Check the count: attention $4(16^2 + 16) = 1088$, FFN $(16 \cdot 64 + 64) + (64 \cdot 16 + 16) = 2128$, two LayerNorms $2 \cdot 2 \cdot 16 = 64$, total $3280$. The last LayerNorm is why every token comes out with mean 0 and standard deviation 1. Passing the lower-triangular mask turns the same block into a GPT-style decoder block.
+
+Finally, you can test the first section of this lesson in code.
+
+<Reveal label="Shuffle the six positions, with and without positional encoding">
+
+```python
+perm = torch.tensor([3, 0, 5, 1, 4, 2])          # a shuffle of the 6 positions
+pe = sinusoidal_pe(T, d_model)
+with torch.no_grad():
+    a = block(embed(tokens[:, perm]))            # no positions: shuffle, then run
+    b = block(embed(tokens))[:, perm]            # no positions: run, then shuffle
+    print(torch.allclose(a, b, atol=1e-6))
+    c = block(embed(tokens[:, perm]) + pe)       # with positions: shuffle, then run
+    d = block(embed(tokens) + pe)[:, perm]       # with positions: run, then shuffle
+    print(torch.allclose(c, d, atol=1e-6))
+```
+
+```text
+True
+False
+```
+
+Without positions, "shuffle then run the block" equals "run the block then shuffle": the whole block, FFN and LayerNorm included, is blind to order. With positions added, it is not.
+
+</Reveal>
+
+## The price: cost grows with T²
+
+Self-attention scores **every** query against **every** key, so each head in each layer builds a $T \times T$ table. That means $T^2$ scores to compute and store, and computing them takes about $T^2 \cdot d_k$ multiplications per head. In [big-O](#/learn/algorithms-and-complexity/big-o) terms, time and memory are $O(T^2)$ in the sequence length $T$. The FFN, by contrast, handles each token once: its cost grows only like $T$.
+
+<Analogy title="Handshakes at CCA orientation">
+
+If every one of $n$ new members shakes hands with every other, there are $n(n-1)/2$ handshakes. Double the group from 20 to 40 and the handshakes go from 190 to 780: about four times as many.
+
+</Analogy>
+
+<QuadraticCost />
+
+Because the cost goes as $T^2$, ratios are easy: making the text $k$ times longer multiplies the attention cost by $k^2$. Twice as long costs $4\times$; going from 2,000 to 8,000 tokens costs $16\times$. For GPT-2 small's context of 1024 tokens, one head's table already holds $1024^2 = 1{,}048{,}576$ scores, and there are 144 such tables (12 layers × 12 heads). This is the main obstacle to very long contexts. Tricks such as *FlashAttention* (computes the table in tiles without ever storing all of it) and *sparse* or *sliding-window* attention (each token looks at only some of the others) exist precisely to tame this square.
+
+<QuickCheck
+  q="A chatbot's context window grows from 1,000 tokens to 3,000 tokens. Roughly how many times more memory do the self-attention score tables need?"
+  options={['9 times', '3 times', '6 times', '27 times']}
+  answer={0}
+  explain="Attention memory grows with $T^2$: $(3000/1000)^2 = 3^2 = 9$. 3 times would be linear growth (true for the FFN, not attention); 27 would be $T^3$."
+/>
+
+<ExamTip>
+
+For complexity questions: self-attention is $O(T^2)$ (more fully $O(T^2 d)$) in the sequence length, so use ratios: $2\times$ longer $\to 4\times$, $4\times \to 16\times$, $8\times \to 64\times$. Watch for the trap that the **number of weights does not depend on $T$**: the same model handles 100 or 100,000 tokens with the same parameters; it is the activations (the score tables) that grow.
+
+</ExamTip>
+
+<PastPaperQuestion paper="prelim2026" n={219} />
+
+You now have every part of a Transformer. In [BERT, GPT and language modelling](#/learn/pretrained-models-text-speech/bert-and-gpt) you will see how stacks of these blocks, with or without the causal mask, are pretrained into BERT and GPT.
+
+<Takeaways>
+
+- Self-attention is blind to order: shuffle the tokens and the outputs are only shuffled. Positional encodings, **added** to the token embeddings, give the model word order.
+- Sinusoidal encoding: $\text{PE}(\text{pos}, 2i) = \sin(\text{pos}/10000^{2i/d})$ and $\text{PE}(\text{pos}, 2i+1) = \cos(\cdot)$ of the same angle; the first dimensions oscillate fastest; $\text{PE}(0) = [0, 1, 0, 1, \dots]$. BERT and GPT-2 learn their position embeddings instead.
+- A Transformer block is multi-head attention (tokens talk) then a position-wise FFN (each token thinks alone), each wrapped as $\text{LayerNorm}(x + \text{Sublayer}(x))$. The shape stays $(B, T, d_\text{model})$, so blocks stack.
+- Encoders (BERT) use unmasked self-attention; decoders (GPT) use a causal mask; encoder–decoder models add cross-attention with **Q from the decoder and K, V from the encoder**.
+- Attention costs $O(T^2)$ time and memory: double the length, four times the cost.
+
+</Takeaways>

@@ -1,0 +1,200 @@
+import CodeStepper from './visuals/first-program/CodeStepper'
+import ErrorDecoder from './visuals/first-program/ErrorDecoder'
+
+Every AI system in this course, from a spam filter to a chatbot, is in the end a **program**: a list of instructions that a computer follows exactly. In this lesson you will write your first one, watch it run line by line, then break it on purpose and learn to read the error message Python gives back. Error messages are not a sign that you have failed. They are Python pointing at the problem for you.
+
+## Programs and Python
+
+A <Term def="A list of instructions, written in a programming language, that a computer carries out one after another.">program</Term> is a list of instructions. **Python** is the programming language we will write them in. It is the language of AI: NumPy, pandas, scikit-learn and PyTorch are all Python tools, and the three programming tasks in the NOAI Final are done in Python.
+
+You can run Python in three places:
+
+- **Right here.** The "Try it" boxes on this site run real Python inside your browser. Edit the code, press Run, and the output appears underneath.
+- **Google Colab** (colab.research.google.com): free, nothing to install, just a Google account.
+- **Jupyter**, a <Term def="An interactive document made of cells. You type code into a cell, run it, and its output appears right under the cell. It is the standard tool for AI work.">notebook</Term> tool on your own computer. The NOAI Final's programming tasks are done in a Jupyter notebook, so it is worth getting comfortable with notebooks early.
+
+## Your first line: `print`
+
+Here is a complete Python program. It is one line long.
+
+```python
+print("Hello, NOAI!")
+```
+
+```text
+Hello, NOAI!
+```
+
+Let's take it apart:
+
+- `print` is a <Term def="A named command that does a job. You run (call) it by writing its name followed by round brackets; the values inside the brackets are what it works on.">function</Term>, a built-in command whose job is to show a value on the screen.
+- The round brackets `( )` hold what you want shown. Writing a function's name followed by brackets is called **calling** the function.
+- `"Hello, NOAI!"` is a <Term def="A piece of text in a program, written inside quote marks, such as 'hi'. Short for a string of characters.">string</Term>: a piece of text. The quote marks tell Python where the text starts and ends. They are not part of the text, so they are not printed.
+
+Quotes make a big difference. Compare these four lines and their output:
+
+```python
+print(7 * 6)
+print("7 * 6")
+print("Answer:", 42)
+print("Total:", 2 * 180, "cents")
+```
+
+```text
+42
+7 * 6
+Answer: 42
+Total: 360 cents
+```
+
+- Without quotes, `7 * 6` is a calculation (`*` means multiply), so Python works it out and prints `42`.
+- With quotes, `"7 * 6"` is just text, so Python prints it exactly as written.
+- Commas let one `print` show several items. Python puts **one space** between them, and works out any calculation (`2 * 180 = 360`) first.
+- Each `print` starts a new line of output.
+
+<PyRunner code={`print("Hello, NOAI!")
+print(7 * 6)
+print("7 * 6")
+print("Total:", 2 * 180, "cents")
+# Change the text, add your own print lines, and press Run.`} />
+
+<Mistake title="The computer does what you wrote, not what you meant">
+
+Python never guesses. `print("2 + 3")` prints `2 + 3`, not `5`, because the quotes say "this is text". And Python is **case-sensitive**: `Print("hi")` with a capital P is a different name, so it fails with an error. Most early bugs are this kind of tiny, literal difference.
+
+</Mistake>
+
+## Programs run from top to bottom
+
+<Analogy title="A very literal robot chef">
+
+Imagine giving a recipe card to a robot chef. It does step 1, then step 2, then step 3, in exactly the order written, and it never skips ahead or guesses what you meant. If the card says "serve" before "cook", it serves raw food. Python runs your program the same way.
+
+</Analogy>
+
+Python starts at the first line, runs it, moves to the next, and keeps going until it reaches the end. Try it: step through the program below, then reorder its lines and watch the output change.
+
+<CodeStepper />
+
+Two lines in that program start with `#`. A `#` starts a <Term def="A note for human readers. Python ignores everything from a # to the end of that line.">comment</Term>: Python ignores everything from the `#` to the end of the line. Programmers use comments for two jobs:
+
+- **Explaining** what the code does, for other people and for future you (`# My trip to school`).
+- **Switching a line off** without deleting it, called *commenting it out*. That is what `# print("Take a nap")` is: real code that Python skips.
+
+<KeyIdea>
+
+Python runs a program one line at a time, from top to bottom, and does exactly what each line says. So the order of the lines is the order of the output, and lines starting with `#` are skipped.
+
+</KeyIdea>
+
+### Worked example: predict the output
+
+Before running code, good programmers *trace* it: they go through it line by line, by hand, writing down what each line prints. This is exactly the skill the exam tests.
+
+```python
+# Canteen order
+print("Order:", 2, "kaya toast")
+# print("Add a soft-boiled egg")
+print("Total:", 2 * 180, "cents")
+print("Thanks!")
+```
+
+<Steps title="Trace it line by line">
+  <Step title="Line 1">
+    Starts with `#`, so it is a comment. Python skips it. Nothing is printed.
+  </Step>
+  <Step title="Line 2">
+    Three items separated by commas: the text `Order:`, the number `2` and the text `kaya toast`. Python prints them with one space between each: `Order: 2 kaya toast`.
+  </Step>
+  <Step title="Line 3">
+    Also starts with `#`. It *looks* like code, but it has been commented out, so Python skips it.
+  </Step>
+  <Step title="Line 4">
+    First work out the calculation: $2 \times 180 = 360$. Then print `Total: 360 cents`.
+  </Step>
+  <Step title="Line 5 and the full output">
+    Prints `Thanks!`. Reading the printed lines in order, the output is: `Order: 2 kaya toast`, then `Total: 360 cents`, then `Thanks!`, each on its own line.
+  </Step>
+</Steps>
+
+<QuickCheck
+  q="What does this program print?"
+  code={'print("A")\n# print("B")\nprint("C")\nprint("A")'}
+  options={['A, then C, then A, each on its own line', 'A, then B, then C, then A, each on its own line', 'A, then C, each on its own line', 'C, then A, then A, each on its own line']}
+  answer={0}
+  explain="Python runs the lines in order. Line 2 is commented out, so `B` is never printed. Line 4 prints `A` again: nothing stops a program from printing the same thing twice. So the output is A, C, A."
+/>
+
+## When things go wrong: reading an error message
+
+A mistake in a program is called a <Term def="A mistake in a program that makes it crash or give the wrong answer. Finding and fixing bugs is called debugging.">bug</Term>. When Python reaches a line it cannot carry out, it stops the program and prints an error report called a <Term def="Python's error report. It shows where the program was when it failed (file and line number), the failing line, and the error type and message on the last line.">traceback</Term>. Beginners often panic at the wall of red text. Don't: a traceback tells you exactly what went wrong and where.
+
+<Analogy title="An MRT service alert">
+
+When a train line breaks down, the alert does not just say "something is wrong". It names the line, the stations affected and the cause, so you know where to look. A traceback is Python's service alert: it names the line number and the kind of fault.
+
+</Analogy>
+
+<ErrorDecoder />
+
+### The four-move routine
+
+Here is the real traceback from the "Divide by zero" version of the program above, together with the two lines that printed before the crash:
+
+<CodeBlock language="text" title="output" showLineNumbers={false} code={'Class 3E fundraiser\nTickets sold: 120\nTraceback (most recent call last):\n  File "fund.py", line 3, in <module>\n    print("Per student:", 120 / 0)\n                          ~~~~^~~\nZeroDivisionError: division by zero'} />
+
+<Steps title="Read a traceback from the bottom up">
+  <Step title="Read the last line first">
+    The word before the colon is the **error type**: `ZeroDivisionError`. It tells you the *kind* of problem.
+  </Step>
+  <Step title="Read the message">
+    The words after the colon explain it in English: `division by zero`.
+  </Step>
+  <Step title="Find the line number">
+    The `File ... line 3` line says where Python was. Python also copies that line and marks the exact spot: the `^` sits under the `/` sign.
+  </Step>
+  <Step title="Look, fix, run again">
+    Line 3 divides 120 by 0. Divide by the real number of students instead (`120 / 40`), then run the program again.
+  </Step>
+</Steps>
+
+You will meet these four error types again and again:
+
+| Error type and what it means | A typical cause |
+|---|---|
+| **SyntaxError**: the code breaks Python's grammar rules | A missing quote or bracket: `print("Hi)` |
+| **NameError**: Python does not know that name | A typo or a wrong capital letter: `prnt("Hi")`, `Print("Hi")` |
+| **TypeError**: an operation got the wrong type of value | Joining text and a number with `+`: `"Age: " + 15` |
+| **ZeroDivisionError**: something was divided by zero | `10 / 0` |
+
+Notice the difference between the first row and the rest. Python checks the grammar of the **whole file before running any of it**, so a `SyntaxError` anywhere means nothing runs at all. (In a Jupyter notebook, Python checks one cell at a time, so a `SyntaxError` stops only the cell it is in.) The other three are discovered **while the program runs**, so every line above the bad one has already run and printed its output.
+
+<Mistake title="Fixing the wrong line">
+
+Python reports the line where it *noticed* the problem. Usually that is the line with the mistake, but not always. Suppose line 1 says `totl = 0` (a typo) and line 3 says `print(total + 5)`: the `NameError` points at line 3, but the bug is on line 1. If the reported line looks perfect, look at where its values came from: the earlier lines that set them.
+
+</Mistake>
+
+### When there is no error, but the answer is wrong
+
+Some bugs don't crash anything: the program runs happily and prints the wrong answer. Then the classic tool is the humble `print`. Add extra `print(...)` lines in the middle of your program to see the values at each point, and find the first place where reality differs from what you expected. This is called *print debugging*, and AI engineers use it all the time (for example to print the shape of the data before it goes into a model). You will practise it in [Exceptions and debugging](#/learn/python-toolkit/exceptions-debugging).
+
+Print debugging only helps once the program actually runs. A `SyntaxError` stops the program before its first line runs, so your extra prints never appear; for that kind of bug, the traceback itself points you to the line.
+
+<PastPaperQuestion paper="prelim2026" n={127} />
+
+<ExamTip>
+
+Prelim questions about code are about **reading** it, not running it: "What is the output of …?" or "What error does … raise?". With about 36 seconds per question, trace line by line from the top, skip comments, and write the output down in order. To match an error to its cause, remember: grammar problem → `SyntaxError`; unknown name → `NameError`; wrong type → `TypeError`. In the Final you work in a Jupyter notebook, and reading tracebacks calmly is how you fix bugs in time.
+
+</ExamTip>
+
+<Takeaways>
+
+- A program is a list of instructions. Python runs them one at a time, from top to bottom, so the order of the lines is the order of the output.
+- `print(...)` shows values. Text in quotes is printed exactly as written; a calculation without quotes is worked out first; commas put a space between items.
+- A `#` starts a comment, which Python ignores. Comment a line out to switch it off.
+- When a line fails, Python prints a traceback. Read the last line first (error type and message), then the line number above it.
+- A `SyntaxError` stops the whole program before it starts; other errors stop it at the bad line, after the lines above it have run.
+
+</Takeaways>

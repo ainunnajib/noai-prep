@@ -1,0 +1,376 @@
+/* Shared styles for the CLIP lesson visuals. */
+
+.full {
+  width: 100%;
+  min-width: 0;
+}
+
+/* ---------- similarity matrix ---------- */
+.mgrid {
+  display: grid;
+  gap: 3px;
+  margin: 0 auto;
+  font-size: 0.72rem;
+}
+.corner {
+  display: grid;
+  align-content: end;
+  justify-items: end;
+  padding: 0 4px 4px 0;
+  font-size: 0.62rem;
+  line-height: 1.15;
+  color: var(--ink-3);
+  text-align: right;
+}
+.capBtn {
+  font: inherit;
+  font-size: 0.7rem;
+  line-height: 1.12;
+  font-weight: 650;
+  color: var(--ink-2);
+  background: var(--surface-2);
+  border: 1.5px solid var(--rule);
+  border-radius: 6px;
+  padding: 3px 2px;
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+  text-align: center;
+  overflow-wrap: anywhere;
+  min-height: 2.9em;
+}
+.capBtn:hover {
+  border-color: var(--accent-line);
+}
+.capBtn:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+.capSel {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+  color: var(--ink);
+}
+.capSwapped {
+  border-color: var(--viz-neg);
+  border-style: dashed;
+  color: var(--ink);
+}
+.rowHead {
+  display: grid;
+  place-items: center;
+}
+.cell {
+  display: grid;
+  place-items: center;
+  border-radius: 5px;
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  position: relative;
+}
+.cellDiag {
+  outline: 2.5px solid var(--viz-2);
+  outline-offset: -2.5px;
+}
+.hint {
+  margin: 0;
+  font-size: var(--step--1);
+  color: var(--ink-2);
+  text-align: center;
+  line-height: 1.4;
+}
+.warn {
+  color: var(--viz-neg);
+  font-weight: 700;
+}
+.legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem 1rem;
+  justify-content: center;
+  font-size: 0.74rem;
+  color: var(--ink-3);
+}
+.swatch {
+  display: inline-block;
+  width: 0.9rem;
+  height: 0.9rem;
+  border-radius: 3px;
+  vertical-align: -0.15rem;
+  margin-right: 0.3rem;
+}
+.diagSwatch {
+  display: inline-block;
+  width: 0.9rem;
+  height: 0.9rem;
+  border-radius: 3px;
+  vertical-align: -0.15rem;
+  margin-right: 0.3rem;
+  border: 2.5px solid var(--viz-2);
+}
+
+/* ---------- joint embedding space ---------- */
+.searchRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: center;
+  width: 100%;
+}
+.input {
+  font: inherit;
+  font-size: 0.95rem;
+  flex: 1 1 14rem;
+  min-width: 0;
+  padding: 0.4rem 0.6rem;
+  border-radius: var(--radius-s);
+  border: 1.5px solid var(--rule);
+  background: var(--surface);
+  color: var(--ink);
+}
+.input:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+.inputLabel {
+  font-size: var(--step--1);
+  font-weight: 700;
+  color: var(--ink-2);
+}
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  width: 100%;
+}
+.chip {
+  font: inherit;
+  font-size: 0.78rem;
+  padding: 0.18rem 0.55rem;
+  border-radius: 999px;
+  border: 1.5px solid var(--rule);
+  background: var(--surface-2);
+  color: var(--ink-2);
+  cursor: pointer;
+}
+.chip:hover {
+  border-color: var(--accent-line);
+}
+.chip:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+.tokens {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+  align-items: baseline;
+  font-size: 0.78rem;
+  width: 100%;
+  color: var(--ink-3);
+}
+.tok {
+  font-family: var(--font-mono);
+  padding: 0.05rem 0.35rem;
+  border-radius: 4px;
+  background: var(--surface-2);
+  color: var(--ink);
+}
+.tokStop {
+  color: var(--ink-3);
+  background: none;
+}
+.tokUnknown {
+  color: var(--viz-neg);
+  text-decoration: line-through;
+  background: none;
+}
+.tokAmb {
+  background: color-mix(in srgb, var(--viz-5) 22%, var(--surface));
+}
+.panels {
+  display: grid;
+  gap: 0.9rem;
+  width: 100%;
+  grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr);
+  align-items: start;
+}
+.panelsNarrow {
+  grid-template-columns: minmax(0, 1fr);
+}
+.listTitle {
+  font-size: var(--step--1);
+  font-weight: 750;
+  color: var(--ink);
+  margin: 0 0 0.45rem;
+}
+.thumbLabel {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+.svgFull {
+  display: block;
+  width: 100%;
+  height: auto;
+  touch-action: manipulation;
+}
+.mapItem {
+  cursor: pointer;
+}
+.mapItem:focus-visible {
+  outline: none;
+}
+.mapItem:focus-visible rect,
+.mapItem:focus-visible path {
+  stroke: var(--accent);
+}
+
+/* ---------- zero-shot prompts ---------- */
+.zsTop {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 0.9rem;
+  align-items: start;
+  width: 100%;
+}
+.zsTopNarrow {
+  grid-template-columns: minmax(0, 1fr);
+  justify-items: start;
+}
+.imgPick {
+  display: flex;
+  gap: 0.4rem;
+}
+.imgBtn {
+  padding: 2px;
+  border-radius: 10px;
+  border: 2px solid transparent;
+  background: none;
+  cursor: pointer;
+}
+.imgBtn[aria-pressed='true'] {
+  border-color: var(--accent);
+}
+.imgBtn:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+.field {
+  display: grid;
+  gap: 0.25rem;
+  width: 100%;
+}
+.classList {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  align-items: center;
+}
+.classChip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.15rem;
+  font-size: 0.82rem;
+  padding: 0.12rem 0.2rem 0.12rem 0.55rem;
+  border-radius: 999px;
+  border: 1.5px solid var(--rule);
+  background: var(--surface-2);
+  color: var(--ink);
+  font-weight: 650;
+}
+.chipX {
+  font: inherit;
+  border: none;
+  background: none;
+  color: var(--ink-3);
+  cursor: pointer;
+  padding: 0 0.3rem;
+  line-height: 1;
+  font-size: 0.95rem;
+}
+.chipX:hover {
+  color: var(--viz-neg);
+}
+.smallInput {
+  font: inherit;
+  font-size: 0.85rem;
+  width: 8.5rem;
+  padding: 0.2rem 0.5rem;
+  border-radius: 999px;
+  border: 1.5px dashed var(--rule);
+  background: var(--surface);
+  color: var(--ink);
+}
+.table {
+  width: 100%;
+  display: grid;
+  grid-template-columns: minmax(0, 2.2fr) auto minmax(3rem, 1fr) auto;
+  gap: 0.3rem 0.6rem;
+  align-items: center;
+  font-size: 0.8rem;
+}
+.th {
+  font-size: 0.7rem;
+  font-weight: 750;
+  color: var(--ink-3);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.prompt {
+  font-family: var(--font-mono);
+  font-size: 0.76rem;
+  color: var(--ink-2);
+  overflow-wrap: anywhere;
+  line-height: 1.3;
+}
+.promptWin {
+  color: var(--ink);
+  font-weight: 700;
+}
+.num {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+  color: var(--ink);
+}
+.bar {
+  height: 0.8rem;
+  border-radius: 4px;
+  background: var(--surface-2);
+  overflow: hidden;
+}
+.barFill {
+  display: block;
+  height: 100%;
+  border-radius: 4px;
+  transition: width 0.2s ease;
+}
+.verdict {
+  width: 100%;
+  font-size: var(--step--1);
+  padding: 0.45rem 0.7rem;
+  border-radius: var(--radius-s);
+  background: var(--surface-2);
+  color: var(--ink);
+  line-height: 1.45;
+}
+.ok {
+  color: var(--ok);
+  font-weight: 800;
+}
+.bad {
+  color: var(--bad);
+  font-weight: 800;
+}
+.ensList {
+  margin: 0;
+  padding-left: 1.1rem;
+  font-family: var(--font-mono);
+  font-size: 0.76rem;
+  color: var(--ink-2);
+}
+.senseNote {
+  font-size: 0.78rem;
+  color: var(--ink-2);
+}

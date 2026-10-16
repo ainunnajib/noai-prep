@@ -1,0 +1,199 @@
+import RetrievalScoreTable from './visuals/rag-from-scratch/RetrievalScoreTable'
+import ArgsortLab from './visuals/rag-from-scratch/ArgsortLab'
+import EdgeCaseTester from './visuals/rag-from-scratch/EdgeCaseTester'
+import AnswerAssembler from './visuals/rag-from-scratch/AnswerAssembler'
+import { RETRIEVER_CODE } from './visuals/rag-from-scratch/code'
+
+The biggest task in the 2025 Final, worth 40 of the 80 programming marks, was a question-answering assistant built from scratch with nothing but Python and NumPy. Underneath, it is a <Term def="The part of a RAG system that finds the documents most relevant to a question, usually by comparing vectors.">retriever</Term>: about fifteen lines that turn text into numbers and rank documents. In this lesson you build those lines one array at a time, make them survive awkward inputs, and learn to explain every choice.
+
+<Analogy title="A marking scheme for documents">
+
+Think of a teacher marking a stack of scripts against a marking scheme. Each script earns a point for every keyword from the question that it contains. Then the marks are scaled for length, so a long, rambling script cannot win just by mentioning everything. The scripts with the highest scaled marks get read first. Your retriever does the same thing with documents, using vectors.
+
+</Analogy>
+
+You met the ideas (count vectors, IDF and cosine similarity), and ran a complete solution to this exact 2025 task, in [Bag of words and TF-IDF](#/learn/text-as-data/bag-of-words-and-tfidf). This lesson goes deeper on what that solution skipped: the shape of every array, why `D @ q` replaces a loop, `argsort` ties, the edge cases hidden tests try, a grounded template answer and the written explanation.
+
+## Five arrays make a retriever
+
+Our running example is a helpdesk bot for a school handbook with four one-line documents. We number them from 0, as Python indexes lists (the chunks in [The RAG pipeline](#/learn/prompting-and-rag/rag-pipeline) were numbered from 1, like handbook pages): d0 "The library is open on Friday.", d1 "The canteen is open on Monday and closed on Friday.", d2 "Exam week: the library is open on Friday, and the exam hall is closed." and d3 "The hall is closed on Monday."
+
+- `vocab`: every distinct word in the documents, sorted (9 words here).
+- `D`: the <Term def="A table with one row per document and one column per vocabulary word; each cell counts how often that word appears in that document.">document-term matrix</Term>. Row $i$ counts the words of document $i$, so its shape is `(4, 9)`.
+- `q`: the query, counted in the **same** 9 columns, shape `(9,)`.
+- `scores`: one cosine similarity per document, shape `(4,)`.
+- `top`: the positions of the $k$ best documents, shape `(k,)`.
+
+Step through the pipeline below: each step shows one array and the line of NumPy that builds it.
+
+<RetrievalScoreTable />
+
+## The formula behind the table
+
+For document $i$, the score is the cosine similarity between its row $D_i$ and the query $q$:
+
+$$
+s_i = \frac{D_i \cdot q}{\lVert D_i \rVert \, \lVert q \rVert} = \frac{\sum_{j=1}^{V} D_{ij}\, q_j}{\sqrt{\sum_{j=1}^{V} D_{ij}^2}\;\sqrt{\sum_{j=1}^{V} q_j^2}}
+$$
+
+- $V$ is the vocabulary size (9 here), and $j$ runs over the columns, one per word.
+- $D_{ij}$ is the count of word $j$ in document $i$; $q_j$ is its count in the query.
+- The top line, the **dot product**, multiplies the two counts for each word and adds the products, so only words in both texts contribute. Dividing by the **lengths** (L2 norms) removes the advantage of simply being long.
+
+NumPy computes all the scores, one per document, in one line. `D @ q` gives every dot product, `np.linalg.norm(D, axis=1)` gives every row length, and the division happens element by element:
+
+<KeyIdea>
+
+The whole retriever is two lines: `scores = D @ q / (np.linalg.norm(D, axis=1) * np.linalg.norm(q) + 1e-10)` and `top = np.argsort(-scores)[:k]`. Everything else is turning text into `D` and `q` with the **same** vocabulary.
+
+</KeyIdea>
+
+## Worked example by hand
+
+<Steps title="Query “Is the library open on Friday?”">
+  <Step title="Tokenise the query">
+    Lower-case it and drop punctuation and stop words ("is", "the", "on"). The tokens are library, open, friday, so $q$ has a 1 in each of those three columns and 0 elsewhere. $\lVert q \rVert^2 = 1 + 1 + 1 = 3$.
+  </Step>
+  <Step title="Dot products: D @ q">
+    Every entry of $q$ is 0 or 1, so multiplying by $q$ just picks out each row's counts in the query's three columns; add them up. d0 has library, open, friday: $1+1+1 = 3$. d1 has open, friday: $2$. d2 has library, open, friday: $3$. d3 has none: $0$. So `D @ q` = `[3, 2, 3, 0]`.
+  </Step>
+  <Step title="Squared lengths of the rows">
+    Sum the squares of each row. d0: $1+1+1 = 3$. d1: five words once each, $5$. d2: "exam" twice, so $2^2 + 6 \times 1^2 = 10$. d3: $3$.
+  </Step>
+  <Step title="Compare without a calculator: use $\cos^2$">
+    $\cos^2 = \dfrac{(\text{dot})^2}{\lVert d \rVert^2 \lVert q \rVert^2}$. d0: $\frac{9}{3 \times 3} = 1$. d1: $\frac{4}{5 \times 3} = \frac{8}{30}$. d2: $\frac{9}{10 \times 3} = \frac{9}{30}$. d3: $0$. Since $\frac{9}{30} > \frac{8}{30}$, d2 just beats d1.
+  </Step>
+  <Step title="Rank and keep the top 2">
+    The order is d0, d2, d1, d3, so the top 2 are positions `[0, 2]`. The exact cosines are $1$, $\sqrt{0.3} \approx 0.548$, $\sqrt{4/15} \approx 0.516$ and $0$.
+  </Step>
+</Steps>
+
+Notice that d0 and d2 have the **same** dot product (3). Without dividing by length they would tie; with it, the short, focused d0 wins clearly.
+
+<ExamTip>
+
+No calculator? Rank by $\cos^2$ instead of $\cos$. With counts every score is at least 0, and squaring never changes the order of non-negative numbers, but it turns every square root into a fraction of whole numbers that you can compare in seconds.
+
+</ExamTip>
+
+<QuickCheck
+  q="Query “When is the exam hall closed?” gives $q$ = closed, exam, hall, so $\lVert q \rVert^2 = 3$. Row d2 has dot product 4 with $q$ and $\lVert d_2 \rVert^2 = 10$; row d3 has dot product 2 and $\lVert d_3 \rVert^2 = 3$. Which document ranks higher?"
+  options={['d2, because $\\cos^2 = 16/30 \\approx 0.53$ beats $4/9 \\approx 0.44$', 'd3, because its dot product per unit of squared length, $2/3$, beats $4/10$', 'Neither: they tie, because both contain “hall” and “closed”', 'd3, because a shorter document always scores higher']}
+  answer={0}
+  explain="d2: $4^2/(10 \times 3) = 16/30 \approx 0.533$, so $\cos \approx 0.730$. d3: $2^2/(3 \times 3) = 4/9 \approx 0.444$, so $\cos \approx 0.667$. Dividing the dot product by $\lVert d \rVert^2$ alone is not the cosine formula, and length only matters through the division, not on its own."
+/>
+
+## Why `D @ q` and not a loop
+
+`D @ q` is a matrix–vector product: it takes the dot product of **every row** of `D` with `q` and returns one number per row, shape `(4,)`. A Python `for` loop over the rows gives the same numbers, but more slowly and with more chances for a typo. Replacing loops with whole-array operations is called <Term def="Writing one operation that acts on a whole array, so NumPy runs the loop in fast compiled code instead of a Python for loop.">vectorisation</Term>.
+
+`np.dot(D, q)` gives exactly the same result as `D @ q` for these arrays. `D * q` is different: broadcasting stretches `q` across all 4 rows and multiplies **element by element**, giving a `(4, 9)` matrix of products. You would still have to add along each row, so `(D * q).sum(axis=1)` equals `D @ q` = `[3, 2, 3, 0]`.
+
+<PastPaperQuestion paper="prelim2026" n={102} />
+
+<Reveal label="Going further: normalising rows, and many queries at once">
+
+To scale every row of `D` to length 1, divide each row by **its own** length. `np.linalg.norm(D, axis=1)` has shape `(4,)`, so `D / np.linalg.norm(D, axis=1)` fails with `ValueError: operands could not be broadcast together with shapes (4,9) (4,)`. Write `D / np.linalg.norm(D, axis=1, keepdims=True)`: the norms then have shape `(4, 1)` and broadcast across each row. With a square matrix (say 3 documents and 3 words) the wrong line runs **without an error** and quietly divides each column by the wrong number.
+
+Once the rows of `D` (call it `Dn`) and the queries are scaled to length 1, cosine is just a dot product. Stack several normalised queries as the rows of `Qn`, and `Qn @ Dn.T` gives every query-document score at once, shape `(n_queries, n_docs)`.
+
+</Reveal>
+
+## Ranking: argsort, the right way round
+
+`np.argsort(scores)` does not return sorted scores. It returns the **positions** that would sort them, from **smallest to largest**. For `scores = [1.0, 0.516, 0.548, 0.0]` it gives `[3, 1, 2, 0]`: the worst document first. To get the best first, sort the negated scores, `np.argsort(-scores)`, or reverse the result with `[::-1]`. Then slice the first $k$.
+
+<ArgsortLab />
+
+The official 2025 solution used `similarities.flatten().argsort()[-2:][::-1]`: take the last two positions of the ascending order (the two largest) and reverse them so the best comes first. All three correct versions give the same documents unless there is a **tie**. Then `np.argsort(-scores, kind="stable")` keeps the lower position first, while reversing a stable ascending sort (`kind="stable"`) puts the higher one first; with the default sort, the order of ties is not guaranteed. Pick one and say which in your explanation.
+
+<Mistake title="Values instead of positions">
+
+`np.sort(scores)[::-1][:2]` returns `[1.0, 0.548]`, the two best **scores**. That does not tell you which documents they belong to. Retrieval needs positions, so it needs `argsort` (or `argmax` when $k = 1$).
+
+</Mistake>
+
+## The whole retriever, ready to run
+
+Here is the complete pipeline as small functions. Run it, then change the query.
+
+<PyRunner packages={['numpy']} code={RETRIEVER_CODE} />
+
+The first query prints `scores: [1.    0.516 0.548 0.   ] -> top: [0, 2]`, the same numbers you worked out by hand. The swimming-pool question has no word in the vocabulary, so every score is 0, nothing is returned and the answer is "I don't know".
+
+Recall TF-IDF from [Text as data](#/learn/text-as-data/bag-of-words-and-tfidf): multiply each count by $\text{idf}_j = \ln(N / \text{df}_j)$, where $N$ is the number of documents and $\text{df}_j$ the number of documents that contain word $j$. Rare words get bigger weights. That lesson's hand example used $\log_2$, but any base gives the same ranking, and `np.log` is $\ln$.
+
+<TryIt title="Switch to TF-IDF, then rerun the 2025 Final">
+
+1. After the line `D = np.array(...)`, add `idf = np.log(len(documents) / (D > 0).sum(axis=0))` and `D = D * idf`. In `retrieve`, change the first line to `q = vectorise(query) * idf`. Then replace the first query in the `for` loop's list with "Is the canteen open on Monday?" and run it. With counts, d0 and d3 tie at 0.333; with TF-IDF the rarer word "monday" separates them.
+2. Undo that, swap in the 2025 Final's five documents from [the TF-IDF lesson](#/learn/text-as-data/bag-of-words-and-tfidf), ask "How does machine learning work?" and check you get `top: [1, 3]`.
+
+</TryIt>
+
+## Edge cases that lose marks
+
+Code that works on the example can still fail the marker. In the 2026 Final, the code in the notebooks was marked by an <Term def="A program that runs test cases against your code and awards marks automatically. Hidden tests are cases you cannot see before you submit.">autograder</Term> (the written parts by hand), and most tests were hidden. The few visible ones deliberately used awkward inputs, such as an empty case. Expect the same for a retriever: empty queries, unknown words, capitals, punctuation.
+
+<EdgeCaseTester />
+
+The fixes, in the order they appear in the code:
+
+1. **Lower-case** documents and queries alike, so "LIBRARY" and "Library" become "library".
+2. **Strip punctuation**: `re.findall(r"[a-z]+", text)` turns "Friday?" into "friday". Splitting on spaces keeps "Friday?" as a different word. This pattern also drops digits; use `r"[a-z0-9]+"` if years or room numbers matter, and say which you chose.
+3. **Remove stop words** from both sides. Otherwise "the" and "is" match every document and outvote the real keyword.
+4. **Guard the division.** If no query word is in the vocabulary, $q$ is all zeros, $\lVert q \rVert = 0$ and every score is $0/0$ = `nan`. Adding `1e-10` to the denominator turns that into 0 (checking `if np.linalg.norm(q) == 0` and returning early also works).
+5. **Skip zero scores.** `[:k]` always returns $k$ positions, even when nothing matched. Keep only documents with a positive score (or above a threshold), and answer "I don't know" if none are left.
+
+Two more choices matter. Build the vocabulary from the **documents only** and vectorise every query with it: a word the documents never use cannot match anything, so it is simply ignored. And sort with `kind="stable"` so ties always come out in the same order.
+
+<QuickCheck
+  q="What does this code print (apart from a warning)?"
+  code={`import numpy as np
+D = np.array([[1.0, 0.0], [1.0, 1.0]])
+q = np.zeros(2)
+scores = D @ q / (np.linalg.norm(D, axis=1) * np.linalg.norm(q))
+print(scores)`}
+  options={['`[nan nan]`', '`[0. 0.]`', 'Nothing: it stops with `ZeroDivisionError`', '`[inf inf]`']}
+  answer={0}
+  explain="Every dot product is 0 and every denominator is $\lVert d \rVert \times 0 = 0$, so each score is $0/0$. NumPy does not stop on division by zero for floats: it prints a RuntimeWarning and returns `nan` (not a number). `inf` would need a non-zero top line, and `ZeroDivisionError` is what plain Python numbers raise, not NumPy arrays."
+/>
+
+## Augment and generate
+
+Retrieval is only the R of RAG. In a full system the retrieved documents go into a prompt ("answer using only the context below…") and a language model writes the answer, as in [The RAG pipeline](#/learn/prompting-and-rag/rag-pipeline). The 2025 Final allowed only Python and NumPy, so there was no language model: the "generator" had to be a rule, such as a template that stitches the retrieved sentences together.
+
+<AnswerAssembler />
+
+<Note title="Where hallucination creeps in">
+
+The expected response in the 2025 Final was: "Machine learning is a subset of artificial intelligence that <Hl>enables systems to learn from data</Hl>. It involves techniques like statistics and <Hl>algorithms</Hl>, often used in data science." The highlighted parts appear in **none** of the five documents: a language model would add them from memory, which reads well but is exactly how unsupported claims enter an answer. (The official solution simply returned this fixed sentence whenever the retrieved documents contained "machine" and "science".) A template answer is clumsier, but every word is backed by a source.
+
+</Note>
+
+The notebook also fixed the **interface**: a protected cell printed `top_documents` (a list of strings) and `response` (a string), so your code had to create exactly those names.
+
+## Explaining your design choices
+
+The 2025 notebook ended by asking you to share your thought process, so part of the marks rewarded words, not code. A short, specific answer covers five decisions:
+
+1. **Tokenisation**: lower-case, letters only, a small stop-word list, applied identically to documents and query.
+2. **Weighting**: counts or TF-IDF, and why. TF-IDF boosts rare, informative words; with only five documents the two often agree.
+3. **Similarity**: cosine, because it compares the mix of words and ignores length.
+4. **Selection**: top $k$ with `argsort`, a minimum score, and a tie rule.
+5. **Generation and limits**: a template that only uses retrieved text, plus what it cannot do. A bag of words treats different forms of a word as unrelated ("machines" is not "machine"; stemming fixes that), misses synonyms ("fee" and "cost") and ignores word order, which is why real systems use learned embeddings.
+
+<ExamTip>
+
+In the Final: keep every given name, print the shapes of `D`, `q` and `scores` as you go, test the boring cases (empty, unknown, capitals, punctuation), then write the five-point explanation. In the Prelim, expect code-reading MCQs on exactly these lines: what `np.argsort` returns, what `axis=1` does, and how `D @ q` differs from `D * q`.
+
+</ExamTip>
+
+<Takeaways>
+
+- A retriever is five arrays: `vocab`, `D` with shape `(n_docs, V)`, `q` with shape `(V,)`, `scores` with shape `(n_docs,)` and `top`.
+- `scores = D @ q / (np.linalg.norm(D, axis=1) * np.linalg.norm(q) + 1e-10)` computes every cosine at once; by hand, compare $\cos^2$ to avoid square roots.
+- `np.argsort` returns positions from smallest to largest: use `np.argsort(-scores)[:k]` (or `[::-1]`) for the best $k$.
+- Robust code lower-cases, strips punctuation, drops stop words, guards against $0/0$ and returns "I don't know" when nothing matches.
+- Without an LLM, generate with a template that only uses retrieved text, and explain each design choice in words.
+
+</Takeaways>

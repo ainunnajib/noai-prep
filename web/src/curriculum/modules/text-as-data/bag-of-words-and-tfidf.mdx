@@ -1,0 +1,237 @@
+import BagOfWords from './visuals/bag-of-words-and-tfidf/BagOfWords'
+import TFIDFTable from './visuals/bag-of-words-and-tfidf/TFIDFTable'
+import CosineSearch from './visuals/bag-of-words-and-tfidf/CosineSearch'
+
+How does a search box find the one page that answers your question, out of millions? The classic answer needs no neural network at all: turn every document into a vector of word counts, give rare words more weight than common ones, and return the documents whose vectors point the same way as your question's. This is exactly the retrieval step of a RAG chatbot (a chatbot that looks documents up before answering), and building it from scratch in NumPy was **Question 3 of the NOAI 2025 Final, worth 40 of the 80 programming marks**.
+
+<Analogy title="Forty essays on National Day">
+
+Your class writes 40 essays on National Day. Knowing that an essay contains "the" tells you nothing: every essay does. But if only two essays mention "Merlion", that word tells you a lot about those two. A good search engine should notice the same thing: **a word is informative when it is rare across the documents**.
+
+</Analogy>
+
+## Bag of words: a document as a vector of counts
+
+Some vocabulary first. A <Term def="One piece of text being searched or classified: a sentence, a review, a web page, a paragraph.">document</Term> is one piece of text, and the <Term def="The whole collection of documents you are working with.">corpus</Term> is the whole collection. The vocabulary is the list of every distinct word (token) in the corpus.
+
+A <Term def="A representation of a document as the number of times each vocabulary word occurs in it, ignoring the order of the words.">bag of words</Term> turns each document into a vector with **one entry per vocabulary word**, holding how many times that word occurs. Stack the vectors of all $N$ documents and you get the <Term def="A table with one row per document and one column per vocabulary word; each entry is a count (or a weight).">document-term matrix</Term>, of shape $N \times V$, where $V$ is the vocabulary size.
+
+<BagOfWords />
+
+Two things to notice:
+
+- **Order is gone.** Only the counts survive, so "the dog chased the cat" and "the cat chased the dog" become the same vector. Counting <Term def="Sequences of n neighbouring words. Bigrams are pairs (n = 2), such as 'chased the'.">n-grams</Term> (pairs or triples of neighbouring words) brings back a little order, at the cost of many more columns.
+- **The vectors are sparse.** A real vocabulary has tens of thousands of words, and a sentence uses perhaps 10 of them, so more than 99.9% of the entries are 0. Libraries store only the non-zero entries.
+
+<QuickCheck
+  q="The vocabulary is [cat, chased, dog, the] in that order. What is the bag-of-words vector of “the cat chased the dog”?"
+  options={['$[1, 1, 1, 2]$', '$[2, 1, 1, 1]$', '$[1, 1, 1, 1]$', '$[0, 1, 1, 2]$']}
+  answer={0}
+  explain="Count each vocabulary word in order: cat 1, chased 1, dog 1, the 2. So the vector is $[1, 1, 1, 2]$. $[2, 1, 1, 1]$ puts the count of 'the' in the first slot (the order of the sentence, not of the vocabulary), and $[1, 1, 1, 1]$ forgets that 'the' occurs twice."
+/>
+
+## TF-IDF: rare words count for more
+
+Raw counts have a problem: the most frequent words ("the", "is", "and") dominate every vector, yet they say nothing about what a document is about. TF-IDF fixes this with two ingredients.
+
+The <Term def="How often a term (word) occurs in one document. Usually the raw count; some courses divide by the document's length.">term frequency</Term> $\mathrm{tf}(t, d)$ is the number of times term $t$ occurs in document $d$ (some versions divide by the length of $d$). The <Term def="The number of documents in the corpus that contain the term at least once.">document frequency</Term> $\mathrm{df}(t)$ is the number of documents that contain $t$ **at least once**. The inverse document frequency turns it into a weight:
+
+$$
+\mathrm{idf}(t) = \log \frac{N}{\mathrm{df}(t)}
+$$
+
+$$
+\mathrm{tfidf}(t, d) = \mathrm{tf}(t, d) \times \mathrm{idf}(t)
+$$
+
+- $N$ is the number of documents in the corpus.
+- $\dfrac{N}{\mathrm{df}(t)}$ is large for a rare word (found in few documents) and exactly 1 for a word found in every document.
+- The **log** squashes the ratio, and $\log 1 = 0$, so a word in **every** document gets weight 0.
+- Multiplying by $\mathrm{tf}$ keeps "how much this document uses the word".
+
+<KeyIdea>
+
+TF-IDF = **how often the word appears here** × **how rare it is across the corpus**. Words that appear everywhere are automatically switched off; distinctive words are boosted.
+
+</KeyIdea>
+
+<TFIDFTable />
+
+<Steps title="TF-IDF by hand: 4 documents, log base 2">
+  <Step title="Count">
+    d1 "the chicken rice is good", d2 "the mrt is fast", d3 "the chicken is spicy", d4 "the rice is cheap". Each word occurs at most once per document, so every count is 0 or 1. $N = 4$.
+  </Step>
+  <Step title="Document frequencies">
+    "the" and "is" are in all 4 documents. "chicken" (d1, d3) and "rice" (d1, d4) are in 2. "good", "mrt", "fast", "spicy" and "cheap" are each in 1.
+  </Step>
+  <Step title="IDF">
+    $\log_2(4/4) = \log_2 1 = 0$ for the and is. $\log_2(4/2) = \log_2 2 = 1$ for chicken and rice. $\log_2(4/1) = \log_2 4 = 2$ for the five rare words.
+  </Step>
+  <Step title="TF-IDF vectors">
+    Multiply each count by its IDF. d1: chicken 1, rice 1, good 2. d2: mrt 2, fast 2. d3: chicken 1, spicy 2. d4: rice 1, cheap 2. The words "the" and "is" have disappeared from every vector.
+  </Step>
+</Steps>
+
+The base of the log is a convention: textbooks use $\log_{10}$ or $\ln$, and the base only multiplies every IDF by the same constant (here $\ln x = 0.693 \log_2 x$), which, as you will see, does not change any ranking. Libraries also add small tweaks. scikit-learn's default is the **smoothed** IDF $\ln\frac{1 + N}{1 + \mathrm{df}} + 1$, which never divides by zero and never gives exactly 0, and it then scales each document vector to length 1.
+
+<QuickCheck
+  q="A corpus has 1,000 documents. “durian” appears in 10 of them and “the” in all 1,000. Using $\mathrm{idf} = \log_{10}(N/\mathrm{df})$, what are their IDFs?"
+  options={['durian 2, the 0', 'durian 0.01, the 1', 'durian 100, the 1', 'durian 2, the 1']}
+  answer={0}
+  explain="durian: $\log_{10}(1000/10) = \log_{10} 100 = 2$. the: $\log_{10}(1000/1000) = \log_{10} 1 = 0$. 0.01 and 1 are $\mathrm{df}/N$ (upside down and no log); 100 is $N/\mathrm{df}$ without the log; and $\log 1$ is 0, not 1."
+/>
+
+<Mistake title="Total count instead of document count">
+
+$\mathrm{df}(t)$ counts **documents**, not occurrences. If "rice" appears 5 times in one document and nowhere else, $\mathrm{df} = 1$, not 5. The 5 belongs in that document's **term frequency**.
+
+</Mistake>
+
+## Ranking documents with cosine similarity
+
+To search, turn the **query** into a vector in exactly the same way (same vocabulary, same IDF values; query words outside the vocabulary are simply ignored), then compare it with every document using the <Term def="The cosine of the angle between two vectors: their dot product divided by the product of their lengths. 1 means same direction, 0 means perpendicular.">cosine similarity</Term> you met in [Dot product and norms](#/learn/vectors-and-matrices/dot-product-and-norms):
+
+$$
+\cos(\mathbf{q}, \mathbf{d}) = \frac{\mathbf{q} \cdot \mathbf{d}}{\lVert \mathbf{q} \rVert \, \lVert \mathbf{d} \rVert} = \frac{\sum_j q_j d_j}{\sqrt{\sum_j q_j^2}\,\sqrt{\sum_j d_j^2}}
+$$
+
+The top line, the dot product, grows with every word the two vectors share (weighted). The bottom line divides by both lengths, so a long document does not win just because it has more words: only the **direction** of the vector, its mix of words, matters. TF-IDF weights are never negative, so here the score runs from 0 (no weighted words in common) to 1 (the same mix of words). Finally, sort the scores and return the top $k$ documents.
+
+<Steps title="Query “is the chicken spicy” against the 4 documents">
+  <Step title="Vectorise the query">
+    With TF-IDF, "is" and "the" have IDF 0, so $\mathbf{q}$ = chicken 1, spicy 2. Its length is $\sqrt{1 + 4} = \sqrt{5}$.
+  </Step>
+  <Step title="d3: the chicken is spicy">
+    $\mathbf{q} \cdot \mathbf{d}_3 = 1 \times 1 + 2 \times 2 = 5$ and $\lVert \mathbf{d}_3 \rVert = \sqrt{5}$, so $\cos = 5/(\sqrt{5}\sqrt{5}) = 1$. Same mix of distinctive words.
+  </Step>
+  <Step title="d1: the chicken rice is good">
+    Only "chicken" is shared: $\mathbf{q} \cdot \mathbf{d}_1 = 1 \times 1 = 1$. $\lVert \mathbf{d}_1 \rVert = \sqrt{1 + 1 + 4} = \sqrt{6}$, so $\cos = 1/\sqrt{30} \approx 0.18$.
+  </Step>
+  <Step title="d2 and d4">
+    No shared weighted words, so $\cos = 0$. Ranking: d3, d1, then d2 and d4.
+  </Step>
+  <Step title="Compare: raw counts">
+    With plain counts, d2 "the mrt is fast" shares "the" and "is" with the query: $\cos = 2/(2 \times 2) = 0.5$, a high score for a document about the MRT. TF-IDF removes this false match.
+  </Step>
+</Steps>
+
+<CosineSearch />
+
+<QuickCheck
+  q="Over the vocabulary [mrt, laksa, spicy], a query is $\mathbf{q} = [0, 2, 1]$, and two documents are $\mathbf{d}_1 = [0, 4, 2]$ and $\mathbf{d}_2 = [3, 0, 0]$. What is $\cos(\mathbf{q}, \mathbf{d}_1)$?"
+  options={['$1$', '$0.5$', '$10$', '$2$']}
+  answer={0}
+  explain="$\mathbf{q} \cdot \mathbf{d}_1 = 0 + 8 + 2 = 10$, $\lVert \mathbf{q} \rVert = \sqrt{5}$ and $\lVert \mathbf{d}_1 \rVert = \sqrt{20} = 2\sqrt{5}$, so $\cos = 10/(\sqrt{5} \times 2\sqrt{5}) = 10/10 = 1$. $\mathbf{d}_1$ is twice as long but points the same way, and length does not matter, so 0.5 is wrong. 10 is the dot product before dividing, and 2 divides by $\lVert \mathbf{q} \rVert$ twice. $\mathbf{d}_2$ shares no words (cosine 0), so $\mathbf{d}_1$ ranks first."
+/>
+
+<Note title="This is the R in RAG">
+
+A <Term def="Retrieval-augmented generation: a chatbot first retrieves relevant documents, then gives them to a language model as context for its answer.">RAG</Term> system answers a question in two steps: **retrieve** the most relevant documents (what you just built), then **generate** an answer with a language model that reads them. Modern systems usually swap TF-IDF vectors for learned embeddings (next lesson), but the cosine-and-top-$k$ step is identical. You will see the whole pipeline in [The RAG pipeline](#/learn/prompting-and-rag/rag-pipeline) and build it from scratch in [Building a RAG retriever from scratch](#/learn/prompting-and-rag/rag-from-scratch).
+
+</Note>
+
+<PastPaperQuestion paper="prelim2026" n={237} />
+
+## Build it in NumPy: the 2025 Final task
+
+The 2025 Final gave five one-sentence documents and the query "How does machine learning work?", allowed only NumPy and the standard library, and expected documents 2 and 4 to be retrieved. Here is a clean solution. Read it step by step, run it, then change the query.
+
+The `tokenise` function uses Python's built-in `re` (regular expression) module: `re.findall(r"[a-z]+", s)` returns every run of one or more letters a to z in `s`, so punctuation and digits are dropped (`[a-z]` means "any one letter from a to z", `+` means "one or more of them", and the `r` before the quotes marks a raw string, so Python leaves the pattern exactly as written).
+
+<PyRunner packages={['numpy']} code={`import re
+import numpy as np
+
+documents = [
+    "Artificial intelligence is transforming industries.",
+    "Machine learning is a subset of artificial intelligence.",
+    "Deep learning allows machines to solve complex problems.",
+    "Data science involves statistics and machine learning.",
+    "Neural networks are inspired by the human brain.",
+]
+query = "How does machine learning work?"
+STOP = {"a", "an", "the", "is", "are", "of", "and", "to", "by", "how",
+        "does", "do", "what", "why", "in", "on", "for", "it", "with"}
+
+def tokenise(text):
+    # lower-case, keep letters only ("learning." -> "learning"), drop stop words
+    return [w for w in re.findall(r"[a-z]+", text.lower()) if w not in STOP]
+
+docs = [tokenise(d) for d in documents]
+vocab = sorted({w for d in docs for w in d})
+index = {w: i for i, w in enumerate(vocab)}
+
+# 1. term counts: one row per document, one column per vocabulary word
+tf = np.zeros((len(docs), len(vocab)))
+for i, d in enumerate(docs):
+    for w in d:
+        tf[i, index[w]] += 1
+
+# 2. inverse document frequency
+N = len(docs)
+df = (tf > 0).sum(axis=0)        # how many documents contain each word
+idf = np.log(N / df)
+X = tf * idf                      # TF-IDF matrix, shape (5, vocabulary size)
+
+# 3. the query, vectorised the same way (unknown words are ignored)
+q = np.zeros(len(vocab))
+for w in tokenise(query):
+    if w in index:
+        q[index[w]] += 1
+q = q * idf
+
+# 4. cosine similarity with every document, then the top k
+norms = np.linalg.norm(X, axis=1) * np.linalg.norm(q)
+scores = X @ q / (norms + 1e-10)
+k = 2
+top = np.argsort(scores)[::-1][:k]
+print("query tokens:", tokenise(query))
+print("scores:", np.round(scores, 3))
+for i in top:
+    print(f"{scores[i]:.3f}  {documents[i]}")`} />
+
+The scores for the five documents are 0, 0.453, 0.063, 0.310 and 0, so it retrieves document 2 (0.453) and document 4 (0.310). Document 3 shares only "learning" ("machines" is a different token from "machine"), and "learning" is in 3 of the 5 documents, so it scores just 0.063. scikit-learn gives the same top 2 with its smoothed IDF, which is a good way to check your own code:
+
+<PyRunner packages={['numpy', 'scikit-learn']} code={`from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.metrics.pairwise import cosine_similarity
+
+documents = [
+    "Artificial intelligence is transforming industries.",
+    "Machine learning is a subset of artificial intelligence.",
+    "Deep learning allows machines to solve complex problems.",
+    "Data science involves statistics and machine learning.",
+    "Neural networks are inspired by the human brain.",
+]
+query = "How does machine learning work?"
+
+vectoriser = TfidfVectorizer(stop_words="english")  # smoothed IDF + L2 norm
+X = vectoriser.fit_transform(documents)    # learn vocabulary and IDF
+q = vectoriser.transform([query])          # same vocabulary for the query
+scores = cosine_similarity(q, X)[0]
+print(scores.round(3))
+print("top 2:", scores.argsort()[::-1][:2])`} />
+
+The scores differ (0, 0.569, 0.168, 0.464 and 0) because the IDF formula and the stop-word list differ, but the ranking is the same: indices 1 and 3 are documents 2 and 4, since Python counts from 0. For the full exam walkthrough, with the generation half and the thought-process cells, see [Final lab: RAG with TF-IDF](#/learn/final-lab-numpy/task-rag-tfidf).
+
+<Mistake title="Three classic bugs in this task">
+
+1. **Punctuation stays attached.** `"learning.".split()` keeps the full stop, so "learning." never matches "learning". Strip punctuation (`re.findall(r"[a-z]+", text.lower())`).
+2. **Ascending sort.** `np.argsort` sorts from **smallest** to largest, so `argsort(scores)[:2]` returns the two *worst* documents. Reverse it: `argsort(scores)[::-1][:k]`.
+3. **Dividing by zero.** A query with no known words has length 0. Add a tiny number such as `1e-10` to the denominator.
+
+</Mistake>
+
+<ExamTip>
+
+Prelim speed facts: a word in **every** document has IDF $\log 1 = 0$; the **rarest** word has the **largest** IDF; df counts documents, not occurrences; for counts and TF-IDF, cosine lies between 0 and 1 and ignores document length; a bag of words cannot tell "dog bites man" from "man bites dog". In the Final, vectorise the query with the **same** vocabulary and IDF as the documents, print intermediate shapes, and explain your choices (stop words, IDF variant, top-$k$) in the thought-process cell.
+
+</ExamTip>
+
+<Takeaways>
+
+- A **bag of words** is a count vector over the vocabulary: order is lost and the vectors are sparse.
+- $\mathrm{idf}(t) = \log(N/\mathrm{df}(t))$: 0 for words in every document, large for rare words. TF-IDF $= \mathrm{tf} \times \mathrm{idf}$.
+- Retrieval = vectorise the query the same way, compute **cosine similarity** with every document, return the **top $k$**.
+- Changing the log base never changes the ranking; other IDF variants (such as smoothing) change the numbers but rarely the ranking.
+- This is the retrieval half of RAG, and you can build it with NumPy in about 30 lines.
+
+</Takeaways>

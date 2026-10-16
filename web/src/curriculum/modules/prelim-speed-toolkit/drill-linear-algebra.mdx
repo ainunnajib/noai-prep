@@ -1,0 +1,239 @@
+import ShapeChainDrill from './visuals/drill-linear-algebra/ShapeChainDrill'
+import DotNormDrill from './visuals/drill-linear-algebra/DotNormDrill'
+import TwoByTwoDrill from './visuals/drill-linear-algebra/TwoByTwoDrill'
+
+Linear algebra was the biggest single topic in the 2026 Prelim: 25 questions, and 8 of them asked you to calculate something (a shape, a length, a dot product, a determinant, a rank). None needed more than a few small multiplications, but at about 36 seconds a question, *how* you calculate matters. This lesson turns the three most common calculations into reflexes, then drills them against a clock.
+
+Each section recaps the idea in a few lines (the full lessons are [vectors and dot products](#/learn/vectors-and-matrices/dot-product-and-norms), [matrix multiplication](#/learn/vectors-and-matrices/matrices-and-multiplication), [identity, inverse and determinant](#/learn/vectors-and-matrices/identity-inverse-determinant), [eigenvectors and eigenvalues](#/learn/linear-algebra-deeper/eigenvectors-eigenvalues) and [rank](#/learn/linear-algebra-deeper/span-rank-independence)), shows the shortcut, and then hands you a drill. Do each drill until it feels boring: boring means automatic.
+
+## Shape chains
+
+<Analogy title="Coupling train carriages">
+
+Two MRT carriages can be coupled only if the couplers match. Once a train is assembled, nobody cares about the couplers in the middle: what matters is the front of the first carriage and the back of the last. Matrix shapes work exactly like this.
+
+</Analogy>
+
+A matrix with $m$ rows and $n$ columns has **shape** $m \times n$ (always rows first). The product rule is:
+
+$$
+(m \times n)\,(n \times p) = (m \times p)
+$$
+
+- The two **inner** numbers (both $n$) must be equal, or the product does not exist.
+- The two **outer** numbers ($m$ and $p$) give the shape of the answer.
+
+Why? Each entry of $AB$ is a <Term def="Multiply two equally long lists number by number and add the results: [1, 2]·[3, 4] = 1×3 + 2×4 = 11.">dot product</Term> of one **row** of $A$ with one **column** of $B$. A row of $A$ has $n$ numbers and a column of $B$ has $n$ numbers, so they pair up exactly. There is one answer for every (row of $A$, column of $B$) pair: $m$ rows times $p$ columns.
+
+So treat shapes as dominoes. Write them in a line, check that each pair of touching numbers match, and read off the two ends:
+
+$$
+(3 \times \underbrace{2)(2}_{\text{match}} \times \underbrace{4)(4}_{\text{match}} \times 1) = 3 \times 1
+$$
+
+Two more rules complete the kit:
+
+- **Transpose swaps the shape:** if $A$ is $m \times n$, then $A^T$ (rows turned into columns) is $n \times m$. Flip transposes *first*, then line up the dominoes.
+- **Vectors are thin matrices.** A column vector $x$ with $n$ entries is $n \times 1$, so $x^T$ is $1 \times n$. Then $x^T y$ is $(1 \times n)(n \times 1) = 1 \times 1$, a single number (the dot product), while $x y^T$ is $(n \times 1)(1 \times n) = n \times n$, a whole matrix.
+
+<ShapeChainDrill />
+
+<KeyIdea>
+
+Shape questions are pattern matching, not arithmetic: flip any transposes, check that every pair of touching inner numbers match, keep the two outer numbers. One mismatch anywhere means "cannot multiply".
+
+</KeyIdea>
+
+<Steps title="The shape of AᵀBC, when A is 2 × 3, B is 2 × 5 and C is 5 × 1">
+  <Step title="Flip the transpose">
+    $A$ is $2 \times 3$, so $A^T$ is $3 \times 2$.
+  </Step>
+  <Step title="Line up the dominoes">
+    $(3 \times 2)(2 \times 5)(5 \times 1)$. The touching pairs are $2 = 2$ and $5 = 5$: both match.
+  </Step>
+  <Step title="Keep the ends">
+    The outer numbers are 3 and 1, so $A^T B C$ is $3 \times 1$. No entry of any matrix was needed.
+  </Step>
+</Steps>
+
+Neural networks are long chains of exactly these products. A batch of 32 images, each flattened into 784 pixel values, is a matrix $X$ of shape $32 \times 784$. A layer that turns 784 inputs into 128 features multiplies by a weight matrix $W$ of shape $784 \times 128$: $(32 \times 784)(784 \times 128) = 32 \times 128$, one row of 128 features per image.
+
+<ExamTip>
+
+PyTorch stores the weights of `nn.Linear(784, 128)` with shape `(128, 784)`, that is (out, in), and computes `x @ W.T`. So "what is the shape of the weight matrix?" has a PyTorch answer and a maths answer: read the question for which one it wants. Two related facts are asked as one-liners: the **rank** of an $m \times n$ matrix is at most the smaller of $m$ and $n$, and only **square** matrices have a determinant, a trace or an inverse.
+
+</ExamTip>
+
+<Mistake>
+
+Comparing the wrong numbers. $(3 \times 2)(3 \times 2)$ looks "the same", but the touching numbers are 2 and 3, so it cannot be multiplied. And $(2 \times 3)(3 \times 2)$ is fine even though the shapes look different: the inner 3s match, and the answer is $2 \times 2$.
+
+</Mistake>
+
+<PastPaperQuestion paper="prelim2026" n={1} />
+
+## Dot products, norms and hidden triples
+
+<Analogy title="Adding up a hawker bill">
+
+At a hawker centre you do not write all the prices down and add them at the end. You keep a running total in your head: chicken rice 4, plus kopi 1.50 is 5.50, plus a dessert 2 is 7.50. Dot products work the same way: one multiplication at a time, always carrying a single running total.
+
+</Analogy>
+
+For two vectors $a = [a_1, \dots, a_n]$ and $b = [b_1, \dots, b_n]$:
+
+$$
+a \cdot b = a_1 b_1 + a_2 b_2 + \dots + a_n b_n
+$$
+
+$$
+\lVert a \rVert_1 = |a_1| + |a_2| + \dots + |a_n|
+$$
+
+$$
+\lVert a \rVert_2 = \sqrt{a_1^2 + a_2^2 + \dots + a_n^2}
+$$
+
+$$
+\cos\theta = \frac{a \cdot b}{\lVert a \rVert_2 \, \lVert b \rVert_2}
+$$
+
+- $a \cdot b$ (the **dot product**) multiplies matching entries and adds them up. It gives one number.
+- $\lVert a \rVert_1$ (the **L1 norm**) adds the sizes of the entries, ignoring their signs ($|{-3}| = 3$).
+- $\lVert a \rVert_2$ (the **L2 norm**, or length) is Pythagoras in any number of dimensions: square, add, square-root.
+- $\cos\theta$ (the **cosine similarity**) is the cosine of the angle $\theta$ between the two arrows: $1$ for the same direction, $0$ for perpendicular (<Term def="At right angles to each other. Two vectors are orthogonal exactly when their dot product is 0.">orthogonal</Term>), $-1$ for opposite directions.
+
+**Running totals.** For $[2, 3, 4] \cdot [5, 1, 2]$, say it as you go: "10, plus 3 is 13, plus 8 is **21**". You never hold more than one number in your head.
+
+**Hidden triples.** Exam vectors are built so that lengths come out whole, which means they hide <Term def="Whole numbers a, b, c with a² + b² = c², such as 3-4-5. They are the sides of a right-angled triangle with whole-number sides.">Pythagorean triples</Term>. Learn these and most L2 norms are instant:
+
+| Vector | Length | Why |
+| --- | --- | --- |
+| $[3, 4]$, $[5, 12]$, $[8, 15]$, $[7, 24]$ | 5, 13, 17, 25 | the classic triples |
+| $[6, 8]$, $[9, 12]$, $[0.3, 0.4]$ | 10, 15, 0.5 | multiples: $\lVert k\,a \rVert = \lvert k \rvert\,\lVert a \rVert$ |
+| $[1, 2, 2]$, $[2, 3, 6]$, $[1, 4, 8]$, $[2, 6, 9]$ | 3, 7, 9, 11 | 3-D: $1 + 4 + 4 = 9$, $4 + 9 + 36 = 49$, … |
+| $[3, 4, 12]$ | 13 | a chain: $3, 4 \to 5$, then $5, 12 \to 13$ |
+| $[1, 1, 1, 1]$, $[1, 2, 2, 4]$, $[2, 4, 5, 6]$ | 2, 5, 9 | 4-D: $1 + 4 + 4 + 16 = 25$, $4 + 16 + 25 + 36 = 81$ |
+
+Signs and order do not matter for a length: $[-12, 3, 4]$ also has length 13.
+
+**Cosine: check for zero first.** If $a \cdot b = 0$, the vectors are orthogonal and $\cos\theta = 0$. You do not need the lengths at all.
+
+<DotNormDrill />
+
+<Steps title="Cosine similarity of a = [1, 2, 2] and b = [2, 3, 6]">
+  <Step title="Running total">
+    $1 \times 2 = 2$, plus $2 \times 3 = 6$ makes 8, plus $2 \times 6 = 12$ makes **20**. Not zero, so the lengths are needed.
+  </Step>
+  <Step title="Spot the lengths">
+    $[1, 2, 2]$ has length 3 and $[2, 3, 6]$ has length 7, both from the table.
+  </Step>
+  <Step title="Divide">
+    $\cos\theta = \dfrac{20}{3 \times 7} = \dfrac{20}{21}$, just under 1 (about 0.95): the arrows point in nearly the same direction.
+  </Step>
+</Steps>
+
+<QuickCheck
+  q="What is the L2 norm of $[2, -6, 9]$?"
+  options={['11', '17', '121', '5']}
+  answer={0}
+  explain="$2^2 + (-6)^2 + 9^2 = 4 + 36 + 81 = 121 = 11^2$, so the length is 11. 17 is the L1 norm ($2 + 6 + 9$), 121 is the length squared (no square root), and 5 comes from adding the entries with their signs ($2 - 6 + 9$)."
+/>
+
+<Mistake>
+
+Mixing up the norms. The **L1** norm adds sizes ($|3| + |4| = 7$); the **L2** norm squares, adds and takes the root ($\sqrt{9 + 16} = 5$). Exam options almost always include both, plus the squared length (25) without the root.
+
+</Mistake>
+
+## 2 × 2 shortcuts
+
+<Analogy title="A speedcuber's move sequences">
+
+Speedcubers do not work out a Rubik's cube move by move. They learn a handful of fixed move sequences, each one matched to a pattern they recognise at a glance, and fire the right one without thinking. A 2 × 2 matrix has four such sequences: the determinant, the trace, the inverse and the eigenvalues. Spot which one the question wants, then run it.
+
+</Analogy>
+
+For $A = \begin{bmatrix} a & b \\ c & d \end{bmatrix}$:
+
+$$
+\det A = ad - bc \qquad \operatorname{tr} A = a + d
+$$
+
+$$
+A^{-1} = \frac{1}{ad - bc}\begin{bmatrix} d & -b \\ -c & a \end{bmatrix}
+$$
+
+- The **determinant** $\det A$ is "down-right diagonal minus up-right diagonal". Its size $\lvert \det A \rvert$ is how much $A$ scales areas, and a negative sign means $A$ also flips the plane over, like a mirror. If $\det A = 0$, $A$ squashes the whole plane onto a line (or even a single point), and no matrix can undo that: $A$ is **singular** (it has no inverse).
+- The **trace** $\operatorname{tr} A$ is the sum of the main diagonal.
+- The **inverse** $A^{-1}$ (the matrix that undoes $A$, so $AA^{-1} = I$): **swap** the two diagonal entries, **flip the signs** of the other two, **divide** by the determinant.
+
+**Eigenvalues from trace and determinant.** An <Term def="A number λ such that Av = λv for some non-zero vector v: A only stretches v by λ, without turning it.">eigenvalue</Term> $\lambda$ of $A$ is a number with $Av = \lambda v$ for some non-zero vector $v$. The two eigenvalues $\lambda_1, \lambda_2$ of a 2 × 2 matrix satisfy
+
+$$
+\lambda_1 + \lambda_2 = \operatorname{tr} A \qquad \lambda_1 \lambda_2 = \det A
+$$
+
+So, for small integer matrices: **find two numbers that add to the trace and multiply to the determinant.** If no whole numbers fit, solve the quadratic: $\lambda = \frac{1}{2}\bigl(\operatorname{tr} A \pm \sqrt{(\operatorname{tr} A)^2 - 4 \det A}\bigr)$; if the number under the root is negative, the eigenvalues are not real numbers at all (a rotation matrix is the classic case). And if the matrix is triangular (a 0 in a corner off the diagonal), the eigenvalues are simply the diagonal entries.
+
+<Reveal label="Why do the eigenvalues add to the trace and multiply to the determinant?">
+
+Every eigenvalue solves $\det(A - \lambda I) = 0$. Expanding it gives
+
+$$
+(a - \lambda)(d - \lambda) - bc = \lambda^2 - (a + d)\lambda + (ad - bc)
+$$
+
+A quadratic whose roots are $\lambda_1$ and $\lambda_2$ always has the form $\lambda^2 - (\lambda_1 + \lambda_2)\lambda + \lambda_1\lambda_2$. Matching the two lines term by term: $\lambda_1 + \lambda_2 = a + d$ and $\lambda_1 \lambda_2 = ad - bc$.
+
+</Reveal>
+
+The same two facts hold for any square matrix: the trace is the **sum** of all the eigenvalues and the determinant is their **product**. So one zero eigenvalue makes the determinant 0, and the matrix singular.
+
+<Steps title="Two quick examples">
+  <Step title="Inverse of [[4, 7], [2, 6]]">
+    $\det = 4 \times 6 - 7 \times 2 = 24 - 14 = 10$. Swap the diagonal, flip the other signs: $\begin{bmatrix} 6 & -7 \\ -2 & 4 \end{bmatrix}$, then divide by 10: $A^{-1} = \begin{bmatrix} 0.6 & -0.7 \\ -0.2 & 0.4 \end{bmatrix}$.
+  </Step>
+  <Step title="Eigenvalues of [[4, 1], [2, 3]]">
+    Trace $= 4 + 3 = 7$; determinant $= 12 - 2 = 10$. Two numbers adding to 7 and multiplying to 10: **5 and 2**. Check one: $A\begin{bmatrix}1\\1\end{bmatrix} = \begin{bmatrix}5\\5\end{bmatrix} = 5\begin{bmatrix}1\\1\end{bmatrix}$.
+  </Step>
+</Steps>
+
+<TwoByTwoDrill />
+
+<KeyIdea>
+
+$\det = ad - bc$, $\operatorname{tr} = a + d$, inverse = swap, flip, divide. The trace and determinant pin down a 2 × 2 matrix's eigenvalues: they **add to the trace** and **multiply to the determinant**.
+
+</KeyIdea>
+
+A few more determinant facts are worth knowing cold, because they turn up as one-line questions:
+
+| Fact | Why, in one line |
+| --- | --- |
+| $\det I = 1$ | the identity leaves every area unchanged |
+| $\det(AB) = \det A \cdot \det B$ | doing $B$ then $A$ multiplies the two area factors |
+| $\det A^T = \det A$ | for a 2 × 2, $ad - cb$ is the same number as $ad - bc$ |
+| $\det A^{-1} = 1 / \det A$ | $A^{-1}$ must undo $A$'s area change |
+| $\det(kA) = k^n \det A$ for $n \times n$ | each of the $n$ rows is multiplied by $k$ |
+
+<Mistake>
+
+Two classic slips: writing $ad + bc$ (the minus sign is the whole point), and inverting by swapping the *off-diagonal* entries instead of the diagonal ones. Check any inverse by multiplying one row by one column: the result must be 1 on the diagonal and 0 elsewhere.
+
+</Mistake>
+
+<ExamTip>
+
+Before computing anything, look at the options. If they are all different, often a single entry is enough: the top-left entry of $A^{-1}$ is $d / \det A$, and that alone may pick the answer. And for "which matrix is singular?", the fastest test is $ad = bc$: do the two diagonal products match?
+
+</ExamTip>
+
+<Takeaways>
+
+- **Shapes:** $(m \times n)(n \times p) = m \times p$. Flip transposes first, match every pair of touching numbers, keep the ends. $x^T y$ is a number; $x y^T$ is a matrix.
+- **Dot products:** one running total, left to right. **Norms:** L1 adds sizes; L2 squares, adds and roots, and exam vectors hide triples (3-4-5, 5-12-13, 1-2-2-3, 2-3-6-7). **Cosine:** check for a zero dot product first.
+- **2 × 2:** $\det = ad - bc$, $\operatorname{tr} = a + d$, inverse = swap the diagonal, flip the other signs, divide by det.
+- **Eigenvalues** add to the trace and multiply to the determinant; a zero eigenvalue means $\det = 0$ and no inverse.
+
+</Takeaways>

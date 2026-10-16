@@ -1,0 +1,287 @@
+import ArrayBuilder from './visuals/arrays-and-shapes/ArrayBuilder'
+import ShapeInspector from './visuals/arrays-and-shapes/ShapeInspector'
+import ReshapeAnimator from './visuals/arrays-and-shapes/ReshapeAnimator'
+import StackVsConcat from './visuals/arrays-and-shapes/StackVsConcat'
+
+export const MAKE_CODE = `import numpy as np
+
+a = np.array([[1, 2, 3],
+              [4, 5, 6]])
+print(a.shape, a.ndim, a.size,
+      a.dtype)
+
+z = np.zeros((3, 4))
+print(z.shape, z.dtype)
+
+print(np.arange(0, 10, 2))
+print(np.linspace(0, 1, 5))
+print(np.eye(2))
+
+# change, predict, then run!`
+
+export const RESHAPE_CODE = `import numpy as np
+
+a = np.arange(12)
+b = a.reshape(3, -1)
+print(b.shape)
+print(b)
+
+# flatten back to 1-D
+c = b.reshape(-1)
+print(c.shape)
+
+A = np.array([[1, 2, 3],
+              [4, 5, 6]])
+B = np.array([[7, 8, 9],
+              [10, 11, 12]])
+c0 = np.concatenate([A, B],
+                    axis=0)
+c1 = np.concatenate([A, B],
+                    axis=1)
+s0 = np.stack([A, B], axis=0)
+s2 = np.stack([A, B], axis=2)
+print(c0.shape)
+print(c1.shape)
+print(s0.shape)
+print(s2.shape)`
+
+A photo, a spreadsheet of exam marks, a batch of 32 sentences: in AI code each one is a NumPy array, and the first thing to know about any array is its **shape**. Shape mistakes are among the most common bugs in from-scratch code like the NOAI Final's, and shape questions ("what is the shape of `np.zeros((3, 4))`?") are free marks in the Prelim. This lesson teaches you to make arrays, read their shape and type, and predict the shape after every reshape or join without running anything.
+
+<Analogy title="Egg trays">
+
+You can buy an empty egg tray of a chosen size (3 rows of 4 slots) or fill a tray from your own basket of eggs. NumPy works the same way: `np.zeros((3, 4))` is an empty tray of a size you name, and `np.array([...])` builds a tray from a list you already have. Either way, the tray's layout, its rows and columns, is its *shape*.
+
+</Analogy>
+
+## Making arrays
+
+There are two ways to get an array: convert data you already have, or ask NumPy to generate one from a few arguments.
+
+- `np.array([1, 2, 3])` converts your list: `[1 2 3]`, shape `(3,)`.
+- `np.array([[1, 2], [3, 4]])` turns a list of lists into a 2-D array with rows `[1 2]` and `[3 4]`, shape `(2, 2)`.
+- `np.zeros((3, 4))` gives 3 rows of 4 zeros, shape `(3, 4)`. `np.ones(5)` gives five 1s, shape `(5,)`.
+- `np.arange(0, 10, 2)` works like `range` (start, stop, step) and the **stop is not included**: `[0 2 4 6 8]`, shape `(5,)`.
+- `np.linspace(0, 1, 5)` gives 5 evenly spaced points with **both ends included**: 0, 0.25, 0.5, 0.75, 1, shape `(5,)`.
+- `np.eye(3)` gives the identity matrix (1s on the diagonal, 0s elsewhere), shape `(3, 3)`.
+
+The key move is in `np.zeros((3, 4))`: the shape goes in as one <Term def="A fixed, ordered group of values written in round brackets, like (3, 4). NumPy uses tuples to describe shapes.">tuple</Term>, hence the double brackets. Play with every constructor here:
+
+<ArrayBuilder />
+
+`arange` and `linspace` are easy to mix up. `np.arange(start, stop, step)` counts up from `start` in jumps of `step` and stops **before** `stop`, exactly like Python's `range`. `np.linspace(start, stop, num)` asks "how many points?" instead, and spaces `num` points evenly with **both** ends included, so the gap between them is $\frac{\text{stop} - \text{start}}{\text{num} - 1}$. For `np.linspace(0, 1, 5)` the gap is $\frac{1 - 0}{5 - 1} = 0.25$.
+
+<PastPaperQuestion paper="prelim2026" n={94} />
+
+<QuickCheck
+  q="What does `np.linspace(0, 10, 5)` produce?"
+  options={['[0.0, 2.5, 5.0, 7.5, 10.0]', '[0.0, 2.0, 4.0, 6.0, 8.0]', '[0.0, 2.5, 5.0, 7.5]', '[0.0, 2.0, 4.0, 6.0, 8.0, 10.0]']}
+  answer={0}
+  explain="linspace includes both ends and makes exactly 5 points, so the gap is $\frac{10 - 0}{5 - 1} = 2.5$, and the values are floats. Dividing by 5 instead of 4 gives a gap of 2: five such points stop at 8 (what `np.arange(0, 10, 2)` makes), and reaching 10 would take 6 points. Leaving out the stop value, as `arange` does, loses the 10."
+/>
+
+<Mistake title="Forgetting the inner brackets">
+
+`np.zeros(3, 4)` does **not** make a 3 × 4 array. NumPy reads the second argument as the dtype and stops with `TypeError: Cannot interpret '4' as a data type`. Write the shape as one tuple: `np.zeros((3, 4))`.
+
+</Mistake>
+
+## shape, ndim, size and dtype
+
+Every array carries four facts about itself:
+
+- **`shape`**: a tuple with the length of each <Term def="One direction you can move along in an array. A 2-D array has axis 0 (down the rows) and axis 1 (across the columns). Axes are numbered from 0.">axis</Term>. `(3, 4)` means 3 rows and 4 columns.
+- **`ndim`**: the number of axes, which is how many numbers are in the shape. `(3, 4)` has `ndim` 2.
+- **`size`**: the total number of elements, found by multiplying the shape.
+- **`dtype`**: the type of every element, such as `int64` or `float64` (from [Why NumPy? Arrays vs lists](#/learn/numpy/why-numpy)).
+
+For an array with shape $(d_0, d_1, \dots, d_{k-1})$:
+
+$$
+\text{ndim} = k, \quad \text{size} = d_0 \times d_1 \times \dots \times d_{k-1}
+$$
+
+Here $d_0$ is the length of axis 0, $d_1$ the length of axis 1, and so on, and $k$ is how many axes there are. So an array of shape $(2, 3, 4)$ has ndim 3 and size $2 \times 3 \times 4 = 24$.
+
+<Analogy title="HDB blocks">
+
+Describe a set of flats by its blocks, floors and flats per floor. Two blocks with 3 floors of 4 flats each is shape `(2, 3, 4)`, and the number of flats is $2 \times 3 \times 4 = 24$, the size.
+
+</Analogy>
+
+<ShapeInspector />
+
+<KeyIdea>
+
+The **shape** lists the length of each axis, **ndim** counts the axes, and **size** is the product of the shape. Axis 0 is always the *first* number in the shape tuple, whatever it means for your data.
+
+</KeyIdea>
+
+Three shapes deserve special care, because they look alike:
+
+- `(3,)` is a **1-D** array of 3 numbers. The comma is how Python writes a one-element tuple; there are no rows or columns at all.
+- `(3, 1)` is a 2-D **column**: 3 rows, each holding one number.
+- `(1, 3)` is a 2-D **row**: one row holding 3 numbers.
+
+They hold the same three numbers but behave differently in maths, and mixing them up causes the silent bugs you will meet in [Broadcasting](#/learn/numpy/broadcasting).
+
+The **dtype** is chosen from your data. Whole numbers give `int64` and anything with a decimal point gives `float64`. One decimal is enough to make the whole array float, because an array has only one dtype: `np.array([1, 2, 3.5])` is `float64`. Constructors like `zeros`, `ones`, `linspace` and `eye` give `float64` unless you ask otherwise, and `arr.astype(np.float32)` makes a converted copy. (Deep-learning code usually uses `float32`, which is PyTorch's default.)
+
+<Mistake title="A float into an int array is cut down silently">
+
+Because an array has only one dtype, writing a decimal into an **integer** array does not change the dtype: the decimal part is simply thrown away, with no warning. Below, `a` keeps `int64` and the `.7` vanishes; `b` was made `float64` first, so it keeps 2.7.
+
+```python
+# int64
+a = np.array([1, 2, 3])
+a[0] = 2.7
+print(a)  # [2 2 3]
+
+# float64
+b = np.array([1, 2, 3])
+b = b.astype(float)
+b[0] = 2.7
+print(b)  # [2.7 2.  3. ]
+```
+
+If an array will later hold averages or other decimals (cluster centres, normalised features), make it a float array first with `.astype(float)`.
+
+</Mistake>
+
+Predict each line, then run it. Change the arguments and run again.
+
+<PyRunner packages={['numpy']} code={MAKE_CODE} />
+
+<Reveal label="Show the expected output">
+
+```text
+(2, 3) 2 6 int64
+(3, 4) float64
+[0 2 4 6 8]
+[0.   0.25 0.5  0.75 1.  ]
+[[1. 0.]
+ [0. 1.]]
+```
+
+</Reveal>
+
+<Note>
+
+If you print the dtype of a whole-number array in the in-browser runner, you may see `int32` instead of `int64`. The browser's Python is a 32-bit build; on a normal computer or in Google Colab you get `int64`.
+
+</Note>
+
+<PastPaperQuestion paper="prelim2026" n={92} />
+
+## reshape and the magic −1
+
+`arr.reshape(new_shape)` regroups the same numbers into a new shape. Two rules:
+
+1. **The size must stay the same.** Twelve numbers can become `(3, 4)`, `(2, 6)` or `(2, 2, 3)`, but never `(3, 5)`.
+2. **The order never changes.** NumPy reads the numbers in <Term def="Reading an array along each row from left to right, then moving down to the next row, like reading a page of English text. NumPy's default order, also called C order.">row-major order</Term>, like reading a page of text, and pours them into the new shape in that same order.
+
+You may write **one** length as `-1`, meaning "work this one out for me". NumPy divides the size by the lengths you did give:
+
+$$
+\text{missing length} = \frac{\text{size}}{\text{product of the others}}
+$$
+
+If that division is not a whole number, the reshape is impossible and you get an error.
+
+<ReshapeAnimator />
+
+<Steps title="Predict three reshapes of a = np.arange(12)">
+  <Step title="a.reshape(3, -1)">
+    The size is 12 and the other length is 3, so the missing length is $12 \div 3 = 4$. The shape is $(3, 4)$, and the first row is `[0 1 2 3]`.
+  </Step>
+  <Step title="a.reshape(2, -1, 3)">
+    The other lengths multiply to $2 \times 3 = 6$, so the missing length is $12 \div 6 = 2$. The shape is $(2, 2, 3)$.
+  </Step>
+  <Step title="a.reshape(5, -1)">
+    $12 \div 5 = 2.4$ is not a whole number, so NumPy raises `ValueError: cannot reshape array of size 12 into shape (5,newaxis)`.
+  </Step>
+  <Step title="a.reshape(-1)">
+    With only one length to work out, $-1$ means "all of it along one axis": shape $(12,)$, a 1-D array (not the $(1, 12)$ row). This is the standard way to flatten any array back to 1-D.
+  </Step>
+</Steps>
+
+<QuickCheck
+  q="`x` has shape (6, 4). What is the shape of `x.reshape(-1, 8)`?"
+  options={['(3, 8)', '(24, 8)', '(6, 8)', 'Error: the sizes do not match']}
+  answer={0}
+  explain="The size is $6 \times 4 = 24$, so the missing length is $24 \div 8 = 3$, giving (3, 8). The size never changes in a reshape, so (6, 8) with 48 elements is impossible."
+/>
+
+<Mistake title="reshape is not transpose">
+
+Reshaping a `(3, 4)` array to `(4, 3)` does **not** turn rows into columns. It re-reads the same numbers in the same order, so `np.arange(12).reshape(4, 3)` starts `[[0 1 2] [3 4 5] ...]`. Turning rows into columns is the *transpose*, `arr.T`, which gives `[[0 4 8] [1 5 9] ...]`. Choose `(4, 3)` in the animator above and compare.
+
+</Mistake>
+
+## Joining arrays: concatenate versus stack
+
+You often need to glue arrays together: two batches of data into one, or many images into a batch. NumPy has two families of joins, and the difference is whether a **new axis** is created.
+
+<Analogy title="Notebook pages and boxes">
+
+`concatenate` is adding more pages to the same notebook: the notebook just gets thicker. `stack` is putting two notebooks into a box: now you have a new level, "which notebook", on top of "which page".
+
+</Analogy>
+
+- **`np.concatenate([A, B], axis=k)`** joins along an axis that already exists. The arrays must match on every other axis, the lengths along axis $k$ add up, and **ndim stays the same**.
+- **`np.stack([A, B], axis=k)`** needs arrays of exactly the same shape. It inserts a brand-new axis at position $k$ whose length is the number of arrays, so **ndim goes up by one**.
+- **`np.vstack`** and **`np.hstack`** are shortcuts: for 2-D arrays they are `concatenate` along axis 0 (stack vertically) and axis 1 (side by side).
+
+<StackVsConcat />
+
+<Steps title="Predict the shapes">
+  <Step title="Two batches of data">
+    `X1` has shape $(100, 5)$ (100 students, 5 features) and `X2` has shape $(40, 5)$. `np.concatenate([X1, X2], axis=0)` adds along axis 0: $(100 + 40, 5) = (140, 5)$.
+  </Step>
+  <Step title="Side by side">
+    `np.concatenate([A, B], axis=1)` with two $(2, 3)$ arrays adds along axis 1: $(2, 3 + 3) = (2, 6)$.
+  </Step>
+  <Step title="A batch of images">
+    32 greyscale images, each $(28, 28)$. `np.stack(images)` (axis 0 by default) puts a new axis of length 32 in front: $(32, 28, 28)$.
+  </Step>
+  <Step title="A new axis in the middle">
+    Two $(3, 4)$ arrays with `np.stack([a, b], axis=1)`: insert a length-2 axis at position 1, giving $(3, 2, 4)$.
+  </Step>
+</Steps>
+
+<PyRunner packages={['numpy']} code={RESHAPE_CODE} />
+
+<Reveal label="Show the expected output">
+
+```text
+(3, 4)
+[[ 0  1  2  3]
+ [ 4  5  6  7]
+ [ 8  9 10 11]]
+(12,)
+(4, 3)
+(2, 6)
+(2, 2, 3)
+(2, 3, 2)
+```
+
+</Reveal>
+
+<PastPaperQuestion paper="prelim2026" n={103} />
+
+<ExamTip title="Shape questions in 36 seconds">
+
+- `np.zeros((3, 4))` has shape `(3, 4)`: rows first. The options will offer `(4, 3)` and `12` as traps.
+- `arange` **excludes** the stop value; `linspace` **includes** it. `np.arange(0, 10, 2)` is `[0 2 4 6 8]`, with no 10.
+- `concatenate` keeps ndim (lengths add up along the axis); `stack` adds a new axis (ndim + 1). `arr1 + arr2` is element-wise addition, not joining.
+- In the Final, write the shape as a comment beside every line, e.g. `X = X.reshape(n, -1)  # (n, 784)` for $n$ images of $28 \times 28$ pixels, each flattened to $28 \times 28 = 784$ numbers. Most "my code crashes" moments are a shape you did not expect.
+
+</ExamTip>
+
+<Takeaways>
+
+- Make arrays from lists with `np.array`, or generate them with `np.zeros((r, c))`, `np.ones`, `np.arange(start, stop, step)` (stop excluded), `np.linspace(start, stop, num)` (both ends included) and `np.eye(n)`.
+- `shape` is the tuple of axis lengths, `ndim` is how many axes, `size` is their product, and `dtype` is the single element type.
+- `reshape` keeps the size and the row-major order; one `-1` lets NumPy work out a length, and `reshape(-1)` flattens.
+- `concatenate` joins along an existing axis (ndim unchanged); `stack` creates a new axis (ndim + 1); `vstack`/`hstack` are shortcuts for 2-D.
+
+</Takeaways>

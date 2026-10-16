@@ -1,0 +1,259 @@
+import SliceExplorer from './visuals/partial-derivatives-gradients/SliceExplorer'
+import DirectionCompass from './visuals/partial-derivatives-gradients/DirectionCompass'
+import GradientField from './visuals/partial-derivatives-gradients/GradientField'
+import VectorGradientCheck from './visuals/partial-derivatives-gradients/VectorGradientCheck'
+
+So far almost every function in this module had **one** input. A real model has many knobs: an HDB price model has weights for floor area, storey and age, and a neural network has millions. Training needs to know which way to turn **every** knob. The answer is one arrow, the **gradient**, that points uphill.
+
+<Analogy title="Standing on Bukit Timah Hill">
+
+On the side of the hill, walking due east has one slope and walking due north another. Each is a **partial derivative**: the slope when you move in one direction only. Together the two numbers tell you which way is straight up the hill, and how steep it is.
+
+</Analogy>
+
+## Functions with two inputs
+
+A function like $f(x, y) = x^2 y + 3y$ takes two numbers and returns one: $f(1, 2) = 1^2 \times 2 + 3 \times 2 = 8$. Think of $(x, y)$ as a position on a map and $f(x, y)$ as the height of the ground there. You can draw it as a **surface**, or as a **map from above** where each <Term def="A curve on a map joining points that have the same height (the same value of f). Hiking maps use them to show hills.">contour line</Term> joins points of equal height, like a hiking map. In machine learning, $x$ and $y$ are weights and $f$ is the loss.
+
+## Partial derivatives: freeze everything else
+
+To find a slope with two inputs, change **one** input and keep the other fixed. The <Term def="The derivative of a many-input function with respect to one input, while all the other inputs are held fixed (treated as constants).">partial derivative</Term> of $f$ with respect to $x$ is
+
+$$
+\frac{\partial f}{\partial x}(x, y) = \lim_{h \to 0} \frac{f(x + h,\ y) - f(x,\ y)}{h}
+$$
+
+- $\partial$ is a curly "d", read "partial": a reminder that $f$ has other inputs, held still.
+- $h$ is a tiny nudge to $x$ only ($y$ is the same in both terms); otherwise this is the ordinary derivative.
+
+Freezing $y$ cuts the surface along a line, leaving an ordinary one-input curve called a **slice**; the partial derivative is the slope of that slice. In practice: when you differentiate with respect to $x$, treat every other letter **as if it were a number**.
+
+<SliceExplorer />
+
+<Steps title="Both partial derivatives of f(x, y) = x²y + 3y">
+  <Step title="Freeze y, differentiate in x">
+    Pretend $y$ is a number, say 5: then $f = 5x^2 + 15$, whose derivative is $10x$. In general, $x^2 y$ becomes $2x \cdot y$, and $3y$ has no $x$, so it vanishes. So $\dfrac{\partial f}{\partial x} = 2xy$.
+  </Step>
+  <Step title="Freeze x, differentiate in y">
+    Now $x^2$ is just a coefficient, like the 5 in $5y$. So $x^2 y$ becomes $x^2$, and $3y$ becomes $3$: $\dfrac{\partial f}{\partial y} = x^2 + 3$.
+  </Step>
+  <Step title="Evaluate at the point (1, 2)">
+    $\dfrac{\partial f}{\partial x} = 2 \times 1 \times 2 = 4$ and $\dfrac{\partial f}{\partial y} = 1^2 + 3 = 4$. Check these against the slices in the visual.
+  </Step>
+  <Step title="What the numbers mean">
+    Near $(1, 2)$, nudging $x$ up by $0.01$ raises $f$ by about $4 \times 0.01 = 0.04$, and so does nudging $y$ up by $0.01$.
+  </Step>
+</Steps>
+
+This answers the visual's puzzle: with $x$ frozen, $f = (x^2 + 3)\,y$ is a constant times $y$, a straight line in $y$, so its slope does not depend on $y$.
+
+<Mistake title="Two classic slips">
+
+Writing $\frac{\partial}{\partial x}(3y) = 3$. It is $0$: with $y$ frozen, $3y$ is a constant. The opposite slip is dropping a frozen letter that multiplies $x$: $\frac{\partial}{\partial x}(x^2 y) = 2xy$, not $2x$, just as $\frac{d}{dx}(5x^2) = 10x$ keeps its 5.
+
+</Mistake>
+
+<PastPaperQuestion paper="prelim2026" n={29} />
+
+<QuickCheck
+  id="calculus-and-gradient-descent.partial-derivatives-gradients.qc1"
+  q="For $f(x, y) = x^3 + 4xy^2$, what is $\dfrac{\partial f}{\partial y}$?"
+  options={['$3x^2 + 4y^2$', '$8xy$', '$8y$', '$3x^2 + 8xy$']}
+  answer={1}
+  explain="Freeze $x$. The term $x^3$ has no $y$, so it vanishes. In $4xy^2$, $4x$ is a coefficient and $y^2$ becomes $2y$, giving $8xy$. $3x^2 + 4y^2$ is $\partial f/\partial x$; $8y$ drops the frozen $x$."
+/>
+
+## The gradient: all the slopes in one arrow
+
+Collect the partial derivatives into a vector and you get the <Term def="The vector of all partial derivatives of a function, one entry per input. It points in the direction of steepest increase, and its length is the steepest slope.">gradient</Term>, written $\nabla f$ (read "grad" or "nabla"):
+
+$$
+\nabla f(x, y) = \left[\ \frac{\partial f}{\partial x},\ \ \frac{\partial f}{\partial y}\ \right]
+$$
+
+With $n$ inputs the gradient has $n$ entries, so it has the **same shape as the input**. For $f = x^2 + y^2$, $\nabla f = [2x,\ 2y]$, which at $(1, 2)$ is $[2, 4]$. Every point on the map gets its own arrow.
+
+<PastPaperQuestion paper="prelim2026" n={30} />
+
+Why is this arrow so useful? Walk a tiny distance $t$ in a direction given by a <Term def="A vector of length 1. It only describes a direction.">unit vector</Term> $u = [u_1, u_2]$. Your $x$ changes by $t\,u_1$ and your $y$ by $t\,u_2$, and each change raises the height by about "slope × distance moved". Divide the total by $t$:
+
+$$
+\begin{aligned}
+\text{slope in direction } u &= \frac{\partial f}{\partial x}\,u_1 + \frac{\partial f}{\partial y}\,u_2 \\
+&= \nabla f \cdot u \;=\; \lVert \nabla f \rVert \cos\theta
+\end{aligned}
+$$
+
+using the dot-product rule $a \cdot b = \lVert a \rVert\,\lVert b \rVert \cos\theta$ from [the dot-product lesson](#/learn/vectors-and-matrices/dot-product-and-norms), with $\theta$ the angle between $u$ and $\nabla f$ and $\lVert u \rVert = 1$. Now read off three facts:
+
+- $\cos\theta = 1$ when $\theta = 0$: the ground rises fastest in the **direction of $\nabla f$**, with slope $\lVert \nabla f \rVert$.
+- $\cos\theta = 0$ when $\theta = 90°$: at right angles to $\nabla f$ the height does not change, so you are walking **along a contour line**. The gradient is perpendicular to the contours.
+- $\cos\theta = -1$ when $\theta = 180°$: the ground falls fastest along $-\nabla f$, the direction of **steepest descent**.
+
+<DirectionCompass />
+
+<Steps title="Steepest direction on f(x, y) = x² + 3y² at P = (−2, 0.5)">
+  <Step title="Gradient">
+    $\nabla f = [2x,\ 6y] = [2 \times (-2),\ 6 \times 0.5] = [-4,\ 3]$.
+  </Step>
+  <Step title="Two compass directions">
+    East, $u = [1, 0]$: slope $= -4 \times 1 + 3 \times 0 = -4$ (downhill). North, $u = [0, 1]$: slope $= 3$ (uphill).
+  </Step>
+  <Step title="The best direction">
+    $\lVert \nabla f \rVert = \sqrt{(-4)^2 + 3^2} = 5$, so straight uphill is the unit direction $[-0.8,\ 0.6]$, with slope $(-4)(-0.8) + 3(0.6) = 5$. No direction beats 5.
+  </Step>
+  <Step title="Where rain flows">
+    Rain runs straight downhill, along $-\nabla f$, towards $[0.8,\ -0.6]$: down the nearest wall of the oval bowl, not straight at the bottom $(0, 0)$, which lies in direction $[0.97,\ -0.24]$.
+  </Step>
+</Steps>
+
+<KeyIdea>
+
+The gradient $\nabla f$ points in the direction of **steepest ascent**, its length $\lVert \nabla f \rVert$ is how steep that is, and it is **perpendicular to the contour lines**. Its opposite, $-\nabla f$, is the direction of steepest descent, which is the direction training walks in.
+
+</KeyIdea>
+
+<GradientField />
+
+Two things to take from the map: where contour lines (drawn at equal height steps) are **packed closely** the ground is steep, so $\lVert \nabla f \rVert$ is large; and in the long valley, $-\nabla f$ points across the valley, not at the lowest point (this matters in [Gradient descent on a loss landscape](#/learn/calculus-and-gradient-descent/gradient-descent)).
+
+<QuickCheck
+  id="calculus-and-gradient-descent.partial-derivatives-gradients.qc2"
+  q="At a point on a loss surface, the gradient is $\nabla L = [3, -4]$. What is the steepest slope available there, and in which direction must you walk to go downhill fastest?"
+  options={['Slope 5; walk towards $[0.6,\\ -0.8]$', 'Slope 7; walk towards $[-3,\\ 4]$', 'Slope 5; walk towards $[-0.6,\\ 0.8]$', 'Slope 1; walk towards $[-0.6,\\ 0.8]$']}
+  answer={2}
+  explain="The steepest slope is $\lVert \nabla L \rVert = \sqrt{3^2 + 4^2} = 5$, and fastest downhill is $-\nabla L = [-3, 4]$, with unit direction $[-0.6, 0.8]$. $[0.6, -0.8]$ is uphill. 7 adds the sizes of the entries and 1 adds the signed entries, instead of using Pythagoras."
+/>
+
+## Gradients of vector expressions
+
+With many weights in one vector $w = [w_1, \dots, w_n]$, two gradients come up again and again.
+
+**The dot product.** For a fixed input vector $x$, let $f(w) = w^T x = w_1 x_1 + w_2 x_2 + \dots + w_n x_n$ (the dot product $w \cdot x$ written as a matrix product; $w^T$ means $w$ transposed, as in [Matrices and multiplication](#/learn/vectors-and-matrices/matrices-and-multiplication)). Differentiating with respect to $w_1$, every term without $w_1$ vanishes and $w_1 x_1$ becomes $x_1$; the same happens for each weight, so
+
+$$
+\nabla_w \big(w^T x\big) = x .
+$$
+
+The subscript in $\nabla_w$ means "with respect to $w$". At a hawker centre, if $w_i$ is how many plates of dish $i$ you order and $x_i$ its price, one more plate of dish $i$ raises the bill by exactly $x_i$.
+
+**The squared length.** Let $f(w) = \lVert w \rVert^2 = w_1^2 + w_2^2 + \dots + w_n^2$, the squared L2 norm. With all other weights frozen, $\frac{\partial f}{\partial w_i} = 2w_i$, so
+
+$$
+\nabla_w \lVert w \rVert^2 = 2w .
+$$
+
+It points straight out from the origin, at right angles to the circular contours.
+
+<VectorGradientCheck />
+
+<Reveal label="Answer to the visual's “Why?”">
+
+$\frac{(w_1 + h)^2 - w_1^2}{h} = \frac{2w_1 h + h^2}{h} = 2w_1 + h$, so the nudge estimate overshoots by exactly $h$. For $w^T x$ the function is a flat, tilted plane, so every nudge gives the exact slope.
+
+</Reveal>
+
+<PastPaperQuestion paper="prelim2026" n={42} />
+
+### Putting them together: the gradient of a loss
+
+Take a linear model with prediction $w^T x$ for one example $(x, y)$, and the squared error $\ell(w) = (w^T x - y)^2$. The chain rule says: differentiate the outside (the square gives $2(\text{inside})$), then multiply by the gradient of the inside, which is $x$ ($y$ is a constant). So
+
+$$
+\nabla_w\,\ell = 2\,(w^T x - y)\,x .
+$$
+
+In words: **error × input × 2**. Averaging over $n$ examples gives the mean squared error gradient $\frac{2}{n}\sum_{i} (w^T x_i - y_i)\,x_i$. Adding <Term def="A penalty λ‖w‖² added to the loss to keep the weights small; λ (lambda) sets how strong the penalty is.">L2 regularisation</Term> $\lambda \lVert w \rVert^2$ simply adds $2\lambda w$.
+
+<Steps title="One example, by hand">
+  <Step title="Set up">
+    $w = [1, 2]$, input $x = [3, 1]$, target $y = 4$.
+  </Step>
+  <Step title="Prediction and error">
+    $w^T x = 1 \times 3 + 2 \times 1 = 5$, so the error is $5 - 4 = 1$.
+  </Step>
+  <Step title="Gradient of the squared error">
+    $2 \times 1 \times [3, 1] = [6, 2]$.
+  </Step>
+  <Step title="Add L2 regularisation with λ = 0.5">
+    $2\lambda w = 2 \times 0.5 \times [1, 2] = [1, 2]$, so the total gradient is $[6, 2] + [1, 2] = [7, 4]$.
+  </Step>
+</Steps>
+
+## In code: trust, but check
+
+A **numerical gradient check** compares a formula with nudge estimates. This one nudges each weight up and down by $h$ (a "central difference"), which is far more accurate than nudging one way. The first row of `X` is your hand example.
+
+<PyRunner packages={['numpy']} code={`import numpy as np
+
+X = np.array([[3.0, 1.0],
+              [1.0, 2.0],
+              [2.0, 0.0]])        # 3 examples, 2 features each
+y = np.array([4.0, 3.0, 5.0])
+w = np.array([1.0, 2.0])
+lam = 0.5                         # L2 strength
+
+def loss(w):
+    errors = X @ w - y
+    return np.mean(errors ** 2) + lam * np.sum(w ** 2)
+
+def grad_formula(w):
+    n = len(y)
+    return (2 / n) * X.T @ (X @ w - y) + 2 * lam * w
+
+def grad_numeric(f, w, h=1e-5):
+    g = np.zeros_like(w)
+    for i in range(len(w)):
+        e = np.zeros_like(w)
+        e[i] = h                  # nudge weight i only
+        g[i] = (f(w + e) - f(w - e)) / (2 * h)
+    return g
+
+print("formula:", grad_formula(w))
+print("numeric:", grad_numeric(loss, w))`} />
+
+`X.T @ (X @ w - y)` computes $\sum_i (w^T x_i - y_i)\,x_i$ in one matrix product. Both lines print about $[0.333,\ 5.333]$ (averages over three examples). In PyTorch, <Term def="Automatic differentiation: the library records each operation as it runs, then applies the chain rule backwards to compute every gradient exactly.">autograd</Term> computes the gradient for you when you call `.backward()`.
+
+<Reveal label="The hand example in PyTorch">
+
+```python
+import torch
+
+w = torch.tensor([1.0, 2.0], requires_grad=True)  # track gradients
+x = torch.tensor([3.0, 1.0])                       # features
+y = torch.tensor(4.0)                              # target
+
+loss = (w @ x - y) ** 2 + 0.5 * (w ** 2).sum()    # error² + L2
+loss.backward()                                    # fills w.grad
+
+print(loss.item())
+print(w.grad)
+```
+
+```text
+3.5
+tensor([7., 4.])
+```
+
+`w.grad` has the same shape as `w`, and it matches the $[7, 4]$ you computed by hand.
+
+</Reveal>
+
+<ExamTip>
+
+- **Partial derivative**: freeze every other letter; terms without the variable vanish.
+- **Gradient**: a vector, e.g. $\nabla(x^2 + y^2) = [2x, 2y]$, not the sum $2x + 2y$.
+- **Memorise**: $\nabla_w \lVert w \rVert^2 = 2w$ (not $w$) and $\nabla_w (w^T x) = x$.
+- **Direction**: $\nabla f$ points to steepest ascent, $-\nabla f$ to steepest descent, at right angles to the contours; closer contours mean a longer gradient.
+
+</ExamTip>
+
+<Takeaways>
+
+- A partial derivative is the slope of a one-input slice: freeze every other input and differentiate as usual.
+- The gradient $\nabla f$ lists all the partial derivatives and has the same shape as the input.
+- The slope in direction $u$ is $\nabla f \cdot u$: $\nabla f$ points straight uphill, its length is the steepest slope, and it is perpendicular to contours.
+- $\nabla_w (w^T x) = x$ and $\nabla_w \lVert w \rVert^2 = 2w$; with the chain rule they give the squared-error gradient $2(w^T x - y)\,x$.
+- A numerical gradient check catches mistakes in gradient formulas.
+
+</Takeaways>

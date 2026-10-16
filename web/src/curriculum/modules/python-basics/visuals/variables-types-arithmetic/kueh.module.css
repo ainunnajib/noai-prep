@@ -1,0 +1,96 @@
+.wrap {
+  width: 100%;
+  display: grid;
+  gap: 0.7rem;
+}
+.box,
+.plate {
+  border-radius: var(--radius-m);
+  border: 1.5px solid var(--rule);
+  background: var(--surface-2);
+  padding: 0.45rem 0.6rem 0.55rem;
+  min-width: 0;
+}
+.box {
+  border-style: dashed;
+}
+.plates {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(118px, 1fr));
+  gap: 0.5rem;
+}
+.plate {
+  background: var(--surface);
+}
+.boxHead {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--ink-2);
+  margin-bottom: 0.35rem;
+}
+.count {
+  font-family: var(--font-mono);
+  color: var(--ink);
+}
+.kuehRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  min-height: 18px;
+}
+/* a slice of kueh lapis: alternating layers drawn with theme colours */
+.kueh {
+  width: 20px;
+  height: 16px;
+  border-radius: 3px;
+  background: repeating-linear-gradient(
+    to bottom,
+    var(--viz-2) 0 3px,
+    color-mix(in srgb, var(--viz-2) 40%, var(--surface)) 3px 6px
+  );
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--viz-2) 70%, var(--ink));
+}
+.fresh {
+  animation: drop 0.25s ease-out;
+}
+@keyframes drop {
+  from {
+    transform: translateY(-8px) scale(0.8);
+    opacity: 0.3;
+  }
+  to {
+    transform: none;
+    opacity: 1;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .fresh {
+    animation: none;
+  }
+}
+.empty {
+  font-size: 0.78rem;
+  font-style: italic;
+  color: var(--ink-3);
+}
+.maths {
+  display: grid;
+  gap: 0.25rem;
+  padding: 0.55rem 0.8rem;
+  border-radius: var(--radius-m);
+  background: var(--highlight-soft);
+  color: var(--ink);
+  font-size: var(--step--1);
+}
+.maths code {
+  font-size: 0.95rem;
+  font-weight: 700;
+}
+.check {
+  color: var(--ink-2);
+}
+.aside {
+  color: var(--ink-3);
+}

@@ -1,0 +1,269 @@
+{
+  "slug": "linear-algebra-deeper",
+  "order": 18,
+  "part": "classical-ml",
+  "domain": "mathematics",
+  "title": "Matrices as transformations: rank, eigenvectors and SVD",
+  "tagline": "Watching matrices bend space",
+  "summary": "Seeing a matrix as a warp of space explains rank, linear independence and conditioning, eigenvectors and eigenvalues, covariance matrices and SVD, the ideas behind PCA and many deeper NOAI maths questions.",
+  "prerequisites": [
+    "vectors-and-matrices",
+    "numpy",
+    "probability-and-statistics"
+  ],
+  "syllabus": [
+    "NOAI Mathematics: Linear Algebra",
+    "Linear transformations and composition",
+    "Span, linear independence, rank",
+    "Eigenvalues and eigenvectors",
+    "Covariance matrix, PCA, SVD, orthogonal and positive definite matrices",
+    "Condition number and numerical stability"
+  ],
+  "paper_subtopics": [
+    "linear-algebra",
+    "unsupervised"
+  ],
+  "lessons": [
+    {
+      "slug": "linear-transformations",
+      "title": "A matrix is a transformation of space",
+      "summary": "Every matrix stretches, rotates, shears or squashes the whole grid, and multiplying matrices chains the moves.",
+      "minutes": 16,
+      "objectives": [
+        "You can predict where a 2×2 matrix sends the basis vectors",
+        "You can recognise rotation, scaling, shear and projection matrices",
+        "You can explain why matrix multiplication order matters"
+      ],
+      "concepts": [
+        {
+          "name": "Columns tell you where the axes go",
+          "explain": "The first column of a 2×2 matrix is where the x-axis arrow (1, 0) lands and the second column is where (0, 1) lands. Because the transformation is linear, grid lines stay straight, parallel and evenly spaced, so these two arrows determine everything.",
+          "analogy": "Like stretching a fishnet: once you know where two neighbouring knots go, the whole net follows.",
+          "visual": {
+            "component": "GridWarper",
+            "kind": "interactive",
+            "shows": "A full coordinate grid and a smiley shape that warp live, with the two basis arrows (columns) draggable and the matrix entries updating.",
+            "interaction": "Drag the basis arrows or choose presets (rotate 90°, scale, shear, reflect, project onto a line); a slider morphs smoothly from identity to the chosen matrix.",
+            "aha": "A matrix is a complete recipe for moving space, and its columns are the whole recipe."
+          }
+        },
+        {
+          "name": "Composition: order matters",
+          "explain": "Multiplying AB means 'do B first, then A', because (AB)x = A(Bx). Rotating then shearing gives a different result from shearing then rotating, which is why AB ≠ BA in general.",
+          "analogy": "Putting on socks then shoes is not the same as shoes then socks.",
+          "visual": {
+            "component": "ComposeOrder",
+            "kind": "interactive",
+            "shows": "Two side-by-side grids applying a rotation R and a shear S in the two orders, with the final matrices RS and SR shown.",
+            "interaction": "Toggle the order, adjust the rotation angle and shear amount, and watch the two results differ.",
+            "aha": "Non-commutativity is not an algebra quirk; it is literally doing moves in a different order."
+          }
+        }
+      ],
+      "code": "none",
+      "checkpoint_focus": [
+        "Columns are images of the basis vectors",
+        "Common transformation matrices",
+        "AB means apply B first, then A"
+      ]
+    },
+    {
+      "slug": "span-rank-independence",
+      "title": "Span, linear independence and rank",
+      "summary": "How many truly different directions a set of vectors or a matrix has, why rank limits what a matrix can do, and what 'nearly singular' means.",
+      "minutes": 20,
+      "objectives": [
+        "You can decide whether vectors are linearly independent",
+        "You can find the rank of small matrices",
+        "You can explain why rank ≤ min(m, n)"
+      ],
+      "concepts": [
+        {
+          "name": "Span and linear independence",
+          "explain": "The span of some vectors is everywhere you can reach by adding scaled copies of them. Vectors are linearly independent if none can be made from the others; two parallel vectors are dependent and only span a line.",
+          "analogy": "With only east-west roads you can never go north; adding a north-south road (an independent direction) lets you reach the whole map.",
+          "visual": {
+            "component": "SpanExplorer",
+            "kind": "interactive",
+            "shows": "Two draggable arrows and a cloud of reachable points a·u + b·v filling the plane, collapsing to a single line when the arrows become parallel.",
+            "interaction": "Drag the arrows; use sliders for a and b to steer a target point; try to reach a point off the line when vectors are dependent.",
+            "aha": "Dependent vectors waste a direction; the span loses a dimension."
+          }
+        },
+        {
+          "name": "Rank counts surviving dimensions",
+          "explain": "The rank of a matrix is the number of linearly independent columns (equal to the number of independent rows). It is the dimension of the output space the matrix can reach, so a 3×5 matrix has rank at most 3. A square matrix is invertible exactly when it has full rank.",
+          "analogy": "A shadow of a 3D object on the floor is 2D: the projection has rank 2, and you cannot rebuild the height from the shadow.",
+          "visual": {
+            "component": "RankCollapse",
+            "kind": "interactive",
+            "shows": "A 2×2 (and a 3×3 toggle) MatrixGrid and the image of the grid; the output is a plane (rank 2), a line (rank 1) or a point (rank 0), with a rank badge.",
+            "interaction": "Edit entries or press 'make column 2 = 2 × column 1'; watch the output collapse and rank drop.",
+            "aha": "Rank is how many dimensions survive the transformation, which is why rank ≤ min(rows, columns)."
+          }
+        },
+        {
+          "name": "Nearly singular: the condition number",
+          "explain": "A matrix can be technically invertible yet almost singular, for example when two columns point in nearly the same direction. Then a tiny change in the input to Ax = b can swing the solution x wildly. The condition number (largest singular value divided by the smallest) measures this sensitivity: near 1 is stable, very large means numerically unreliable inverses and slow, zig-zagging optimisation.",
+          "analogy": "Finding where two almost-parallel roads cross: nudge one road slightly and the crossing point jumps hundreds of metres.",
+          "visual": {
+            "component": "ConditionNumberWobble",
+            "kind": "interactive",
+            "shows": "Two lines (the equations of a 2×2 system) and their intersection point, with a readout of the condition number; a jitter control perturbs b slightly and leaves a cloud of resulting solutions.",
+            "interaction": "Rotate one line towards the other to make the system ill-conditioned; press 'jitter b' and watch the solution cloud stretch out.",
+            "aha": "Nearly dependent columns make solutions fragile, which is why feature scaling and regularisation help numerically."
+          }
+        }
+      ],
+      "code": "snippet",
+      "checkpoint_focus": [
+        "Linear dependence (one vector is a combination of others)",
+        "Rank as number of independent columns",
+        "rank ≤ min(m, n)",
+        "Rank and invertibility",
+        "Condition number and numerical stability"
+      ]
+    },
+    {
+      "slug": "eigenvectors-eigenvalues",
+      "title": "Eigenvectors and eigenvalues",
+      "summary": "The special directions a matrix only stretches, never turns, and the numbers that say by how much.",
+      "minutes": 20,
+      "objectives": [
+        "You can state Av = λv in words",
+        "You can find eigenvalues of a 2×2 diagonal or triangular matrix by inspection",
+        "You can relate eigenvalues to determinant and trace"
+      ],
+      "concepts": [
+        {
+          "name": "Directions that do not turn",
+          "explain": "Most vectors change direction when a matrix acts on them. An eigenvector is special: A only stretches it, so Av = λv, and the stretch factor λ is its eigenvalue. A negative λ flips it and λ = 0 squashes it to nothing.",
+          "analogy": "On a spinning roundabout everything turns, except the centre pole; eigenvectors are the 'poles' of a matrix that stay on their own line.",
+          "visual": {
+            "component": "EigenHunter",
+            "kind": "interactive",
+            "shows": "A unit-circle probe vector v and its image Av drawn together; when they line up the line glows and λ is displayed. All input directions are shown as a faint ellipse of outputs.",
+            "interaction": "Drag v around the circle hunting for alignment; edit the matrix to see eigen-directions move or disappear (rotations have none in 2D real space).",
+            "aha": "Eigenvectors are the axes along which a matrix acts like simple scaling, which makes complicated matrices easy to reason about."
+          }
+        },
+        {
+          "name": "Eigenvalues, determinant and trace",
+          "explain": "For any square matrix, the product of the eigenvalues equals the determinant and their sum equals the trace. For diagonal or triangular matrices the eigenvalues are just the diagonal entries. If any eigenvalue is 0, the determinant is 0 and the matrix is singular.",
+          "analogy": "If a photocopier stretches width by 2 and height by 3, the area grows by 2 × 3 = 6, which is the determinant.",
+          "visual": {
+            "component": "EigenBars",
+            "kind": "interactive",
+            "shows": "Bars for λ₁ and λ₂ next to bars for their product and sum, matched against det and trace computed directly from the matrix entries.",
+            "interaction": "Edit a 2×2 matrix with sliders; the bars update and stay matched; drag a λ to 0 to see det hit 0.",
+            "aha": "You can often answer eigenvalue MCQs with det and trace alone, without solving any equation."
+          }
+        },
+        {
+          "name": "Repeated multiplication finds the dominant direction",
+          "explain": "If you apply a matrix again and again to almost any vector, it lines up with the eigenvector with the largest eigenvalue (power iteration). This is why repeated layers can blow up or shrink signals, and how PageRank-style ranking works.",
+          "analogy": "Passing a rumour through a chain of friends: whatever version spreads fastest ends up dominating.",
+          "visual": {
+            "component": "PowerIteration",
+            "kind": "animation",
+            "shows": "A vector repeatedly transformed (and rescaled) by the same matrix, leaving a trail that swings towards the dominant eigenvector line.",
+            "interaction": "Play or step; change the starting vector and the matrix; turn rescaling off to see lengths explode or vanish.",
+            "aha": "Repeated multiplication amplifies the biggest eigenvalue's direction, previewing exploding and vanishing gradients in deep nets."
+          }
+        }
+      ],
+      "code": "runnable",
+      "checkpoint_focus": [
+        "Definition Av = λv",
+        "Eigenvalues of diagonal/triangular matrices",
+        "Product of eigenvalues = det, sum = trace",
+        "Zero eigenvalue means singular"
+      ]
+    },
+    {
+      "slug": "covariance-and-pca",
+      "title": "Covariance and PCA",
+      "summary": "The shape of a data cloud captured in a matrix, and PCA: its eigenvectors are the directions of greatest spread.",
+      "minutes": 25,
+      "objectives": [
+        "You can read and compute a covariance matrix",
+        "You can explain PCA as finding the eigenvectors of the covariance matrix",
+        "You can compute an explained variance ratio and a PCA score"
+      ],
+      "concepts": [
+        {
+          "name": "The covariance matrix describes a data cloud",
+          "explain": "For 2D data, the covariance matrix holds the variance of x, the variance of y and their covariance off the diagonal. It is always symmetric. Its eigenvectors are the axes of the data's elliptical shape and its eigenvalues are the variances along those axes.",
+          "analogy": "A crowd at an NDP viewing spot is spread out more along the waterfront than away from it; the covariance matrix records that stretch and its direction.",
+          "visual": {
+            "component": "CovarianceEllipse",
+            "kind": "interactive",
+            "shows": "A scatter of 200 deterministic points with a fitted ellipse, its two axes drawn as eigenvectors, and the live 2×2 covariance MatrixGrid.",
+            "interaction": "Use sliders for spread along each axis and rotation angle (or drag the ellipse handles); the points, matrix and eigenvectors update together.",
+            "aha": "The off-diagonal entry is the tilt of the cloud, and the eigenvectors of the covariance are exactly the directions PCA will pick."
+          }
+        }
+      ],
+      "code": "runnable",
+      "checkpoint_focus": [
+        "Covariance matrix is symmetric, diagonal = variances",
+        "Principal components = eigenvectors, explained variance = eigenvalues"
+      ]
+    },
+    {
+      "slug": "svd-and-special-matrices",
+      "title": "SVD and special matrices",
+      "summary": "Orthogonal matrices, the turn-stretch-turn view of any matrix, low-rank approximation, positive definite matrices, QR and the Frobenius norm.",
+      "minutes": 30,
+      "objectives": [
+        "You can describe SVD as turn, stretch, turn and read off singular values",
+        "You can recognise orthogonal and positive definite matrices",
+        "You can describe QR decomposition (Gram–Schmidt) and compute a Frobenius norm"
+      ],
+      "concepts": [
+        {
+          "name": "SVD: rotate, stretch, rotate",
+          "explain": "Every matrix can be written A = UΣVᵀ: a rotation (Vᵀ), a stretch along the axes by the singular values (Σ), and another rotation (U). The number of non-zero singular values is the rank, and keeping only the largest ones gives the best low-rank approximation.",
+          "analogy": "Any dance move can be broken into turn, stretch, turn.",
+          "visual": {
+            "component": "SVDStepper",
+            "kind": "stepper",
+            "shows": "A unit circle with two marked arrows transformed in three stages into the final ellipse, with U, Σ and Vᵀ displayed for each stage.",
+            "interaction": "Step through the three stages or scrub a slider; edit A and see the singular values (ellipse semi-axes) update.",
+            "aha": "Singular values are the stretch factors; low-rank approximation (and LoRA later) keeps only the biggest stretches."
+          }
+        },
+        {
+          "name": "Orthogonal and positive definite matrices",
+          "explain": "An orthogonal matrix has perpendicular unit-length columns, so QᵀQ = I; it only rotates or reflects and never changes lengths. A symmetric matrix is positive definite if xᵀAx > 0 for every non-zero x, equivalently all its eigenvalues are positive, which describes a bowl-shaped function with a single minimum.",
+          "analogy": "Turning a map on the table (orthogonal) never changes distances on it, unlike stretching it.",
+          "visual": {
+            "component": "LengthKeeper",
+            "kind": "interactive",
+            "shows": "A set of arrows before and after a chosen matrix, with their lengths listed; a second panel draws the surface xᵀAx as a contour map (bowl, saddle or trough).",
+            "interaction": "Pick orthogonal vs non-orthogonal matrices and compare lengths; adjust eigenvalue sliders for the quadratic form and watch the bowl turn into a saddle when one goes negative.",
+            "aha": "Orthogonal matrices keep signals the same size (useful for stable deep nets), and positive definite means 'bowl', which links straight to optimisation."
+          }
+        },
+        {
+          "name": "QR and the Frobenius norm",
+          "explain": "QR writes A = QR with Q orthogonal (perpendicular unit columns) and R upper triangular, useful for solving least squares stably. The Frobenius norm of a matrix is the square root of the sum of all squared entries, like an L2 norm for matrices.",
+          "analogy": "Like straightening a set of crooked shelves so they meet at right angles (Q) and recording how they were tilted (R).",
+          "visual": {
+            "component": "QRAndFrobenius",
+            "kind": "interactive",
+            "shows": "Tabs: QR shows column vectors being made perpendicular step by step (Gram-Schmidt); Frobenius shows each entry squared, summed and square-rooted.",
+            "interaction": "Step through Gram-Schmidt; edit a matrix and watch its Frobenius norm update.",
+            "aha": "Orthogonal Q is numerically safe; the Frobenius norm is the L2 norm of all entries."
+          }
+        }
+      ],
+      "code": "runnable",
+      "checkpoint_focus": [
+        "SVD A = UΣVᵀ and singular values",
+        "Orthogonal matrices preserve length",
+        "QR = orthogonal × upper triangular; Frobenius norm = √(sum of squared entries)"
+      ]
+    }
+  ]
+}

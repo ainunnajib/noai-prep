@@ -1,0 +1,270 @@
+.wrap {
+  width: 100%;
+  display: grid;
+  gap: 0.8rem;
+  min-width: 0;
+}
+
+/* ---------- number table (StableSoftmax) ---------- */
+.tableScroll {
+  width: 100%;
+  overflow-x: auto;
+}
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.86rem;
+  font-variant-numeric: tabular-nums;
+}
+.table th,
+.table td {
+  padding: 0.38rem 0.35rem;
+  text-align: right;
+  border-bottom: 1px solid var(--rule);
+  white-space: nowrap;
+}
+.table th {
+  font-weight: 650;
+  color: var(--ink-2);
+  background: var(--surface-2);
+  font-size: 0.8rem;
+}
+.table th:first-child,
+.table td:first-child {
+  text-align: left;
+}
+.table tfoot td {
+  border-bottom: none;
+  border-top: 1.5px solid var(--ink-2);
+  color: var(--ink-2);
+}
+.num {
+  font-family: var(--font-mono);
+  font-size: 0.82rem;
+}
+.trueRow td {
+  background: color-mix(in srgb, var(--highlight) 22%, transparent);
+}
+.bad {
+  color: var(--viz-neg);
+  font-weight: 750;
+}
+.under {
+  color: var(--viz-2-ink);
+  font-weight: 700;
+}
+.pcell {
+  position: relative;
+  min-width: 4.2rem;
+}
+.pbar {
+  position: absolute;
+  left: 0.2rem;
+  top: 22%;
+  bottom: 22%;
+  border-radius: 3px;
+  background: color-mix(in srgb, var(--viz-1) 30%, transparent);
+}
+.pcell span {
+  position: relative;
+}
+.dim {
+  color: var(--ink-3);
+}
+
+/* ---------- verdict banner ---------- */
+.verdict {
+  display: flex;
+  gap: 0.6rem;
+  align-items: baseline;
+  flex-wrap: wrap;
+  padding: 0.55rem 0.75rem;
+  border-radius: var(--radius-m);
+  border: 1.5px solid var(--rule);
+  background: var(--surface-2);
+  font-size: 0.92rem;
+  line-height: 1.45;
+  color: var(--ink);
+}
+.verdictBad {
+  border-color: color-mix(in srgb, var(--viz-neg) 60%, var(--rule));
+  background: color-mix(in srgb, var(--viz-neg) 10%, var(--surface));
+}
+.verdictOk {
+  border-color: color-mix(in srgb, var(--viz-pos) 60%, var(--rule));
+  background: color-mix(in srgb, var(--viz-pos) 10%, var(--surface));
+}
+.badge {
+  font-weight: 800;
+  font-size: 0.78rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  padding: 0.1rem 0.45rem;
+  border-radius: 999px;
+  color: var(--surface);
+  background: var(--viz-neg);
+  flex: none;
+}
+.badgeOk {
+  background: var(--viz-pos-ink);
+}
+
+.presets {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  align-items: center;
+}
+.presetsLabel {
+  font-size: 0.85rem;
+  color: var(--ink-2);
+  font-weight: 650;
+}
+
+/* ---------- step narration (NaNPropagation) ---------- */
+.narr {
+  min-height: 4.4em;
+  font-size: 0.92rem;
+  line-height: 1.5;
+  color: var(--ink);
+  margin: 0;
+}
+.code {
+  font-family: var(--font-mono);
+  font-size: 0.84em;
+  background: var(--surface-2);
+  border: 1px solid var(--rule);
+  border-radius: 4px;
+  padding: 0 0.25em;
+}
+.legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem 1rem;
+  font-size: 0.82rem;
+  color: var(--ink-2);
+}
+.legend span {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+.sw {
+  width: 0.9rem;
+  height: 0.9rem;
+  border-radius: 50%;
+  display: inline-block;
+  border: 2px solid var(--viz-ink);
+}
+.swLine {
+  width: 1.2rem;
+  height: 0;
+  display: inline-block;
+  border-top: 3px solid var(--viz-neg);
+}
+.swDash {
+  width: 1.2rem;
+  height: 0;
+  display: inline-block;
+  border-top: 3px dashed var(--viz-neg);
+}
+
+/* ---------- gradient-norm diagnosis ---------- */
+.diag {
+  display: grid;
+  gap: 0.35rem;
+  padding: 0.6rem 0.75rem;
+  border-radius: var(--radius-m);
+  border: 1.5px solid var(--rule);
+  background: var(--surface-2);
+  font-size: 0.92rem;
+  line-height: 1.45;
+  color: var(--ink);
+}
+.diag strong {
+  color: var(--ink);
+}
+.choices {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+.choice {
+  font: inherit;
+  font-size: 0.86rem;
+  padding: 0.3rem 0.7rem;
+  border-radius: 999px;
+  border: 1.5px solid var(--rule);
+  background: var(--surface);
+  color: var(--ink);
+  cursor: pointer;
+}
+.choice:hover {
+  border-color: var(--accent);
+}
+.choice:focus-visible {
+  outline: 3px solid var(--accent);
+  outline-offset: 2px;
+}
+.choiceRight {
+  border-color: var(--viz-pos);
+  background: color-mix(in srgb, var(--viz-pos) 16%, var(--surface));
+}
+.choiceWrong {
+  border-color: var(--viz-neg);
+  background: color-mix(in srgb, var(--viz-neg) 12%, var(--surface));
+}
+
+.checkGrid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 0.8rem 1.2rem;
+  align-items: start;
+}
+@media (max-width: 560px) {
+  .checkGrid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+.checkGrid .legend {
+  flex-direction: column;
+  gap: 0.35rem;
+}
+@media (max-width: 560px) {
+  .checkGrid .legend {
+    flex-direction: row;
+  }
+}
+.flagCell {
+  color: var(--ink);
+  font-weight: 700;
+  font-size: 0.8rem;
+}
+.swDashOk {
+  width: 1.2rem;
+  height: 0;
+  display: inline-block;
+  border-top: 3px dashed var(--viz-pos);
+}
+.small {
+  margin: 0;
+  font-size: 0.86rem;
+  line-height: 1.5;
+  color: var(--ink-2);
+}
+.verdictMeh {
+  border-color: color-mix(in srgb, var(--viz-2) 60%, var(--rule));
+  background: color-mix(in srgb, var(--viz-2) 10%, var(--surface));
+}
+.swBox {
+  width: 0.95rem;
+  height: 0.95rem;
+  border-radius: 3px;
+  display: inline-block;
+  border: 1.5px solid var(--viz-1);
+}
+.crossMark {
+  color: var(--viz-neg);
+  font-size: 1.1rem;
+  line-height: 1;
+}

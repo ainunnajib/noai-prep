@@ -1,0 +1,237 @@
+import EmbeddingMapCompare from './visuals/tsne-umap-and-anomalies/EmbeddingMapCompare'
+import PerplexityNeighbours from './visuals/tsne-umap-and-anomalies/PerplexityNeighbours'
+import TSNEPitfalls from './visuals/tsne-umap-and-anomalies/TSNEPitfalls'
+import AnomalyBoundary from './visuals/tsne-umap-and-anomalies/AnomalyBoundary'
+import { tsneCode, anomalyCode } from './visuals/tsne-umap-and-anomalies/code'
+
+You cannot look at 64-dimensional data. To see whether a dataset contains groups, you need to draw it on a flat screen, and PCA's straight-line shadow often smears the groups together. **t-SNE** and **UMAP** draw better maps by bending the space to keep similar points together. Researchers use them to look at image, word and cell data. Their maps are also easy to misread, so this lesson covers how to read them safely. It ends with a related skill: spotting the odd one out, or **anomaly detection**.
+
+<Analogy title="A wedding seating plan">
+
+You must seat 200 guests at round tables. You care most that friends sit at the **same table**, so the plan keeps each person's closest friends nearby. But the distance *between* two tables, or how big a table is, tells you almost nothing about how the two groups of friends relate. t-SNE and UMAP make seating plans for data points: trust who sits together, not the gaps between tables.
+
+</Analogy>
+
+## Maps that keep neighbours together
+
+PCA is linear: it can only rotate the data and drop axes. t-SNE and UMAP are <Term def="Not a straight-line (rotate-and-drop) transformation: the map can bend, stretch and squash different regions of the space differently.">non-linear</Term> methods. Each one moves points around in 2-D until every point's nearest neighbours in the original space are also its neighbours on the map. Compare the two kinds of map on real digit images and on a rolled-up "Swiss roll" sheet:
+
+<EmbeddingMapCompare />
+
+On the digits, PCA keeps only about a quarter of each point's 10 true neighbours, while t-SNE and UMAP keep roughly 60 to 67%. That is why the classes turn into clean islands. On the Swiss roll, PCA piles the layers on top of each other: points that are far apart along the sheet land on the same spot. Notice, too, that the picture changes when you move the slider. These maps depend on their settings.
+
+<KeyIdea>
+
+t-SNE and UMAP are non-linear maps that preserve **local neighbourhoods**: points that are close in the original space stay close on the map. They are built for **visualisation** in 2-D or 3-D, not for compressing data the way PCA does.
+
+</KeyIdea>
+
+## How t-SNE works, in three steps
+
+The name stands for <Term def="t-distributed Stochastic Neighbour Embedding: 'stochastic' because it uses probabilities and a random start; 't-distributed' because the map uses a Student-t curve.">t-distributed stochastic neighbour embedding</Term>.
+
+**Step 1: who are my neighbours?** For each point $\mathbf x_i$ in the original space, t-SNE gives every other point $\mathbf x_j$ a probability of being $i$'s neighbour, using a bell curve centred on $i$:
+
+$$
+p_{j|i} = \frac{\exp\!\left(-\lVert \mathbf x_i - \mathbf x_j \rVert^2 / 2\sigma_i^2\right)}{\sum_{k \ne i} \exp\!\left(-\lVert \mathbf x_i - \mathbf x_k \rVert^2 / 2\sigma_i^2\right)}
+$$
+
+- $\lVert \mathbf x_i - \mathbf x_j \rVert^2$ is the squared distance between the two points. Bigger distance means a smaller top line.
+- $\sigma_i$ is the width of the bell curve around point $i$.
+- Dividing by the sum over all other points $k$ makes the probabilities add up to 1.
+
+How wide should each bell curve be? You choose the <Term def="t-SNE's main setting: roughly the number of close neighbours each point pays attention to. Typical values are 5 to 50.">perplexity</Term>, and t-SNE picks every $\sigma_i$ so that point $i$ has about that many effective neighbours. Formally, $\text{perplexity} = 2^{H}$, where $H = -\sum_j p_{j|i} \log_2 p_{j|i}$ is the <Term def="A measure of how spread out a probability distribution is. If the probability is shared equally among m outcomes, the entropy in bits is log2(m), so 2 to the power H equals m.">entropy</Term>. If the probability were shared equally among $m$ points, then $H = \log_2 m$ and $2^H = m$ exactly.
+
+<Steps title="Perplexity by hand">
+  <Step title="Three neighbours, unequal shares">
+    Point $i$ gives its neighbours the probabilities 0.5, 0.25 and 0.25.
+  </Step>
+  <Step title="The entropy">
+    $-\log_2 0.5 = 1$ and $-\log_2 0.25 = 2$, so $H = 0.5 \times 1 + 0.25 \times 2 + 0.25 \times 2 = 1.5$ bits.
+  </Step>
+  <Step title="The perplexity">
+    $2^{1.5} \approx 2.8$: between 2 and 4 "effective" neighbours, because one favourite takes half the attention.
+  </Step>
+  <Step title="Compare an equal split">
+    Four neighbours at 0.25 each give $H = 4 \times 0.25 \times 2 = 2$ bits and perplexity $2^2 = 4$, exactly the number of neighbours.
+  </Step>
+</Steps>
+
+<PerplexityNeighbours />
+
+In a crowded region the circle shrinks, and in a sparse region it grows. So every point gets roughly the same number of neighbours wherever it is. Keep this in mind: it explains the first trap in the next section. (t-SNE then combines $p_{j|i}$ and $p_{i|j}$ into one symmetric similarity for each pair, $p_{ij} = (p_{j|i} + p_{i|j}) / (2n)$, so that all the $p_{ij}$ add up to 1, like the $q_{ij}$ below.)
+
+**Step 2: similarities on the map.** Each point gets a position $\mathbf y_i$ in 2-D, starting from random or PCA positions. Similarity on the map uses a different curve, the heavy-tailed <Term def="A bell-like curve with much fatter tails than the normal bell curve, so far-away values are far less unlikely. t-SNE uses its simplest form, 1 / (1 + d²).">Student-t</Term>:
+
+$$
+q_{ij} = \frac{\left(1 + \lVert \mathbf y_i - \mathbf y_j \rVert^2\right)^{-1}}{\sum_{k \ne l} \left(1 + \lVert \mathbf y_k - \mathbf y_l \rVert^2\right)^{-1}}
+$$
+
+The curve $1/(1 + d^2)$ falls off far more slowly than a bell curve. Compare the two at a few distances:
+
+| distance $d$ | 0 | 1 | 2 | 3 |
+|---|---|---|---|---|
+| bell curve $e^{-d^2/2}$ | 1 | 0.61 | 0.14 | 0.011 |
+| Student-t $1/(1 + d^2)$ | 1 | 0.5 | 0.2 | 0.1 |
+
+At $d = 3$ the t-curve still keeps about 9 times as much similarity. Why that helps: a flat map has far less room than 64-D space, so not every moderate distance can be kept. With the slow t-curve, two moderately similar points can sit far apart on the map and still keep their small similarity, so t-SNE can push groups well apart at little cost. That is what opens up the clear gaps between clusters.
+
+**Step 3: move the points until the two agree.** Gradient descent nudges the $\mathbf y_i$ to make the map similarities $q_{ij}$ match the original ones $p_{ij}$. The cost is the <Term def="Kullback–Leibler divergence: a measure of how different one probability distribution is from another; zero only when they are identical.">KL divergence</Term>:
+
+$$
+\text{KL}(P \,\|\, Q) = \sum_{i \ne j} p_{ij} \log \frac{p_{ij}}{q_{ij}}
+$$
+
+A pair with large $p_{ij}$ (true neighbours) but small $q_{ij}$ (far apart on the map) costs a lot. A pair with small $p_{ij}$ costs little wherever it is placed. So t-SNE works hard to keep neighbours together and cares much less about everything else.
+
+<QuickCheck
+  q="You raise t-SNE's perplexity from 5 to 50. What does each point now do?"
+  options={[
+    'Its bell curve widens to cover about 50 neighbours, so the map shows broader structure',
+    'Its bell curve narrows to cover fewer neighbours, so the map shows finer local detail',
+    'It keeps 50 dimensions instead of 5 before squashing the data down to a 2-D map',
+    'It runs 50 rounds of gradient descent instead of 5, so the map has more time to settle',
+  ]}
+  answer={0}
+  explain="Perplexity is roughly the number of effective neighbours ($2^H$), so 50 means each bell curve widens to cover about 50 points and the map reflects broader structure. It has nothing to do with the number of dimensions or iterations."
+/>
+
+## UMAP: a faster cousin
+
+<Term def="Uniform Manifold Approximation and Projection, a non-linear map introduced in 2018.">UMAP</Term> follows the same plan with different machinery:
+
+1. Connect each point to its `n_neighbors` nearest neighbours, giving stronger edges to closer ones. This builds a graph.
+2. Place the graph in 2-D, pulling connected points together and pushing randomly chosen unconnected points apart.
+3. The setting `min_dist` controls how tightly points may pack together on the map.
+
+`n_neighbors` plays the role of perplexity. Small values show fine local detail (and many little islands), while large values show more of the overall layout.
+
+| | PCA | t-SNE | UMAP |
+|---|---|---|---|
+| Linear? | yes | no | no |
+| Keeps | variance directions | local neighbours | local neighbours, some global layout |
+| Main setting | n_components | perplexity | n_neighbors |
+| New points? | transform | rerun all | transform |
+| Same every run? | yes | no | no |
+| Big data | very fast | slow | fast |
+| Used for | compression, features | pictures | pictures, sometimes features |
+
+scikit-learn's `TSNE` has `fit_transform` but no `transform` method. To add one new point you rerun the whole thing, and the new map may look different. UMAP lives in the separate `umap-learn` package, which the in-browser Python runner cannot load, so here is the code with the output it printed when run locally:
+
+```python
+# pip install umap-learn
+import umap
+from sklearn.datasets import load_digits
+
+X, y = load_digits(return_X_y=True)
+reducer = umap.UMAP(n_neighbors=15,
+                    min_dist=0.1,
+                    random_state=0)
+# learn the map from all 1,797 images
+Y = reducer.fit_transform(X)
+print(Y.shape)
+# place NEW points on the same map
+Y_new = reducer.transform(X[:5])
+print(Y_new.shape)
+```
+
+```text
+(1797, 2)
+(5, 2)
+```
+
+## Reading t-SNE plots safely
+
+A t-SNE map is persuasive: it looks like a photograph of your data. It is not one. Try to fool yourself before an exam question does:
+
+<TSNEPitfalls />
+
+<Mistake title="Three misreadings of a t-SNE (or UMAP) map">
+
+- **"These two clusters are the same size, so they are equally spread out."** No. Each $\sigma_i$ adapts to local density, so t-SNE expands dense clusters and shrinks sparse ones. Cluster size on the map means little.
+- **"Cluster A is far from cluster C, so they are very different."** Not reliable. Gaps between clusters are mostly not preserved.
+- **"I can see clusters, so the data has clusters."** At low perplexity even pure random noise breaks into clumps. Check several perplexities (and random seeds) before believing a pattern.
+
+What you *can* trust: points drawn close together in a tight group were neighbours in the original space.
+
+</Mistake>
+
+So use these maps to **explore**: spot possible groups, mislabelled points or outliers, then confirm with proper tools such as a clustering method with a score, or a classifier. Do not feed t-SNE coordinates into a model as features. There is no way to place new points, the result changes with settings and seeds, and the distances are deliberately distorted.
+
+t-SNE is slow in the browser: allow a minute or two for this one to finish.
+
+<PyRunner packages={['scikit-learn']} code={tsneCode} />
+
+```text
+map shape: (500, 2)
+PCA    trustworthiness: 0.857
+t-SNE  trustworthiness: 0.993
+```
+
+<Term def="A score from 0 to 1 for a low-dimensional map: 1 means that every point's nearest neighbours on the map were also its neighbours in the original data.">Trustworthiness</Term> measures exactly what these maps try to keep. On these 500 digits it comes out at about 0.86 for PCA and 0.99 for t-SNE.
+
+<ExamTip>
+
+Typical NOAI-style phrasing and the expected answer:
+
+- "t-SNE is mainly used for…": **visualising** high-dimensional data in 2-D or 3-D.
+- "t-SNE preserves…": **local structure** (neighbourhoods), not global distances.
+- "Perplexity controls…": roughly the **number of neighbours** each point considers.
+- "Compared with t-SNE, UMAP is…": **faster** and better at keeping **global** structure.
+- "Which method is linear?": **PCA**. t-SNE and UMAP are non-linear.
+
+</ExamTip>
+
+## Anomaly detection: learning what normal looks like
+
+An <Term def="A data point that is very different from the bulk of the data, often because something unusual happened: a fault, a fraud, an error.">anomaly</Term>, or outlier, is a point unlike the rest: a fraudulent card payment, a failing machine, a hacked login. Why not just train a classifier on "normal" versus "anomaly"? Because anomalies are **rare** (a few in a million), **varied** (fraudsters keep inventing new tricks) and **expensive to label**. So the usual approach is unsupervised in spirit: learn what normal data looks like, often from normal examples **only**, then flag anything that does not fit.
+
+<Analogy title="Airport security">
+
+Scanner operators look at thousands of ordinary bags every day. They do not need a catalogue of every possible dangerous item. They know what *normal* luggage looks like, so anything unusual gets a second look.
+
+</Analogy>
+
+Three families of detectors:
+
+- **Learn a boundary.** A <Term def="A support vector machine trained on one class (normal data) only. With a kernel it learns a boundary of any shape that encloses most of the data; points outside are flagged.">one-class SVM</Term> learns a boundary that wraps around most of the normal training data. With an <Term def="A similarity score exp(−γ × distance²) between two points: 1 when they coincide, falling towards 0 as they move apart. It lets an SVM draw curved boundaries.">RBF kernel</Term> the boundary can take any shape, even several islands. Its setting $\nu$ (nu, between 0 and 1) is an upper bound on the share of training points allowed outside the boundary.
+- **Measure emptiness.** Points in empty regions are suspicious. Examples are the average distance to the $k$ nearest training points, DBSCAN's noise points, and an <Term def="A group of many random trees that keep splitting the data at random. Unusual points get isolated after only a few splits, so a short average path length means 'anomaly'.">isolation forest</Term>, which finds that odd points are separated from the rest by only a few random splits.
+- **Measure reconstruction error.** Compress each point and rebuild it, with PCA (from [Principal component analysis](#/learn/unsupervised-learning/pca)) or an <Term def="A neural network trained to squeeze its input through a narrow middle layer and rebuild it at the output.">autoencoder</Term>. A model fitted to normal data rebuilds normal points well and anomalies badly, so a large error raises the alarm.
+
+<AnomalyBoundary />
+
+Moving the slider shows the central trade-off. A **tight** boundary (large $\nu$) catches more anomalies but raises more false alarms on normal data; a **loose** one does the opposite. This is the precision-recall trade-off from [model evaluation](#/learn/model-evaluation/confusion-matrix-and-metrics) again: catching more anomalies costs more false alarms. If a handful of labelled anomalies exist, use them only to **evaluate** the detector and pick its threshold, not to train it.
+
+<PastPaperQuestion paper="prelim2026" n={159} />
+
+The same ideas in scikit-learn, plus a from-scratch $k$-NN distance score. Both detectors return $+1$ for normal and $-1$ for anomaly:
+
+<PyRunner packages={['numpy', 'scikit-learn']} code={anomalyCode} />
+
+```text
+one-class SVM: [ 1 -1 -1]
+isolation forest: [ 1 -1 -1]
+[ 0.2 -0.1] k-NN score: 0.11
+[2.5 2.5] k-NN score: 1.27
+[-4.   0.5] k-NN score: 1.32
+```
+
+The first new point sits in the middle of the normal data and passes; the other two are flagged by both detectors, and their $k$-NN scores are more than ten times larger.
+
+<ExamTip>
+
+For anomaly-detection questions, look for the clue **"only normal data is available"** or **"anomalies are very rare"**. The answer is then a one-class method (one-class SVM, isolation forest, density or reconstruction error), not an ordinary classifier. For the one-class SVM, $\nu$ ≈ the share of training points you allow to be flagged.
+
+</ExamTip>
+
+<Takeaways>
+
+- t-SNE and UMAP are non-linear maps for **visualising** high-dimensional data; they keep **local neighbourhoods**.
+- Perplexity (t-SNE) and `n_neighbors` (UMAP) set roughly how many neighbours each point considers, and the map changes with them.
+- On a t-SNE map, **cluster sizes and gaps are not reliable**, and noise can look clustered. Trust only who is next to whom, and do not use the map as model features.
+- UMAP is faster, keeps a bit more global layout and can `transform` new points; PCA is linear, deterministic and best for compression.
+- Anomaly detection learns what normal looks like (boundary, emptiness or reconstruction error) and flags the rest; tightness trades false alarms against misses.
+
+</Takeaways>
+
+That completes the Classical machine learning part. Next, the deep-learning part starts with [the perceptron](#/learn/neural-networks/perceptron), where the weighted sums and gradient descent of this part become neural networks.

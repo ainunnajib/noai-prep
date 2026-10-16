@@ -1,0 +1,297 @@
+/* Shared local styles for the algorithms-and-complexity visuals. Colours come only from theme tokens. */
+
+.wrap {
+  width: 100%;
+  display: grid;
+  gap: 0.75rem;
+  min-width: 0;
+}
+
+.row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 1rem;
+  align-items: center;
+  width: 100%;
+  min-width: 0;
+}
+
+/* ---------- toggle chips ---------- */
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+
+.chip {
+  --c: var(--viz-1);
+  font: inherit;
+  font-size: 0.8125rem;
+  font-weight: 700;
+  padding: 0.22rem 0.6rem;
+  border-radius: 999px;
+  border: 1.5px solid color-mix(in srgb, var(--c) 70%, transparent);
+  background: transparent;
+  color: var(--ink-2);
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.chip[aria-pressed='true'] {
+  background: color-mix(in srgb, var(--c) 18%, var(--surface));
+  color: var(--ink);
+}
+
+.chip[aria-pressed='false'] {
+  border-style: dashed;
+  opacity: 0.7;
+}
+
+.chip:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* ---------- growth race bars ---------- */
+.race {
+  width: 100%;
+  display: grid;
+  gap: 0.55rem;
+  min-width: 0;
+}
+
+.raceRow {
+  display: grid;
+  gap: 0.2rem;
+  min-width: 0;
+}
+
+.raceHead {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 0.5rem;
+  font-size: 0.8125rem;
+  line-height: 1.25;
+  min-width: 0;
+}
+
+.raceName {
+  font-weight: 800;
+  color: var(--ink);
+  white-space: nowrap;
+}
+
+.raceSub {
+  font-weight: 500;
+  color: var(--ink-3);
+  margin-left: 0.35rem;
+}
+
+.raceVal {
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  color: var(--ink-2);
+  text-align: right;
+  overflow-wrap: anywhere;
+}
+
+.raceVal b {
+  color: var(--ink);
+}
+
+.raceTrack {
+  position: relative;
+  height: 14px;
+  border-radius: 4px;
+  background: var(--surface-2);
+  overflow: hidden;
+}
+
+.raceFill {
+  position: absolute;
+  inset: 0 auto 0 0;
+  border-radius: 4px;
+  transition: width 220ms ease;
+}
+
+.raceOff {
+  position: absolute;
+  right: 4px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  color: var(--surface);
+}
+
+.raceGrid {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 1px;
+  background: color-mix(in srgb, var(--ink) 18%, transparent);
+}
+
+.axis {
+  position: relative;
+  height: 1.1rem;
+  font-size: 0.7rem;
+  color: var(--ink-3);
+  font-family: var(--font-mono);
+}
+
+.axis span {
+  position: absolute;
+  top: 0;
+  transform: translateX(-50%);
+  white-space: nowrap;
+}
+
+.axis span:first-child {
+  transform: none;
+}
+
+.axis span:last-child {
+  transform: translateX(-100%);
+}
+
+/* ---------- callout strip inside a figure ---------- */
+.verdict {
+  width: 100%;
+  padding: 0.5rem 0.7rem;
+  border-radius: var(--radius-m);
+  background: var(--highlight-soft);
+  color: var(--highlight-ink);
+  font-size: 0.875rem;
+  line-height: 1.45;
+}
+
+.muted {
+  color: var(--ink-3);
+  font-size: 0.8125rem;
+}
+
+/* ---------- side-by-side panels ---------- */
+.panels {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.75rem;
+  width: 100%;
+  min-width: 0;
+}
+
+.panel {
+  min-width: 0;
+  display: grid;
+  gap: 0.3rem;
+  align-content: start;
+}
+
+.panelTitle {
+  font-size: 0.8125rem;
+  font-weight: 800;
+  color: var(--ink);
+  display: flex;
+  justify-content: space-between;
+  gap: 0.4rem;
+  flex-wrap: wrap;
+}
+
+.panelTitle span:last-child {
+  font-family: var(--font-mono);
+  font-weight: 700;
+  color: var(--ink-2);
+}
+
+/* ---------- array cells (searching, sorting, memory) ---------- */
+.cells {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  min-width: 0;
+}
+
+.cell {
+  --c: var(--viz-muted);
+  min-width: 2.1rem;
+  height: 2.1rem;
+  padding: 0 0.3rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+  border: 1.5px solid var(--rule);
+  background: var(--surface);
+  font-family: var(--font-mono);
+  font-weight: 700;
+  font-size: 0.9rem;
+  color: var(--ink);
+  transition: background 150ms, border-color 150ms, opacity 150ms;
+}
+
+.cellLabel {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--ink-3);
+}
+
+.memRow {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 0.25rem;
+  min-width: 0;
+}
+
+.summary {
+  width: 100%;
+  display: grid;
+  gap: 0.45rem;
+  font-size: 0.8125rem;
+  color: var(--ink-2);
+}
+
+.summaryHead {
+  font-weight: 700;
+  color: var(--ink);
+}
+
+.summaryRow {
+  display: grid;
+  gap: 0.1rem;
+  padding: 0.4rem 0.6rem;
+  border-radius: var(--radius-m);
+  background: var(--surface-2);
+}
+
+.summaryRow b {
+  color: var(--ink);
+}
+
+.tableSmall {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.8125rem;
+}
+
+.tableSmall th,
+.tableSmall td {
+  padding: 0.3rem 0.45rem;
+  border-bottom: 1px solid var(--rule);
+  text-align: left;
+  vertical-align: top;
+}
+
+.tableSmall th {
+  color: var(--ink-2);
+  font-weight: 700;
+}
+
+.tableSmall td {
+  color: var(--ink);
+}
+
+.mono {
+  font-family: var(--font-mono);
+}

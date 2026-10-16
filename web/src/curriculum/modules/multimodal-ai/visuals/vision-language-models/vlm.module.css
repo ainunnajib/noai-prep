@@ -1,0 +1,214 @@
+/* Shared styles for the vision-language-model visuals. */
+
+.full {
+  width: 100%;
+  min-width: 0;
+}
+.svgFull {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+.stepText {
+  width: 100%;
+  min-height: 5.6em;
+  padding: 0.6rem 0.8rem;
+  border-radius: var(--radius-s);
+  background: var(--surface-2);
+  font-size: var(--step--1);
+  line-height: 1.5;
+  color: var(--ink);
+}
+.stepTitle {
+  display: block;
+  font-weight: 800;
+  margin-bottom: 0.15rem;
+}
+.warn {
+  color: var(--viz-neg);
+  font-weight: 800;
+}
+
+/* ---------- self vs cross attention ---------- */
+.tokRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+  justify-content: center;
+  width: 100%;
+}
+.tokBtn {
+  font: inherit;
+  font-family: var(--font-mono);
+  font-size: 0.85rem;
+  padding: 0.2rem 0.55rem;
+  border-radius: 6px;
+  border: 1.5px solid var(--rule);
+  background: color-mix(in srgb, var(--viz-1) 12%, var(--surface));
+  color: var(--ink);
+  cursor: pointer;
+}
+.tokBtn:hover {
+  border-color: var(--accent-line);
+}
+.tokBtn:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+.tokBtn[aria-pressed='true'] {
+  border-color: var(--viz-1);
+  background: var(--viz-1);
+  color: var(--surface);
+  font-weight: 700;
+}
+.hint {
+  margin: 0;
+  font-size: var(--step--1);
+  color: var(--ink-2);
+  text-align: center;
+}
+.twoUp {
+  display: grid;
+  grid-template-columns: minmax(0, 0.85fr) minmax(0, 1.15fr);
+  gap: 1rem;
+  width: 100%;
+  align-items: start;
+}
+.twoUpNarrow {
+  grid-template-columns: minmax(0, 1fr);
+}
+.panelTitle {
+  font-size: var(--step--1);
+  font-weight: 750;
+  color: var(--ink);
+  margin: 0 0 0.35rem;
+  text-align: center;
+}
+.split {
+  font-size: 0.8rem;
+  color: var(--ink-2);
+  text-align: center;
+  margin: 0.35rem 0 0;
+}
+
+/* ---------- tasks ---------- */
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  justify-content: center;
+  width: 100%;
+}
+.chip {
+  font: inherit;
+  font-size: 0.82rem;
+  padding: 0.25rem 0.65rem;
+  border-radius: 999px;
+  border: 1.5px solid var(--rule);
+  background: var(--surface-2);
+  color: var(--ink-2);
+  cursor: pointer;
+}
+.chip[aria-pressed='true'] {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+  color: var(--ink);
+  font-weight: 700;
+}
+.chip:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+.chat {
+  display: grid;
+  gap: 0.5rem;
+  width: 100%;
+  min-width: 0;
+}
+.bubbleUser {
+  justify-self: end;
+  max-width: 92%;
+  padding: 0.45rem 0.75rem;
+  border-radius: 14px 14px 4px 14px;
+  background: color-mix(in srgb, var(--viz-1) 16%, var(--surface));
+  color: var(--ink);
+  font-size: var(--step--1);
+  line-height: 1.45;
+}
+.bubbleBot {
+  justify-self: start;
+  max-width: 92%;
+  padding: 0.45rem 0.75rem;
+  border-radius: 14px 14px 14px 4px;
+  background: color-mix(in srgb, var(--viz-3) 16%, var(--surface));
+  color: var(--ink);
+  font-size: var(--step--1);
+  line-height: 1.45;
+}
+.bubbleBad {
+  background: color-mix(in srgb, var(--viz-neg) 14%, var(--surface));
+}
+.who {
+  display: block;
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+  margin-bottom: 0.1rem;
+}
+.taskGrid {
+  display: grid;
+  grid-template-columns: minmax(150px, 230px) minmax(0, 1fr);
+  gap: 1rem;
+  width: 100%;
+  align-items: start;
+}
+.taskGridNarrow {
+  grid-template-columns: minmax(0, 1fr);
+  justify-items: center;
+}
+.note {
+  font-size: 0.8rem;
+  color: var(--ink-2);
+  line-height: 1.45;
+}
+
+/* gate meter under the cross-attention slider: the word's own vector plus tanh(α) × the picture's contribution */
+.gateMeter {
+  width: 100%;
+  display: grid;
+  gap: 0.25rem;
+}
+.gateLabel {
+  font-size: 0.8125rem;
+  color: var(--ink-2);
+}
+.gateBar {
+  display: flex;
+  height: 1.6rem;
+  border: 1px solid var(--rule);
+  border-radius: 6px;
+  overflow: hidden;
+}
+.gateBar > span {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--ink);
+  white-space: nowrap;
+  overflow: hidden;
+  transition: flex-basis 0.2s ease;
+}
+
+/* phones: the four encoder options as a tidy 2 × 2 grid instead of a pill that wraps one option onto its own row */
+.encPickNarrow {
+  width: 100%;
+}
+.encPickNarrow :global(.segmented-track) {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  border-radius: 14px;
+}

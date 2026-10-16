@@ -1,0 +1,186 @@
+import ChanceLevelMeter from './visuals/data-bugs-and-shift/ChanceLevelMeter'
+import DistributionShift from './visuals/data-bugs-and-shift/DistributionShift'
+import TimeSplitLab from './visuals/data-bugs-and-shift/TimeSplitLab'
+import { ENCODER_CODE, DUPLICATE_LEAK_CODE } from './visuals/data-bugs-and-shift/snippets'
+
+The most dangerous bugs in machine learning do not crash. The code runs, the training loss falls beautifully, and the model is useless, or it scores 98% in testing and then fails in the real world. Almost always, the culprit is the **data**: labels that do not line up, a validation set processed differently from the training set, information leaking from the answers into the inputs, or a world that changed after the model was trained. This lesson teaches you to spot each one from the numbers, which is exactly how NOAI asks about them.
+
+## Chance level: the score of a blindfolded guesser
+
+Before you can call a score good or bad, you need to know what guessing would get. With $K$ classes that are equally common (<Term def="Every class has the same number of examples, e.g. 1,000 images each of 10 digits.">balanced</Term>), a model that guesses at random is right with probability
+
+$$
+\text{chance level} = \frac{1}{K}
+$$
+
+Here $K$ is the number of classes, so two classes give 50%, four classes 25%, ten classes 10% and ImageNet's 1,000 classes 0.1%. A model that always predicts the same class also scores exactly $1/K$ on balanced data, because exactly one class in $K$ is that class.
+
+<Note title="Imbalanced classes">
+
+If the classes are not equally common, the baseline is the share of the **most common class**: when 95% of emails are not spam, a filter that always says "not spam" scores 95% while catching nothing. Always compare a score with the baseline, not with 0%.
+
+</Note>
+
+Chance level has a twin for the loss. A freshly initialised classifier that spreads its probability evenly gives each class $1/K$, so its cross-entropy loss is $-\log(1/K) = \ln K$: about $\ln 10 \approx 2.30$ for ten classes. If validation accuracy is stuck at $1/K$ and validation loss is stuck near $\ln K$, the model's validation predictions carry no information at all. With a pipeline bug, though, the trained model is still confident, so its validation loss is usually far *above* $\ln K$ (confidently wrong), even while accuracy sits at $1/K$.
+
+<Analogy title="The wrong answer key">
+
+A student scores 95% on every practice paper, then gets exactly 25% on the real four-option MCQ paper, the same as random guessing. Did she suddenly forget everything? Much more likely, someone marked her real paper with the answer key for a different paper. A drop to *exactly chance* is not a weak student; it is a broken marking process.
+
+</Analogy>
+
+That is the key reasoning. A model that learned *anything* real usually does at least a little better than chance on new data. Even a badly <Term def="Fitting the training data so closely, noise included, that performance on new data is worse. Training accuracy high, validation accuracy noticeably lower, but usually still well above chance.">overfitted</Term> model typically lands somewhere well above $1/K$. Validation accuracy at *exactly* $1/K$, while training loss falls smoothly, means the link between the validation inputs and the validation labels is broken somewhere in the pipeline.
+
+<ChanceLevelMeter />
+
+Each bug left a different fingerprint in the <Term def="A table that counts, for every true class (row), how many examples the model put in each predicted class (column). Correct predictions sit on the diagonal.">confusion matrix</Term>:
+
+| Bug in the validation pipeline | Validation accuracy | Confusion-matrix fingerprint |
+|---|---|---|
+| None | close to training accuracy | strong diagonal |
+| Labels shuffled out of step with inputs | $\approx 1/K$ | evenly smeared, no structure |
+| Different preprocessing (not scaled, wrong resize, BGR instead of RGB (the same three colour channels stored in reverse order, as OpenCV does), pixels 0–255 instead of 0–1) | often $\approx 1/K$ | one column (everything predicted as one class) or a mess |
+| Different class-to-index mapping | $\approx 1/K$ on average | a sharp but *reshuffled* diagonal |
+
+<KeyIdea>
+
+Training loss falling smoothly while validation accuracy sits at **exactly $1/K$** is not a modelling problem; it is a **pipeline bug**. Check that labels line up with inputs, that validation data get the same preprocessing as training data, and that both use the same class-to-index mapping.
+
+</KeyIdea>
+
+### How mapping and preprocessing mismatches happen
+
+A class-index mapping turns label names into numbers. Here is the classic way to get two different mappings by accident: fitting a separate encoder on each dataset.
+
+<PyRunner packages={['scikit-learn']} code={ENCODER_CODE} />
+
+`LabelEncoder` numbers the classes in alphabetical order *of the labels it was fitted on*. The validation batch had no cats, so its encoder called "dog" 0 instead of 1, and every validation label is now wrong even though the model may be perfect. The same thing happens when image folders are listed in a different order on two computers, or when a dictionary of classes is built separately for each split.
+
+Preprocessing mismatches are the same mistake in another place: anything the model saw during training must be done the same way, with the same numbers, at validation and in deployment. Fit the scaler (its mean and standard deviation) on the training data **once**, then reuse it:
+
+```python
+from sklearn.preprocessing import StandardScaler
+
+scaler = StandardScaler().fit(X_train)   # learn mean and std from the training data only
+X_train_s = scaler.transform(X_train)
+X_val_s = scaler.transform(X_val)        # the SAME transform, with the SAME numbers
+X_new_s = scaler.transform(X_new)        # and again for every input after deployment
+```
+
+<Mistake title="Training and serving pipelines that drift apart">
+
+Training notebooks divide pixels by 255; the phone app forgets. Training images were resized to 224×224 and normalised with ImageNet's mean and standard deviation; the test script uses a different crop. Training text was lower-cased; the API is not. Each one quietly feeds the model inputs it has never seen. Save the preprocessing objects (scaler, encoder, tokeniser) **with** the model and call the same code everywhere.
+
+</Mistake>
+
+<QuickCheck
+  q="A 4-class model reaches training loss 0.05. Validation accuracy is 24.8% and every validation prediction is class 2. What is the most likely cause?"
+  options={['Validation inputs are preprocessed differently from training ones', 'The model is overfitting and needs more dropout and weight decay', 'The learning rate is too low, so the model has not finished learning', 'The model needs more layers to tell the four classes apart']}
+  answer={0}
+  explain="Chance for 4 balanced classes is $1/4 = 25\%$, and predicting one class for everything gives exactly that. A model that fits training data this well but gives one answer for every validation input is being fed inputs unlike anything it trained on: a preprocessing mismatch. Overfitting would still leave validation accuracy well above 25%, and a training loss of 0.05 shows that neither the learning rate nor the model's size is holding it back."
+/>
+
+<PastPaperQuestion paper="prelim2026" n={273} />
+
+## Leakage: results that are too good to be true
+
+The opposite failure is a score that is *too* high. You met <Term def="When information that would not be available at prediction time, often from the validation or test data or from the answer itself, sneaks into training or model selection, so the measured score is better than the model will really be.">data leakage</Term> in [splitting and leakage](#/learn/data-and-features/splitting-and-leakage); here we use it as a diagnosis, because its symptom is exactly that: a score that is too good to be true. When you see one, check the four usual suspects:
+
+1. **Fitted on all the rows?** Split first, then fit scalers, imputers and feature selection on the training part only (an sklearn `Pipeline` does this inside cross-validation).
+2. **The same thing on both sides?** Remove duplicate rows, and split by patient, user or group (`GroupKFold`).
+3. **A feature that contains the answer?** Ask: would I know this value at prediction time? If not, drop it. ("Days in hospital" is unknown at the moment you predict admission.)
+4. **The future in training?** Split by time (next section).
+
+Other warning signs are a large drop as soon as truly new data arrive, or a single feature that seems to explain everything. Here is the second suspect in action. A faulty merge has copied every row three times, and the data are **pure noise**, so an honest model cannot beat 50%:
+
+<PyRunner packages={['numpy', 'scikit-learn']} code={DUPLICATE_LEAK_CODE} />
+
+The leaky split reports 96% on random noise. A 1-nearest-neighbour model labels each test row with the label of the closest training row, and for most test rows that is an exact copy of the row itself, so the model simply looks up the answer. Remove the duplicates before splitting and the score falls to 50%, a coin toss. So before you trust a high score, count the unique rows (`len(np.unique(X, axis=0))`, or `df.duplicated().sum()` in pandas).
+
+<QuickCheck
+  q="Before splitting, you fill missing values with each column's mean computed over the whole dataset, then split 80/20. What is wrong?"
+  options={['Test rows helped compute the means, but such statistics must come from training rows only', 'Nothing: the mean is a summary statistic, so it cannot carry any information', 'Means should be replaced by medians, which are always the right choice for missing values', 'Filling in missing values always lowers accuracy, so those rows should be dropped instead']}
+  answer={0}
+  explain="Any statistic learned from data (a mean, a scaler's standard deviation, a vocabulary, a feature selection) is part of the model, so it must be learned from the training rows only. Computing it over all rows lets the test set influence training. The leak is small for a mean, but it can be huge, for example when feature selection is allowed to see the test rows."
+/>
+
+## Distribution shift: when the world moves
+
+Every model makes a silent assumption: the data it meets later look like the data it learned from. Formally, think of the data as coming from a <Term def="A description of how likely each possible value is. P(x) says how common each input is; P(y | x) says how likely each label is for a given input.">probability distribution</Term>. Two parts matter:
+
+- $P(x)$: how common each kind of **input** is. Read it as: the probability of seeing input $x$.
+- $P(y \mid x)$: the **rule** connecting inputs to labels. Read it as: the probability of label $y$, given input $x$. The bar $\mid$ means "given".
+
+When either one changes between training and deployment, that is <Term def="Any change between the data a model was trained on and the data it meets later.">distribution shift</Term>, and it has two main kinds:
+
+- <Term def="The inputs change (P(x) changes) but the rule linking inputs to labels stays the same.">Covariate shift</Term>: $P(x)$ changes, $P(y \mid x)$ stays the same. The inputs look different, but the rule is the same. Examples: a credit model trained on 2023 applicants meets a 2024 crowd with more gig workers; an X-ray model meets images from a new hospital's scanner; a self-driving car trained in sunshine meets heavy rain.
+- <Term def="The rule linking inputs to labels changes (P(y | x) changes), even if the inputs look the same.">Concept drift</Term>: $P(y \mid x)$ changes. The same input now deserves a different answer. Examples: fraudsters invent new tricks, so yesterday's "safe-looking" transaction is fraud today; after a downturn, applicants with the same income are less likely to repay; spammers rewrite their emails.
+
+<Analogy title="Dry season, then monsoon">
+
+A weather model trained only on Singapore's drier months has never seen a monsoon surge. When the northeast monsoon arrives, the inputs (wind direction, humidity) move into territory the model never saw: covariate shift. If, instead, the same wind and humidity started to bring different weather from before, the rule itself would have drifted: concept drift.
+
+</Analogy>
+
+<DistributionShift />
+
+Two lessons from the visual. First, covariate shift hurts because the model must **extrapolate**: near its training data, the straight line and the true curve agree; far away, they part company. Second, concept drift is invisible from the inputs alone: the test cloud sits exactly where the training data were, yet accuracy falls, because the right answers changed.
+
+<KeyIdea>
+
+**Covariate shift:** $P(x)$ changes; the inputs look different. You can detect it **without labels** by comparing input statistics (means, ranges, the share of each category) with the training data. **Concept drift:** $P(y \mid x)$ changes; the inputs may look the same. You only see it in **new labelled data**, as falling accuracy. Both are treated the same way in the end: collect recent data and retrain.
+
+</KeyIdea>
+
+<PastPaperQuestion paper="prelim2026" n={300} />
+
+Real shifts often mix both kinds. When a question lists changed input statistics (average income, age, the share of gig workers), the expected answer is covariate shift: the inputs moved. Save "concept drift" for when the inputs stay the same and only the outcome for a given input changes.
+
+In practice you **monitor** a deployed model: input statistics, the share of each prediction (a model that approved 40% of loans and now approves 30% is telling you something), and accuracy on fresh labelled samples whenever they arrive. Then retrain on recent data on a schedule, or whenever the monitors fire.
+
+## Validate on the right data: time-based splits
+
+When data arrive over time and the world drifts, a random split tells you a comforting lie. Rows from next month end up in training, so the model is validated on a period it has effectively already seen. The honest question is "how well does a model trained on the past predict the future?", so the validation set should **be** the future, relative to the training set.
+
+<Steps title="A time-based split for data from Jan 2023 to Jun 2025">
+  <Step title="Sort by time">
+    Order every row by its date. Never shuffle before splitting.
+  </Step>
+  <Step title="Train on the oldest data">
+    Train on Jan 2023 – Jun 2024.
+  </Step>
+  <Step title="Validate on the next period">
+    Tune and compare models on Jul – Dec 2024: data that comes *after* the training period, as it will in real use.
+  </Step>
+  <Step title="Test once on the most recent period">
+    Keep Jan – Jun 2025 untouched until the very end, for one final honest score. Then retrain the chosen model on everything and deploy it.
+  </Step>
+</Steps>
+
+<TimeSplitLab />
+
+For cross-validation on time-ordered data, scikit-learn's `TimeSeriesSplit` (from [splitting and leakage](#/learn/data-and-features/splitting-and-leakage)) builds the folds for you: every fold trains on the past and validates on the period right after it, unlike ordinary k-fold, which mixes the past and future together.
+
+<ExamTip>
+
+Prelim questions on data problems are mostly pattern-matching from a short scenario:
+
+- "training loss falls, validation accuracy stuck at **10% on 10 classes**" → chance level → **label or pipeline mismatch** (class mapping, shuffled labels, different preprocessing), not overfitting.
+- "**train 99.8%, validation 92%, but production 64%**", or "trained on 2023, used in 2025" → **distribution shift**; the fix is recent data, retraining, monitoring and a time-based split.
+- "the **inputs** changed (new customers, new camera, new region)" → **covariate shift**, $P(x)$. "The **same input** now means something else" → **concept drift**, $P(y \mid x)$.
+- "**suspiciously high** validation score", "feature selection or scaling on the full dataset", "same patient in train and test" → **leakage**; fit everything inside the training fold.
+- Quick sums: chance $= 1/K$; for imbalanced data, the baseline is the majority-class share.
+
+</ExamTip>
+
+<Takeaways>
+
+- Chance level is $1/K$ for $K$ balanced classes (the majority-class share if imbalanced). Validation accuracy at **exactly chance** while training loss falls means a **pipeline bug**, not a weak model.
+- Look for shuffled or misaligned labels, a different class-to-index mapping, and preprocessing that differs between training and validation. Fit encoders and scalers **once, on training data**, and reuse them everywhere.
+- **Leakage** makes scores too good: preprocessing or feature selection on all the data, duplicates across splits, features that contain the answer, the future in the training set.
+- **Covariate shift** changes $P(x)$, the inputs; **concept drift** changes $P(y \mid x)$, the rule. Monitor inputs, predictions and fresh labels after deployment, and retrain on recent data.
+- For time-ordered data, **train on the past and validate on the period after it**, never with a random split.
+
+</Takeaways>
+
+Monitoring and retraining are part of a bigger loop. The next module, [ML systems and trade-offs](#/learn/ml-systems-and-tradeoffs/lifecycle-and-deployment), follows a model from the training notebook to deployment and beyond.

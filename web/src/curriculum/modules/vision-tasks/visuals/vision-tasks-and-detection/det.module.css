@@ -1,0 +1,264 @@
+/* Local styles for the vision-tasks-and-detection visuals. */
+
+/* Pale "stuff" tints for the label maps (sky, building, road). Light tints vanish on a dark surface, so dark mode mixes in more colour. */
+.vts {
+  --sem-sky: color-mix(in srgb, var(--viz-1) 45%, var(--surface));
+  --sem-building: color-mix(in srgb, var(--viz-muted) 60%, var(--surface));
+  --sem-road: color-mix(in srgb, var(--viz-6) 50%, var(--surface));
+  --pan-sky: color-mix(in srgb, var(--viz-1) 26%, var(--surface));
+  --pan-building: color-mix(in srgb, var(--viz-muted) 40%, var(--surface));
+  --pan-road: color-mix(in srgb, var(--viz-6) 30%, var(--surface));
+}
+@media (prefers-color-scheme: dark) {
+  :global(:root:not([data-theme='light'])) .vts {
+    --sem-sky: color-mix(in srgb, var(--viz-1) 62%, var(--surface));
+    --sem-building: color-mix(in srgb, var(--viz-muted) 90%, var(--surface));
+    --sem-road: color-mix(in srgb, var(--viz-6) 66%, var(--surface));
+    --pan-sky: color-mix(in srgb, var(--viz-1) 46%, var(--surface));
+    --pan-building: color-mix(in srgb, var(--viz-muted) 70%, var(--surface));
+    --pan-road: color-mix(in srgb, var(--viz-6) 48%, var(--surface));
+  }
+}
+:global(:root[data-theme='dark']) .vts {
+  --sem-sky: color-mix(in srgb, var(--viz-1) 62%, var(--surface));
+  --sem-building: color-mix(in srgb, var(--viz-muted) 90%, var(--surface));
+  --sem-road: color-mix(in srgb, var(--viz-6) 66%, var(--surface));
+  --pan-sky: color-mix(in srgb, var(--viz-1) 46%, var(--surface));
+  --pan-building: color-mix(in srgb, var(--viz-muted) 70%, var(--surface));
+  --pan-road: color-mix(in srgb, var(--viz-6) 48%, var(--surface));
+}
+
+.ladder {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.72rem;
+  color: var(--ink-3);
+  width: 100%;
+}
+/* the "where" ladder is plain text (not buttons): the Task control above is what changes the view */
+.rung {
+  white-space: nowrap;
+}
+.rungOn {
+  color: var(--ink);
+  font-weight: 700;
+  text-decoration: underline;
+  text-decoration-color: var(--accent);
+  text-decoration-thickness: 2px;
+  text-underline-offset: 3px;
+}
+.ladderSep {
+  color: var(--ink-3);
+}
+.ladderArrow {
+  color: var(--ink-2);
+}
+
+.legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem 0.9rem;
+  justify-content: center;
+  font-size: 0.78rem;
+  color: var(--ink-2);
+}
+.legend span {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+.sw {
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  border-radius: 3px;
+}
+
+.out {
+  width: 100%;
+  display: grid;
+  gap: 4px;
+  font-size: 0.85rem;
+  line-height: 1.45;
+  color: var(--ink);
+  background: var(--surface-2);
+  border-radius: 8px;
+  padding: 8px 10px;
+  min-height: 4.6em;
+}
+.outKey {
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--ink-3);
+  margin-right: 4px;
+}
+
+/* ---------- NMS stepper ---------- */
+.nmsWrap {
+  width: 100%;
+  display: grid;
+  gap: 0.75rem;
+  align-items: start;
+}
+.nmsTable {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.78rem;
+  font-variant-numeric: tabular-nums;
+}
+.nmsTable th {
+  text-align: left;
+  font-size: 0.7rem;
+  color: var(--ink-3);
+  font-weight: 700;
+  padding: 2px 4px;
+  border-bottom: 1.5px solid var(--viz-grid);
+}
+.nmsTable td {
+  padding: 3px 4px;
+  border-bottom: 1px solid var(--viz-grid);
+  color: var(--ink);
+}
+.nmsTable tr.cur td {
+  background: var(--accent-soft);
+  font-weight: 700;
+}
+.nmsTable tr.gone td {
+  color: var(--ink-3);
+  text-decoration: line-through;
+}
+.nmsTable tr.cut td {
+  color: var(--ink-3);
+}
+.tag {
+  display: inline-block;
+  padding: 0 6px;
+  border-radius: 999px;
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-decoration: none;
+}
+.kept {
+  background: color-mix(in srgb, var(--viz-pos) 25%, var(--surface));
+  color: var(--ink);
+}
+.supp {
+  background: color-mix(in srgb, var(--viz-neg) 22%, var(--surface));
+  color: var(--ink);
+}
+.wait {
+  background: var(--surface-3);
+  color: var(--ink-2);
+}
+.status {
+  width: 100%;
+  font-size: 0.85rem;
+  line-height: 1.45;
+  color: var(--ink);
+  background: var(--surface-2);
+  border-radius: 8px;
+  padding: 8px 10px;
+  min-height: 3.1em;
+}
+.warn {
+  border-left: 4px solid var(--viz-neg);
+}
+.ok {
+  border-left: 4px solid var(--viz-pos);
+}
+
+/* ---------- pipelines ---------- */
+.flow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: stretch;
+  justify-content: center;
+  width: 100%;
+}
+.stage {
+  font: inherit;
+  display: grid;
+  gap: 1px;
+  align-content: center;
+  text-align: center;
+  min-width: 84px;
+  max-width: 132px;
+  flex: 1 1 84px;
+  padding: 6px 6px;
+  border-radius: 8px;
+  border: 1.5px solid var(--viz-grid);
+  background: var(--surface);
+  color: var(--ink);
+  cursor: pointer;
+  font-size: 0.78rem;
+  line-height: 1.25;
+  position: relative;
+}
+.stage small {
+  color: var(--ink-3);
+  font-size: 0.75rem;
+}
+.stage:hover {
+  border-color: var(--accent-line);
+}
+.stageOn {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+.arrow {
+  align-self: center;
+  color: var(--ink-3);
+  font-weight: 700;
+}
+.detail {
+  width: 100%;
+  display: grid;
+  gap: 4px;
+  font-size: 0.85rem;
+  line-height: 1.45;
+  color: var(--ink);
+  background: var(--surface-2);
+  border-radius: 8px;
+  padding: 8px 10px;
+}
+.io {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 2px 8px;
+  font-size: 0.8rem;
+}
+.io dt {
+  font-weight: 700;
+  color: var(--ink-3);
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding-top: 2px;
+}
+.io dd {
+  margin: 0;
+}
+.queries {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(92px, 1fr));
+  gap: 4px;
+  width: 100%;
+}
+.query {
+  font-size: 0.72rem;
+  border-radius: 6px;
+  border: 1.5px solid var(--viz-grid);
+  padding: 3px 6px;
+  color: var(--ink-3);
+  background: var(--surface);
+}
+.queryHit {
+  color: var(--ink);
+  font-weight: 700;
+}

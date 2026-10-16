@@ -1,0 +1,361 @@
+/* Shared styles for the groupby-merge visuals (tables drawn in HTML so text stays crisp on phones). */
+
+.code {
+  width: 100%;
+  font-family: var(--font-mono);
+  font-size: 0.86rem;
+  line-height: 1.5;
+  padding: 0.5rem 0.75rem;
+  border-radius: 8px;
+  background: var(--surface-2);
+  color: var(--ink);
+  overflow-wrap: anywhere;
+  border: 1px solid var(--rule);
+}
+.codeMuted {
+  color: var(--ink-3);
+}
+.codeHl {
+  background: var(--highlight-soft);
+  color: var(--highlight-ink);
+  box-shadow: inset 0 -2px 0 var(--highlight);
+  border-radius: 3px;
+  padding: 0 1px;
+  transition: background 0.3s ease;
+}
+
+/* ---------- animated groupby table ---------- */
+/* overflow + pointer-events: hidden labels and rows parked below the stage must never sit on top of
+   the Play / Next buttons (the stage has no interactive children of its own) */
+.stage {
+  position: relative;
+  width: 100%;
+  max-width: 520px;
+  overflow: hidden;
+  pointer-events: none;
+  transition: height 0.55s ease;
+  font-family: var(--font-mono);
+  font-size: 0.82rem;
+}
+.row {
+  position: absolute;
+  left: 0;
+  right: 0;
+  display: grid;
+  grid-template-columns: 1.7rem minmax(0, 1.4fr) minmax(0, 1.1fr) minmax(0, 1fr) minmax(0, 1fr);
+  align-items: center;
+  border-radius: 6px;
+  transition:
+    top 0.6s cubic-bezier(0.4, 0, 0.2, 1),
+    opacity 0.45s ease,
+    background 0.3s ease;
+}
+.row > span {
+  padding: 0 0.35rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.num {
+  text-align: right;
+}
+.idx {
+  color: var(--ink-3);
+  text-align: right;
+}
+.head {
+  font-family: var(--font-body);
+  font-weight: 700;
+  color: var(--ink-2);
+  border-bottom: 1.5px solid var(--ink-3);
+  border-radius: 0;
+}
+.groupLabel {
+  position: absolute;
+  left: 0;
+  right: 0;
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.5rem;
+  font-family: var(--font-body);
+  font-size: 0.82rem;
+  font-weight: 700;
+  transition:
+    top 0.6s cubic-bezier(0.4, 0, 0.2, 1),
+    opacity 0.45s ease;
+  white-space: nowrap;
+}
+.formula {
+  font-family: var(--font-mono);
+  font-weight: 600;
+  font-size: 0.78rem;
+  color: var(--ink-2);
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.summary {
+  font-weight: 800;
+}
+.dim {
+  color: var(--ink-3);
+}
+.stepNote {
+  width: 100%;
+  font-size: var(--step--1);
+  color: var(--ink);
+  padding: 0.45rem 0.7rem;
+  border-radius: 8px;
+  background: var(--accent-soft);
+  border-left: 4px solid var(--accent);
+  line-height: 1.45;
+  min-height: 3.4em;
+}
+
+/* ---------- static mini tables ---------- */
+.tables {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(150px, 100%), 1fr));
+  gap: 0.75rem 1rem;
+  width: 100%;
+  align-items: start;
+}
+.tablesWide {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(270px, 100%), 1fr));
+  gap: 0.75rem 1.25rem;
+  width: 100%;
+  align-items: center;
+}
+.tableBox {
+  min-width: 0;
+}
+.tableTitle {
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--ink-2);
+  margin-bottom: 0.25rem;
+}
+.tableTitle code {
+  font-family: var(--font-mono);
+}
+.tbl {
+  border-collapse: collapse;
+  width: 100%;
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+}
+.tbl th {
+  font-family: var(--font-body);
+  font-weight: 700;
+  color: var(--ink-2);
+  text-align: left;
+  padding: 0.2rem 0.35rem;
+  border-bottom: 1.5px solid var(--ink-3);
+  white-space: nowrap;
+}
+.tbl td {
+  padding: 0.22rem 0.35rem;
+  border-bottom: 1px solid var(--rule);
+  color: var(--ink);
+  white-space: nowrap;
+  transition: background 0.25s ease;
+}
+.tbl tr.focus td {
+  background: color-mix(in srgb, var(--highlight) 30%, var(--surface));
+}
+.tbl tr.faded td {
+  color: var(--ink-3);
+  opacity: 0.55;
+}
+.tbl td.nan {
+  color: var(--viz-neg);
+  font-style: italic;
+  background: color-mix(in srgb, var(--viz-neg) 9%, var(--surface));
+}
+.tbl td.newCol {
+  font-weight: 700;
+  background: color-mix(in srgb, var(--viz-3) 13%, var(--surface));
+}
+.tbl td.newCol.pending {
+  background: transparent;
+  color: var(--ink-3);
+  font-weight: 400;
+}
+.tbl td.newCol.active {
+  background: color-mix(in srgb, var(--highlight) 55%, var(--surface));
+  color: var(--highlight-ink);
+}
+.tbl th.newCol {
+  color: var(--viz-3);
+}
+.badge {
+  display: inline-block;
+  font-family: var(--font-body);
+  font-size: 0.7rem;
+  font-weight: 700;
+  padding: 0 0.35rem;
+  margin-left: 0.3rem;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--viz-2) 20%, var(--surface));
+  color: var(--ink);
+}
+.scroll {
+  width: 100%;
+  overflow-x: auto;
+}
+.verdict {
+  width: 100%;
+  padding: 0.45rem 0.7rem;
+  border-radius: 8px;
+  font-size: var(--step--1);
+  line-height: 1.45;
+  color: var(--ink);
+  background: color-mix(in srgb, var(--viz-3) 12%, var(--surface));
+  border-left: 4px solid var(--viz-3);
+}
+.verdictWarn {
+  background: color-mix(in srgb, var(--viz-2) 14%, var(--surface));
+  border-left-color: var(--viz-2);
+}
+.verdictBad {
+  background: color-mix(in srgb, var(--viz-neg) 12%, var(--surface));
+  border-left-color: var(--viz-neg);
+}
+
+/* ---------- formula bar ---------- */
+.formulaBar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  width: 100%;
+  border: 1.5px solid var(--ink-3);
+  border-radius: 8px;
+  background: var(--surface);
+  overflow: hidden;
+  font-family: var(--font-mono);
+  font-size: 0.85rem;
+}
+.formulaBar:focus-within {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 25%, transparent);
+}
+.formulaPrefix {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.4rem 0 0.4rem 0.6rem;
+  color: var(--ink-3);
+  white-space: nowrap;
+}
+.formulaInput {
+  flex: 1 1 210px;
+  min-width: 0;
+  border: none;
+  outline: none;
+  background: transparent;
+  color: var(--ink);
+  font: inherit;
+  padding: 0.4rem 0.6rem 0.4rem 0.1rem;
+}
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  width: 100%;
+}
+.chip {
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  padding: 0.2rem 0.55rem;
+  border-radius: 999px;
+  border: 1px solid var(--rule);
+  background: var(--surface-2);
+  color: var(--ink-2);
+  cursor: pointer;
+}
+.chip:hover {
+  border-color: var(--accent-line);
+  color: var(--ink);
+}
+.chipOn {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+  color: var(--ink);
+}
+.error {
+  color: var(--viz-neg);
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+/* ---------- timing bars ---------- */
+.timing {
+  width: 100%;
+  display: grid;
+  gap: 0.4rem;
+}
+.timingTitle {
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--ink-2);
+}
+.timingRow {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 0.15rem;
+}
+.timingLabel {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.6rem;
+  font-size: 0.78rem;
+}
+.timingLabel code {
+  font-family: var(--font-mono);
+  color: var(--ink);
+  overflow-wrap: anywhere;
+}
+.timingValue {
+  font-family: var(--font-mono);
+  font-weight: 700;
+  color: var(--ink);
+  white-space: nowrap;
+}
+.timingTrack {
+  height: 0.8rem;
+  border-radius: 4px;
+  background: var(--surface-2);
+  overflow: hidden;
+}
+.timingFill {
+  height: 100%;
+  min-width: 3px;
+  border-radius: 4px;
+}
+.timingStrong .timingLabel code,
+.timingStrong .timingValue {
+  font-weight: 800;
+}
+
+.nameInput {
+  border: none;
+  border-bottom: 2px dashed var(--viz-3);
+  outline: none;
+  background: color-mix(in srgb, var(--viz-3) 18%, var(--surface));
+  color: var(--ink);
+  font: inherit;
+  font-weight: 700;
+  padding: 0 2px;
+  border-radius: 3px 3px 0 0;
+  cursor: text;
+}
+.nameInput:focus {
+  border-bottom-style: solid;
+  background: color-mix(in srgb, var(--viz-3) 28%, var(--surface));
+}
+.placeholder {
+  background: transparent !important;
+  border: 1.5px dashed var(--viz-muted);
+  box-shadow: none !important;
+  color: var(--ink-3);
+}

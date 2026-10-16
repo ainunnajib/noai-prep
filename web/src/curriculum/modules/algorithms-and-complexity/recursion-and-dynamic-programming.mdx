@@ -1,0 +1,275 @@
+import FibRecursionTree from './visuals/recursion-and-dynamic-programming/FibRecursionTree'
+import DPTableFill from './visuals/recursion-and-dynamic-programming/DPTableFill'
+
+{/* Multi-line code with indentation lives in exports: MDX strips indentation inside JSX attribute template literals. */}
+
+export const traceCode = `def factorial(n, depth=0):
+    pad = "    " * depth
+    print(pad + f"factorial({n}) called")
+    if n == 0:
+        print(pad + "base case: return 1")
+        return 1
+    result = n * factorial(n - 1, depth + 1)
+    print(pad + f"factorial({n}) returns {result}")
+    return result
+
+print(factorial(3))`
+
+export const memoCode = `from functools import lru_cache
+
+calls = 0
+def fib(n):
+    global calls
+    calls += 1
+    if n <= 1:
+        return n
+    return fib(n - 1) + fib(n - 2)
+
+memo = {}
+def fib_memo(n):
+    global calls
+    calls += 1
+    if n in memo:
+        return memo[n]
+    if n <= 1:
+        return n
+    memo[n] = fib_memo(n - 1) + fib_memo(n - 2)
+    return memo[n]
+
+print(fib(25), "with", calls, "calls")
+calls = 0
+print(fib_memo(25), "with", calls, "calls")
+print(fib_memo(90))
+
+# Python can memoise for you
+@lru_cache(maxsize=None)
+def fib2(n):
+    return n if n <= 1 else fib2(n - 1) + fib2(n - 2)
+
+print(fib2(90))`
+
+export const editCode = `def edit_distance(a, b):
+    m, n = len(a), len(b)
+    D = [[0] * (n + 1) for _ in range(m + 1)]
+    # first column: delete every letter
+    for i in range(m + 1):
+        D[i][0] = i
+    # first row: insert every letter
+    for j in range(n + 1):
+        D[0][j] = j
+    for i in range(1, m + 1):
+        for j in range(1, n + 1):
+            same = a[i-1] == b[j-1]
+            cost = 0 if same else 1
+            D[i][j] = min(
+                # substitute or match
+                D[i-1][j-1] + cost,
+                # delete
+                D[i-1][j] + 1,
+                # insert
+                D[i][j-1] + 1,
+            )
+    return D[m][n]
+
+print(edit_distance("TEA", "EAT"))
+print(edit_distance("KITTEN", "SITTING"))
+print(edit_distance("SUNDAY", "SATURDAY"))`
+
+Some problems are easiest to solve by first solving a smaller copy of the same problem. You have already met one such algorithm: merge sort, in [Searching and sorting](#/learn/algorithms-and-complexity/searching-and-sorting), sorts each half by calling merge sort again. That is recursion. This lesson covers two ideas built on that thought: **recursion** (a function that calls itself) and **dynamic programming** (remember the answers to smaller problems so you never solve one twice). They sit underneath spell-checkers, speech recognisers and even backpropagation, and NOAI asks you to trace them by hand.
+
+## Recursion: a function that calls itself
+
+<Analogy title="What's my place in the queue?">
+
+You join a long queue at a popular hawker stall and want to know your position. Instead of walking to the front to count, you ask the person in front of you: "what's your position?" They don't know either, so they ask the person in front of them, and so on. The person at the very front simply knows: "I'm number 1." Then the answers flow back: 2, 3, 4, … until you hear yours. Each person solved a smaller version of your question and added one.
+
+</Analogy>
+
+A <Term def="A function that solves a problem by calling itself on a smaller version of the same problem.">recursive function</Term> calls itself on a smaller input. It needs two parts:
+
+- a <Term def="The input small enough to answer directly, without another recursive call. It stops the recursion.">base case</Term>: an input so small that the answer is known directly (the person at the front of the queue);
+- a **recursive case**: the answer for $n$ built from the answer for a smaller input (ask the person in front, then add one).
+
+The factorial $n! = n \times (n-1) \times \dots \times 1$, with $0! = 1$, is the classic example:
+
+```python
+def factorial(n):
+    if n == 0:        # base case
+        return 1
+    # recursive case
+    return n * factorial(n - 1)
+```
+
+<Steps title="Trace factorial(3)">
+  <Step title="Going down: the calls">
+    `factorial(3)` needs `3 * factorial(2)`, so it waits and calls `factorial(2)`, which waits and calls `factorial(1)`, which waits and calls `factorial(0)`.
+  </Step>
+  <Step title="The base case">
+    `factorial(0)` returns 1 at once. Four calls are now on the <Term def="The list of function calls that have started but not finished yet. Each waiting call keeps its own variables in a frame on the stack.">call stack</Term>, three of them still waiting.
+  </Step>
+  <Step title="Coming back up: the returns">
+    `factorial(1)` returns $1 \times 1 = 1$, then `factorial(2)` returns $2 \times 1 = 2$, then `factorial(3)` returns $3 \times 2 = 6$.
+  </Step>
+  <Step title="Cost">
+    $n + 1$ calls, each doing $O(1)$ work: $O(n)$ time. But all $n + 1$ calls sit on the stack at the deepest point, so recursion also uses $O(n)$ **space**.
+  </Step>
+</Steps>
+
+Run the traced version, which indents each call by its depth:
+
+<PyRunner code={traceCode} />
+
+<Mistake title="Forgetting the base case (or never reaching it)">
+
+Without a base case, or with a recursive call that doesn't get closer to it (such as `factorial(n + 1)`), the calls never stop. Python gives up after about 1,000 nested calls with `RecursionError: maximum recursion depth exceeded`.
+
+</Mistake>
+
+## Fibonacci: when recursion repeats itself
+
+The Fibonacci numbers $0, 1, 1, 2, 3, 5, 8, 13, \dots$ are defined recursively: each is the sum of the two before it.
+
+$$
+F(n) = F(n-1) + F(n-2)
+$$
+
+Here $F(n)$ is the $n$-th Fibonacci number, and the two starting values $F(0) = 0$ and $F(1) = 1$ are the base cases. The Python is a direct copy:
+
+```python
+def fib(n):
+    if n <= 1:
+        return n
+    return fib(n - 1) + fib(n - 2)
+```
+
+It is correct, but each call makes **two** more calls, so the calls form a tree. Look at how often the same question gets asked:
+
+<FibRecursionTree />
+
+`fib(6)` calls `fib(2)` five separate times and `fib(1)` eight times, recomputing answers it has already found. The number of calls is $2F(n+1) - 1$, which grows by a factor of about 1.6 for each step up in $n$: exponential, roughly $O(1.6^n)$ (so certainly $O(2^n)$). `fib(30)` needs 2,692,537 calls; `fib(50)` would need over 40 billion.
+
+## Memoisation: remember every answer
+
+The repeated circles in the tree are <Term def="Smaller problems that come up again and again while solving the big one, like fib(2) inside fib(6).">overlapping subproblems</Term>, and they are the signal to cache. <Term def="Storing the answer to each function call the first time it is computed (usually in a dict), and looking it up instead of recomputing it next time.">Memoisation</Term> keeps a dict from input to answer: before computing, look the input up; after computing, store the answer.
+
+<PyRunner code={memoCode} />
+
+With the memo, each `fib(k)` is computed once; every later request is a dict lookup, which is $O(1)$ on average (see [Hashing and heaps](#/learn/algorithms-and-complexity/hashing-and-heaps)). There are only $n + 1$ different subproblems, so memoised `fib(n)` makes $2n - 1$ calls: $O(n)$ time, plus $O(n)$ space for the memo. That is the difference between 242,785 calls and 49 for `fib(25)`. Python's `@lru_cache` decorator does the same bookkeeping for you.
+
+<KeyIdea>
+
+If a recursive solution solves the same subproblem more than once, store each answer the first time. Memoisation trades $O(n)$ memory for the jump from exponential to linear time.
+
+</KeyIdea>
+
+<QuickCheck
+  q="Without memoisation, how many times does `fib(5)` call `fib(3)`? (Count the call made by `fib(5)` itself, and any made deeper down.)"
+  options={['1', '2', '3', '5']}
+  answer={1}
+  explain="`fib(5)` calls `fib(4)` and `fib(3)`; then `fib(4)` calls `fib(3)` again (and `fib(2)`). Nothing else calls `fib(3)`, so it runs **2** times. Counting down the tree, `fib(2)` runs 3 times and `fib(1)` 5 times: the counts are Fibonacci numbers themselves."
+/>
+
+## Dynamic programming: fill a table in the right order
+
+<Term def="Solving a problem by answering its smaller subproblems, storing each answer, and building bigger answers from stored ones.">Dynamic programming</Term> (DP) works when a problem has two properties: **optimal substructure** (the best answer is built from the best answers to smaller subproblems) and **overlapping subproblems** (the same subproblems come up again and again). Memoisation is **top-down** DP: start from the big problem and cache on the way. The other style is **bottom-up** DP, also called tabulation: answer the smallest subproblems first and fill a table in an order where every entry only needs entries already filled. Both give the same complexity, but bottom-up never runs into Python's recursion limit (a memoised `fib(2000)` raises `RecursionError`). For Fibonacci the table is a single row: $F(0), F(1), F(2), \dots$, each the sum of the two to its left.
+
+<Analogy title="Counting ways up the stairs">
+
+You climb a staircase 1 or 2 steps at a time. How many different ways are there to reach step 10? You don't list every route. Step 1 has 1 way and step 2 has 2 ways; after that, every step is reached either from the step below or from two below, so its count is the sum of those two counts. Write the counts up the staircase one by one and each new answer comes from answers already written down.
+
+</Analogy>
+
+The simplest DP table is Fibonacci's single row, filled from left to right:
+
+<Steps title="Fill F(0) to F(6) bottom-up">
+  <Step title="Base cases">
+    $F(0) = 0$ and $F(1) = 1$: written down, not computed.
+  </Step>
+  <Step title="F(2) and F(3)">
+    $F(2) = F(1) + F(0) = 1$, then $F(3) = F(2) + F(1) = 2$. Each entry needs only the two to its left, which are already filled.
+  </Step>
+  <Step title="F(4) to F(6)">
+    $F(4) = 3$, $F(5) = 5$, $F(6) = 8$. Six additions in total: $O(n)$, instead of the exponential recursion.
+  </Step>
+</Steps>
+
+```python
+f = [0, 1]
+for i in range(2, 7):
+    f.append(f[i - 1] + f[i - 2])
+print(f)   # [0, 1, 1, 2, 3, 5, 8]
+```
+
+Every DP solution answers the same five questions: **what is a subproblem**, **how is a subproblem built from smaller ones** (the <Term def="The rule that builds an answer from the answers to smaller subproblems, such as F(i) = F(i - 1) + F(i - 2).">recurrence</Term>), **what are the base cases**, **in what order do I fill the table**, and **where is the final answer**?
+
+<Note title="Greedy: fast, but not always right">
+
+A **greedy** algorithm makes the choice that looks best right now and never goes back on it, like paying with the biggest coin first. It is fast, but it is only correct for some problems. With coins of 1, 3 and 4 cents and a target of 6 cents, greedy pays 4 + 1 + 1 (3 coins). DP, which works out the fewest coins for every amount from 1 up to 6, finds 3 + 3 (2 coins).
+
+</Note>
+
+### Edit distance
+
+The <Term def="The smallest number of single-letter insertions, deletions and substitutions needed to turn one word into another (also called Levenshtein distance).">edit distance</Term> between two words is the fewest single-letter edits (insert a letter, delete a letter, or substitute one letter for another) that turn one into the other. Spell-checkers use it to suggest "kitten" for "kiten", and speech recognisers are scored with it: the word error rate is the edit distance counted in whole **words** (word insertions, deletions and substitutions) between the transcript and the true words, divided by the number of true words.
+
+Turn word $a$ (length $m$) into word $b$ (length $n$). Let $D[i][j]$ be the edit distance between the **first $i$ letters** of $a$ and the **first $j$ letters** of $b$. Then
+
+$$
+D[i][j] = \min\begin{cases} D[i-1][j-1] + c \\ D[i-1][j] + 1 \\ D[i][j-1] + 1 \end{cases}
+$$
+
+The three lines are the three possible last edits, and each one leaves a smaller problem whose answer is already in the table:
+
+- **up-left**, $D[i-1][j-1] + c$: substitute the $i$-th letter of $a$ by the $j$-th letter of $b$. Here $c = 0$ if the two letters are already equal (a free match) and $c = 1$ otherwise;
+- **up**, $D[i-1][j] + 1$: delete the $i$-th letter of $a$;
+- **left**, $D[i][j-1] + 1$: insert the $j$-th letter of $b$.
+
+The base cases are $D[i][0] = i$ (delete all $i$ letters) and $D[0][j] = j$ (insert all $j$ letters). Fill row by row; the answer is $D[m][n]$, the bottom-right cell.
+
+<DPTableFill />
+
+<Steps title="Edit distance from TEA to EAT, by hand">
+  <Step title="Base row and column">
+    The empty-prefix row is 0, 1, 2, 3 (inserts) and the empty-prefix column is 0, 1, 2, 3 (deletes).
+  </Step>
+  <Step title="Row T (first letter of TEA)">
+    T vs E differ: $\min(0 + 1,\ 1 + 1,\ 1 + 1) = 1$. T vs A differ: $\min(1 + 1,\ 2 + 1,\ 1 + 1) = 2$. T vs T match: up-left is 2, plus $c = 0$, gives 2. Row: 1, 2, 2.
+  </Step>
+  <Step title="Row E">
+    E vs E match: up-left is 1, so 1. E vs A differ: $\min(1 + 1,\ 2 + 1,\ 1 + 1) = 2$. E vs T differ: $\min(2 + 1,\ 2 + 1,\ 2 + 1) = 3$. Row: 1, 2, 3.
+  </Step>
+  <Step title="Row A">
+    A vs E differ: $\min(2 + 1,\ 1 + 1,\ 3 + 1) = 2$. A vs A match: up-left is 1, so 1. A vs T differ: $\min(2 + 1,\ 3 + 1,\ 1 + 1) = 2$. Row: 2, 1, 2.
+  </Step>
+  <Step title="Read the answer">
+    The bottom-right cell is **2**: delete the T at the front and insert a T at the end. (Three substitutions would also work, but cost 3.)
+  </Step>
+</Steps>
+
+The table has $(m + 1)(n + 1)$ cells and each takes $O(1)$ work, so edit distance is $O(mn)$ time and space. Trying every possible sequence of edits instead would be exponential.
+
+<PyRunner code={editCode} />
+
+<Note title="Looking ahead: backpropagation is dynamic programming">
+
+You will meet this properly in [Backprop step by step](#/learn/backpropagation/backprop-step-by-step); for now, just notice the DP idea. When a neural network works out which way to nudge each of its weights (its gradients, computed by <Term def="The algorithm that works out, for every weight of a neural network, which way to nudge it to reduce the error. Taught in the backpropagation module.">backpropagation</Term>), it works backwards from the output one layer at a time. For each layer it computes one shared answer (how the error changes with that layer's output) just once, then reuses it for every weight in that layer and to get the same answer for the layer before, instead of redoing the whole long calculation for each weight. That is exactly the DP idea, and it is why getting all the gradients costs only a few times as much as running the network once.
+
+</Note>
+
+<ExamTip>
+
+Match the words fast: **base case** stops recursion; **overlapping subproblems** means memoise or fill a DP table. To trace a recursive function, write each call on its own line, indented, and fill in the return values on the way back up, exactly like the factorial trace above.
+
+</ExamTip>
+
+<Takeaways>
+
+- A recursive function needs a base case and a recursive case that moves towards it; each waiting call sits on the call stack, so depth $n$ costs $O(n)$ space.
+- Naive recursive Fibonacci is exponential because it solves the same subproblems again and again; memoisation stores each answer once and makes it $O(n)$.
+- Memoisation (top-down) and filling a table from the smallest subproblems up (bottom-up) are the two styles of dynamic programming: same complexity, but bottom-up never hits Python's recursion limit.
+- Dynamic programming fills a table of subproblem answers in an order where each entry depends only on entries already filled; edit distance takes $O(mn)$.
+- Greedy choices are fast but can miss the best answer: with coins of 1, 3 and 4 cents, greedy pays 6 cents with 3 coins where DP finds 2.
+
+</Takeaways>
+
+Next, [Graph search: breadth-first and depth-first](#/learn/algorithms-and-complexity/graph-search) completes the module: it explores networks of connected places, such as MRT stations, either level by level or one route at a time, and finds the route with the fewest stops.

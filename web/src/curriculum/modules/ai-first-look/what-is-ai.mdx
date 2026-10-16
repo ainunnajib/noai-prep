@@ -1,0 +1,123 @@
+import AIVennExplorer from './visuals/what-is-ai/AIVennExplorer'
+import DeepNetSlider from './visuals/what-is-ai/DeepNetSlider'
+import RulesVsExamples from './visuals/what-is-ai/RulesVsExamples'
+import LearningTypesSorter from './visuals/what-is-ai/LearningTypesSorter'
+
+Your phone unlocks when it sees your face, a chatbot drafts your CCA email, and your inbox quietly hides scam messages. People call all of these "AI", but they work in very different ways. This lesson gives you the map: three words NOAI uses constantly, how a machine can learn from examples instead of rules, and the three main styles of learning.
+
+In [Start here](#/learn/start-here/what-is-noai) you saw that AI, ML and DL make up one of the Prelim's five domains. This module is your first, code-free look inside it, so predict before you drag.
+
+## Three words, one map
+
+<Analogy>
+Think of "food", "hawker food" and "noodles". Every plate of noodles at a hawker centre is hawker food, and all hawker food is food, but plenty of food is not noodles. AI, machine learning and deep learning nest the same way: each one sits inside the one before it.
+</Analogy>
+
+- **<Term def="Getting computers to do tasks that would seem to need intelligence if a person did them: playing chess, recognising faces, understanding language, planning a route.">Artificial intelligence</Term> (AI)** is the big goal: computers doing things that seem intelligent. It says nothing about *how* they do it.
+- **<Term def="The part of AI where the computer learns patterns from data (examples) instead of following rules that a person wrote.">Machine learning</Term> (ML)** is one way to reach that goal. Instead of a person writing every rule, the computer learns patterns from **data**, meaning lots of examples.
+- **<Term def="Machine learning that uses neural networks with many layers. It powers face unlock, translation and chatbots.">Deep learning</Term> (DL)** is one kind of ML. It uses <Term def="A model built from layers of simple calculating units called neurons. Numbers flow from layer to layer, and the network learns the numbers (weights) on the connections.">neural networks</Term> with many layers.
+
+The key fact people forget: **not all AI learns**. A classic chess engine searches through millions of possible moves and scores each position with rules that chess experts wrote by hand. Playing chess at that level looks intelligent, so it is AI. But it never learns from data, so it is not ML.
+
+Test yourself on six real systems. Some are trickier than they look.
+
+<AIVennExplorer />
+
+What makes deep learning "deep" is simply the number of layers in its neural network. You will build neural networks properly later in the course; for now, see what "many layers" means.
+
+<DeepNetSlider />
+
+<KeyIdea>
+DL sits inside ML, which sits inside AI. **Machine learning** is the part of AI that learns from data; **deep learning** is machine learning with many-layered neural networks.
+</KeyIdea>
+
+<Mistake>
+Two traps. First, "deep learning" is not a separate field next to machine learning: it is a *kind of* ML, so every DL system is also an ML system. Second, a system that only follows hand-written rules can still count as AI, but it is never ML.
+</Mistake>
+
+## Rules versus learning from examples
+
+In ordinary programming, a person writes the rules and the computer applies them. Machine learning flips this around: you give the computer examples together with their answers, and it works out the rules for itself.
+
+| | You give the computer | The computer gives you |
+|---|---|---|
+| Ordinary programming | rules + data | answers |
+| Machine learning | data + answers (examples) | the rules, packaged as a **model** |
+
+<Analogy>
+Nobody can write a rulebook for picking a ripe durian. Instead, you follow an uncle at the stall for a season. He picks one up, sniffs, shakes it, then tells you "this one good" or "this one not yet". After a few hundred durians, your nose has learned what no rulebook could describe. Machine learning works like that: lots of examples, each with the right answer.
+</Analogy>
+
+Spam messages are a perfect test. Try writing rules yourself first. Then let the computer learn from 20 messages that a person has already marked as spam or normal. Finally, test both methods on 8 new messages that neither has seen.
+
+<RulesVsExamples />
+
+Look at what the learner actually did. It never saw a single rule. It read 20 examples, each with a <Term def="The correct answer attached to an example, such as 'spam' or 'normal' for a message, or the sale price for a flat.">label</Term> (the right answer), and adjusted one number per word: its word scores. Those adjustable numbers are called the model's <Term def="The adjustable numbers inside a model that are set by training, such as the word scores in a spam filter or the slope of a line.">parameters</Term>, and adjusting them using examples is called <Term def="Using examples to adjust a model's parameters until its answers match the labels as well as possible.">training</Term>.
+
+The finished product is a <Term def="A function with learned numbers inside: you give it an input (a message) and it gives back an output (spam or normal).">model</Term>: a function that takes an input (a message) and returns an output (spam or normal), using the numbers it learned. In the next lesson, [Your first model: fitting a line by hand](#/learn/ai-first-look/fit-a-line-by-hand), your model will be a straight line, and its parameters will be the line's slope and height.
+
+<KeyIdea>
+A **model** is a function with adjustable numbers inside, called **parameters**. **Training** means adjusting those numbers using labelled examples until the model's answers match the labels as well as possible.
+</KeyIdea>
+
+Why go to this trouble? The new messages showed it: hand-written rules break on messy real data. "Free" also appears in "free for lunch?", and tomorrow's scam will use words that aren't on your list. Scoring well on the examples you tuned your rules on proves little; what counts is how a method does on messages it has never seen, an idea you will meet again at the end of this module. For photos or speech it is far worse: try writing rules that say which pixel values make a photo "a cat". With learning, you fix mistakes by adding more examples, not by writing more rules.
+
+<QuickCheck
+  q="A school's homework portal uses one line of code: 'if submitted after 11:59 pm, mark as late'. Is this machine learning?"
+  options={['No: a person wrote the rule, and the portal never learns from data', 'Yes: any program that makes decisions on its own counts as machine learning', 'Yes: it uses data, because it reads the time of each submission', 'No: machine learning is for images and text, and cannot handle times']}
+  answer={0}
+  explain="ML means learning patterns (parameters) from examples. Here a person wrote the rule and it never changes, so it is ordinary programming. Using data as an *input* is not the same as *learning from* data; every program reads inputs. And ML is not limited to images and text: times, prices and other numbers are common inputs."
+/>
+
+## Three ways a machine can learn
+
+The spam learner had the right answer for every example. That is only one of three main styles of learning, and NOAI loves asking which is which.
+
+<Analogy>
+**Supervised** learning is revising with an answer key: try a question, check the answer, adjust. **Unsupervised** learning is tipping out a box of mixed Lego with no instructions and sorting it into piles that look alike. **Reinforcement** learning is getting good at a mobile game by playing it: nobody tells you the right move, but your score goes up or down after what you do.
+</Analogy>
+
+- <Term def="Learning from examples that come with the right answers (labels). The model learns to map each input to its label.">Supervised learning</Term> learns from examples that come with labels. If the label is a category (spam or normal, digit 0 to 9), the task is called <Term def="A supervised task whose answer is a category, such as spam or normal, or which digit an image shows.">classification</Term>. If the label is a number (an HDB flat's price), it is called <Term def="A supervised task whose answer is a number on a continuous scale, such as a price or a temperature.">regression</Term>.
+- <Term def="Learning from data that has no labels at all. The program looks for structure itself, such as groups of similar examples.">Unsupervised learning</Term> gets data with **no** labels and finds structure in it by itself. The most common job is <Term def="Grouping examples so that similar ones end up in the same group, without being told what the groups are. k-means is a well-known clustering method.">clustering</Term>: putting similar things into groups that nobody named in advance.
+- <Term def="Learning by trial and error: an agent takes actions in an environment and receives rewards or penalties, and learns which actions earn the most reward over time.">Reinforcement learning</Term> (RL) has an **agent** (the learner) taking **actions** in an **environment** (a game, a road, a robot's room). After acting, it gets a **reward** or a penalty. Nobody shows it the right move; it discovers which actions earn the most reward over time.
+
+<LearningTypesSorter />
+
+<KeyIdea>
+Ask one question about the data. Does every example come with the right answer? **Supervised.** No answers at all? **Unsupervised.** Rewards or penalties after actions? **Reinforcement learning.**
+</KeyIdea>
+
+<Steps title="Classify three scenarios with one question">
+  <Step title="A bank's loan model">
+    The bank trains on 1 million past loans, each marked "repaid" or "not repaid", to predict whether a new applicant will repay. Every example has an answer, so it is **supervised**. The answer is a category, so it is classification.
+  </Step>
+  <Step title="A music app's playlists">
+    The app groups songs that sound alike, without any genre tags. There are no answers, only songs, so it is **unsupervised** (clustering).
+  </Step>
+  <Step title="A drone in a simulator">
+    A program learns to land a drone: +100 for a soft landing, −100 for a crash. It acts, then gets a reward or penalty, so it is **reinforcement learning**.
+  </Step>
+</Steps>
+
+<PastPaperQuestion paper="prelim2026" n={136} />
+
+<ExamTip>
+NOAI often names an algorithm instead of describing the data. You will meet these algorithms later in the course; for now, just remember which family each name belongs to. **Supervised:** linear regression, logistic regression, decision trees, k-nearest neighbours (k-NN), support vector machines (SVM). **Unsupervised:** k-means clustering, PCA (which shrinks data to fewer columns). **Reinforcement:** anything with an agent, environment, reward or penalty. Keyword spotting is fast: "labelled" means supervised, "clusters" or "groups" with no labels means unsupervised, "reward" means RL.
+</ExamTip>
+
+<PastPaperQuestion paper="noai2025" n={1} />
+
+<Mistake>
+Reinforcement learning is not "supervised learning with a score". In supervised learning, every example comes with the correct answer. In RL, nobody ever says what the correct action was: the agent only learns how good the outcome was, often much later (a game's final score). And "unsupervised" does not mean "no humans involved"; it means **no labels**.
+</Mistake>
+
+<Note title="Where do chatbots fit?">
+Chatbots such as ChatGPT are first trained to predict the next word (strictly, the next *token*, a word or piece of a word) in a huge amount of text. The "answer" (the next word) comes from the text itself, so no person has to label anything; this is called *self-supervised* learning. They are then fine-tuned on example conversations written by people, which is ordinary supervised learning, and finally polished using human ratings and ideas from reinforcement learning (often called RLHF). You will meet all three stages in the Generative AI part of this course.
+</Note>
+
+<Takeaways>
+- **AI** is the goal (machines doing things that seem intelligent), **ML** is AI that learns from data, and **DL** is ML with many-layered neural networks: DL ⊂ ML ⊂ AI, where ⊂ means "sits inside". Not all AI learns.
+- ML flips ordinary programming: give it data plus answers, and it produces the rules as a **model**.
+- A model is a function with adjustable numbers (**parameters**); **training** adjusts them using examples.
+- **Supervised** = learns from labels; **unsupervised** = no labels, finds structure such as clusters; **reinforcement** = learns from rewards for its actions.
+</Takeaways>

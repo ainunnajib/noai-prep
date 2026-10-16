@@ -1,0 +1,133 @@
+import KFoldAnimator from './visuals/cross-validation/KFoldAnimator'
+
+export const kfoldCode = `import numpy as np
+from sklearn.datasets import make_classification
+from sklearn.neighbors import KNeighborsClassifier
+from sklearn.model_selection import cross_val_score, StratifiedKFold
+
+X, y = make_classification(n_samples=100, n_features=4, flip_y=0.15, random_state=1)
+model = KNeighborsClassifier(n_neighbors=5)
+
+# k-fold from scratch: shuffle the row numbers, cut them into k folds
+k = 5
+rng = np.random.default_rng(0)
+folds = np.array_split(rng.permutation(len(y)), k)
+scores = []
+for i in range(k):
+    val = folds[i]                                   # this round's validation rows
+    train = np.concatenate(folds[:i] + folds[i+1:])  # all the other folds
+    model.fit(X[train], y[train])
+    scores.append(model.score(X[val], y[val]))
+    print(f"round {i+1}: train on {len(train)}, validate on {len(val)}, accuracy {scores[-1]:.2f}")
+scores = np.array(scores)
+print(f"from scratch: {scores.mean():.3f} ± {scores.std():.3f}")
+
+# the same idea in one line (stratified folds keep the class mix in every fold)
+cv = StratifiedKFold(n_splits=5, shuffle=True, random_state=0)
+s = cross_val_score(model, X, y, cv=cv)
+print("cross_val_score:", s.round(2), f"-> {s.mean():.3f} ± {s.std():.3f}")`
+
+A single train/validation split gives you one score, and that score depends on luck: which rows landed in the validation set. **Cross-validation** lets every row take a turn in the validation set, so you get several scores instead of one: their mean says how good the model is, and their spread says how far to trust that number. The 2026 Prelim asked what it is for and when it is worth the cost, and a Final task may ask you to code it from scratch.
+
+<Analogy title="Everyone takes a turn as the examiner">
+A class of 30 rates its revision notes with a quiz. If one group of 6 always marks it, the result depends on how strict those 6 are. So the class splits into 5 groups and rotates: each group marks once while the other 24 study, and the rating averages all five rounds.
+</Analogy>
+
+## Why one split is not enough
+
+Recall the three piles from [Generalisation, overfitting and bias-variance](#/learn/ml-fundamentals/generalisation-and-overfitting): the **training set** fits the model's parameters, the <Term def="Data held back from training and used to compare models or hyperparameter settings. Because you make choices based on it, its score becomes slightly optimistic.">validation set</Term> compares settings, and the **test set** is used **once**, at the end. The settings you compare are <Term def="A setting you choose before training, such as k in k-nearest neighbours or the maximum depth of a tree. The model does not learn it from the data; you pick it by trying values and comparing scores.">hyperparameters</Term>, such as the depth of a tree or the $k$ in $k$-nearest neighbours: you choose them, the model does not learn them.
+
+With little data, the luck of the split is large: hold out 8 of 40 students and one tricky student in the validation set moves the score by $\frac{1}{8} = 12.5$ percentage points, although the model is just as good.
+
+## k-fold cross-validation
+
+<Term def="A way to estimate how well a model will do on new data: split the data into k folds, train k times (each time leaving out a different fold), score each model on the fold it did not see, and average the k scores.">Cross-validation</Term> (CV) turns the analogy's rotation into an algorithm. In **k-fold** CV:
+
+1. Shuffle the rows and cut them into $k$ equal parts called <Term def="One of the k equal parts the data is cut into for cross-validation.">folds</Term>.
+2. Train a fresh model on $k - 1$ folds and score it on the fold that was left out.
+3. Repeat until every fold has been the validation fold exactly once: $k$ rounds in all.
+4. Report the **average** of the $k$ scores, and their **spread**.
+
+<KFoldAnimator />
+
+One split would report just *one* of the dots, lucky or not; five show the typical score and how much it wobbles. Summarise them by their mean and <Term def="A measure of spread: the square root of the average squared distance from the mean. Small means the values sit close together.">standard deviation</Term> (SD):
+
+$$
+\bar{s} = \frac{1}{k}\sum_{i=1}^{k} s_i
+\qquad\qquad
+\text{SD} = \sqrt{\frac{1}{k}\sum_{i=1}^{k} \left(s_i - \bar{s}\right)^2}
+$$
+
+Here $s_i$ is the score on fold $i$ and $\bar{s}$ ("s bar") is their mean. The SD is a typical distance from the mean: square each score's distance from the mean, average the squares, then take the square root. Write the result as $\bar{s} \pm \text{SD}$.
+
+<KeyIdea>
+k-fold cross-validation trains $k$ models, each validated on a different fold, and reports **mean ± standard deviation** of the $k$ scores. Every row is used for both training and validation, at the cost of $k$ times the training.
+</KeyIdea>
+
+<PastPaperQuestion paper="prelim2026" n={144} />
+
+<Steps title="Five fold scores: 0.82, 0.78, 0.86, 0.74, 0.80">
+  <Step title="Mean">
+    $0.82 + 0.78 + 0.86 + 0.74 + 0.80 = 4.00$, and $4.00 / 5 = 0.80$.
+  </Step>
+  <Step title="Distance of each score from the mean">
+    Work in hundredths to avoid decimals: $+2,\ -2,\ +6,\ -6,\ 0$.
+  </Step>
+  <Step title="Square, then average">
+    $4 + 4 + 36 + 36 + 0 = 80$, and $80 / 5 = 16$ (in hundredths squared).
+  </Step>
+  <Step title="Square root">
+    $\sqrt{16} = 4$ hundredths, so SD $= 0.04$. Report **0.80 ± 0.04**. (NumPy's `np.std` divides by $k$ like this; `np.std(s, ddof=1)` divides by $k - 1$ and gives 0.045.)
+  </Step>
+</Steps>
+
+### Choosing k
+
+- **$k = 5$ or $k = 10$** are usual: each model trains on 80% or 90% of the data.
+- **Bigger $k$** means more fits, and each smaller validation fold gives a noisier score (try $k = 10$ in the visual).
+- **$k = n$**, one row per fold, is <Term def="Cross-validation where each fold is a single row: n models, each trained on all rows but one and tested on the one left out. Thorough but expensive.">leave-one-out</Term> CV: thorough, but $n$ fits.
+- CV **estimates** how good a recipe (model type plus hyperparameters) is. Once you have chosen, retrain one model on **all** the training data.
+
+<Mistake title="Quoting the best fold">
+With fold scores of 0.82, 0.78, 0.86, 0.74 and 0.80, the model is not "86% accurate": that fold just happened to get easier rows. Report **0.80 ± 0.04**. And none of the five fold models is the one you keep: they exist only to produce the scores.
+</Mistake>
+
+### Stratified folds
+
+Random folds can get an uneven mix of classes: in the visual 10 of the 40 students fail, and with $k = 10$ one fold may get three failures and another none. <Term def="k-fold cross-validation where each fold keeps the same class proportions as the whole dataset.">Stratified k-fold</Term> deals each class out evenly, so every fold keeps the class mix of the full data. scikit-learn's `cross_val_score(model, X, y, cv=5)` already stratifies for classifiers but does **not** shuffle, so pass `cv=StratifiedKFold(5, shuffle=True, random_state=0)` if the rows might be in any order.
+
+Rows that are not independent need special folds: for time-ordered data, validate on later rows than you train on (`TimeSeriesSplit`); keep each patient's rows together in one fold (`GroupKFold`), so the model is always validated on people it has never seen.
+
+<QuickCheck
+  q="You run 5-fold cross-validation on 1,000 rows. How many models are trained, and how many rows does each one get scored on?"
+  options={['5 models, each scored on 200 rows', '5 models, each scored on 800 rows', '1 model, scored 5 times on the same 200 rows', '4 models, each scored on 250 rows']}
+  answer={0}
+  explain="Each of the 5 rounds trains a new model on 4 folds (800 rows) and scores it on the remaining fold of $1000 / 5 = 200$ rows. 800 is the training size, not the validation size."
+/>
+
+<QuickCheck
+  q="A dataset has 200 patients, and only 10 have the disease. With plain 10-fold CV, some folds contain no sick patients at all. What is the standard fix?"
+  options={['Stratified k-fold, about 1 sick patient per fold', 'Leave-one-out CV, so each patient is tested once', 'Raise k to 20 so the folds are smaller', 'Drop the folds that contain no sick patients']}
+  answer={0}
+  explain="Stratified folds keep the class mix of the whole dataset: 10 sick patients over 10 folds is 1 per fold. Raising $k$ makes empty folds *more* likely, and dropping folds throws away data and biases the result."
+/>
+
+<ExamTip>
+NOAI asks *when* to cross-validate. With a **small** dataset a single validation set is tiny and noisy, so CV is worth the extra training. With a **huge** one, one validation split is already stable and $k$ fits may be too slow.
+</ExamTip>
+
+<PastPaperQuestion paper="prelim2026" n={268} />
+
+Here is k-fold CV by hand in NumPy (a Final task may ask for it), then the one-line scikit-learn version. Notice how far apart the five fold scores are.
+
+<PyRunner packages={['numpy', 'scikit-learn']} code={kfoldCode} />
+
+<Takeaways>
+- **k-fold CV** cuts the shuffled rows into $k$ folds and trains $k$ models, each validated on the fold it did not see, so every row is validated exactly once. Report the **mean ± SD** of the $k$ scores, not the best fold.
+- $k = 5$ or $k = 10$ is usual; a bigger $k$ means more fits and noisier fold scores, and $k = n$ is leave-one-out.
+- Use **stratified** folds for classification, especially with rare classes. Keep time-ordered rows in order, and each patient's (or group's) rows in one fold.
+- CV is worth $k$ times the training for **small** datasets; with huge datasets one validation split is already stable.
+- CV scores a **recipe**: once you have chosen, retrain one model on all the training data.
+</Takeaways>
+
+Next, [Hyperparameter tuning without fooling yourself](#/learn/model-evaluation/hyperparameter-tuning) puts these scores to work: it uses cross-validation to choose hyperparameters with grid and random search, and shows the two leaks that make a tuned model look better than it really is.

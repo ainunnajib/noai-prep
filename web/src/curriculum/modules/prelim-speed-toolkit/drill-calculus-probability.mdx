@@ -1,0 +1,213 @@
+import FlashcardDrill from './visuals/drill-calculus-probability/FlashcardDrill'
+import QuickProbability from './visuals/drill-calculus-probability/QuickProbability'
+import MetricsFromCounts from './visuals/drill-calculus-probability/MetricsFromCounts'
+import AnchorSlideRule from './visuals/drill-calculus-probability/AnchorSlideRule'
+
+The 2026 Prelim's Mathematics block held 14 calculus questions, 12 on probability and statistics and 3 on classification metrics. Every calculation in them was a one-liner: the derivative of $x^2$, the slope of a sigmoid, a z-score, a precision. You either know these instantly or you burn a minute rebuilding them. This lesson gives you the short fixed list behind those questions, a checklist for probabilities and metrics, and a dozen anchor values that stand in for the calculator you are not allowed.
+
+If any idea here is new, the full explanations are in [derivative rules](#/learn/calculus-and-gradient-descent/derivative-rules), [the chain rule](#/learn/calculus-and-gradient-descent/chain-rule), [logarithms](#/learn/maths-foundations/logarithms), [describing data](#/learn/probability-and-statistics/describing-data), [probability rules](#/learn/probability-and-statistics/probability-rules), [Bayes' theorem](#/learn/probability-and-statistics/bayes-theorem), [distributions](#/learn/probability-and-statistics/distributions-and-clt) and [the confusion matrix](#/learn/model-evaluation/confusion-matrix-and-metrics). Here the goal is speed.
+
+## Derivative flashcards
+
+<Analogy title="Times tables">
+
+Nobody works out $7 \times 8$ by adding seven eights. You just know it is 56, because you drilled it until it stuck. The derivatives that NOAI asks about are a list about as long as the 12 times table, and they stick the same way: by repetition.
+
+</Analogy>
+
+A <Term def="The slope of a function at a point: how fast the output changes when you nudge the input. Written f′(x) or df/dx.">derivative</Term> $f'(x)$ tells you how steeply $f$ rises at $x$. A <Term def="The derivative with respect to one variable while every other variable is held fixed. Written ∂f/∂x.">partial derivative</Term> $\frac{\partial f}{\partial x}$ does the same for one input of a function with several inputs, treating the others as constants, and the <Term def="The vector of all the partial derivatives of a function: one entry per input. It points in the direction of steepest increase.">gradient</Term> $\nabla f$ stacks the partial derivatives into a vector. Here is the whole list:
+
+| Function | Derivative | Why it matters |
+| --- | --- | --- |
+| $x^n$ | $n\,x^{n-1}$ | power rule; covers $x^2 \to 2x$, $\frac1x \to -\frac{1}{x^2}$, $\sqrt x \to \frac{1}{2\sqrt x}$ |
+| $e^x$ | $e^x$ | its own slope |
+| $\ln x$ | $\frac1x$ | inside every <Term def="The usual classification loss: minus the natural log of the probability the model gave to the true class. It is 0 when that probability is 1 and grows without limit as it falls towards 0.">cross-entropy</Term> (log-loss) gradient |
+| $\sigma(x) = \frac{1}{1 + e^{-x}}$ | $\sigma(x)\bigl(1 - \sigma(x)\bigr)$ | at most $0.25$, at $x = 0$ |
+| $\tanh x$ | $1 - \tanh^2 x$ | at most $1$, at $x = 0$ |
+| $\operatorname{ReLU}(x) = \max(0, x)$ | $0$ for $x < 0$, $1$ for $x > 0$ | undefined at exactly 0 |
+| $\lVert \mathbf{x} \rVert^2$ | $2\mathbf{x}$ | gradient of a sum of squares |
+| $(wx - y)^2$, with respect to $w$ | $2(wx - y)\,x$ | one weight's gradient in linear regression |
+| $f(g(x))$ | $f'(g(x))\, g'(x)$ | the chain rule, which backpropagation is built on |
+
+Two of these deserve a sentence of reasoning, because they come up as "why" questions too.
+
+- **The sigmoid's slope is at most a quarter.** At $x = 0$, $\sigma = 0.5$, so $\sigma' = 0.5 \times 0.5 = 0.25$; anywhere else it is smaller. Backpropagation multiplies the gradient by one such factor per layer, so (ignoring the weights) ten sigmoid layers multiply it by at most $0.25^{10}$, about one millionth. That is the **vanishing gradient** problem; ReLU's slope of exactly 1 for positive inputs avoids it.
+- **The squared-error gradient is "error times input, doubled".** For $L = (wx - y)^2$ the chain rule gives the outer derivative $2(wx - y)$ times the inner derivative $x$.
+
+<FlashcardDrill />
+
+<Steps title="Gradient of L = (wx − y)² at w = 2, x = 3, y = 4">
+  <Step title="The error inside the bracket">
+    $wx - y = 2 \times 3 - 4 = 2$.
+  </Step>
+  <Step title="Outer derivative">
+    The square gives $2 \times (\text{error}) = 2 \times 2 = 4$.
+  </Step>
+  <Step title="Times the inner derivative">
+    The inside $wx - y$ changes at rate $x = 3$ as $w$ changes, so $\frac{\partial L}{\partial w} = 4 \times 3 = 12$. Positive: increasing $w$ would increase the loss, so gradient descent will decrease $w$.
+  </Step>
+</Steps>
+
+<PastPaperQuestion paper="prelim2026" n={35} />
+
+<Mistake>
+
+Forgetting the inner derivative. $\frac{\partial}{\partial w}(wx - y)^2$ is **not** $2(wx - y)$: the chain rule multiplies by the derivative of the inside, $x$. Exam options always include the version without it.
+
+</Mistake>
+
+<KeyIdea>
+
+Chain rule = outer derivative × inner derivative, every time. Most derivative questions are one table entry plus one chain-rule step.
+
+</KeyIdea>
+
+## Quick probability
+
+<Analogy title="A pilot's pre-flight checklist">
+
+Pilots do not decide afresh each morning how to check an aircraft. They run the same checklist in the same order every time, so nothing is missed even when they are tired. Probability and metrics questions deserve the same: one fixed routine, no improvising.
+
+</Analogy>
+
+The probability checklist:
+
+1. **Describe a small list.** Mean = sum ÷ number of values; median = the middle value after sorting; variance = the mean of the squared distances from the mean (divide by $n$; a question about a sample may divide by $n - 1$, as in [describing data](#/learn/probability-and-statistics/describing-data)); standard deviation = $\sqrt{\text{variance}}$. A long tail to the right pulls the mean above the median.
+2. **Count.** When all outcomes are equally likely, $P(\text{event}) = \dfrac{\text{outcomes in the event}}{\text{all outcomes}}$. Two dice have $6 \times 6 = 36$ outcomes, so $P(\text{sum} = 7) = \frac{6}{36} = \frac16$.
+3. **Complement for "at least one".** $P(\text{at least one}) = 1 - P(\text{none})$. At least one head in 3 coin tosses: $1 - \left(\frac12\right)^3 = \frac78$.
+4. **Multiply for independent events.** Two events are <Term def="Knowing whether one happened tells you nothing about the other, so P(A and B) = P(A) × P(B).">independent</Term> when $P(A \text{ and } B) = P(A)\,P(B)$.
+5. **Bayes: use 100 people, not the formula.** Bayes' theorem, $P(A \mid B) = \dfrac{P(B \mid A)\,P(A)}{P(B)}$, turns $P(\text{positive} \mid \text{ill})$ into $P(\text{ill} \mid \text{positive})$. Instead of plugging in, turn every percentage into a count of people, then count the people you care about.
+6. **z-scores:** $z = \dfrac{x - \mu}{\sigma}$, where $\mu$ (mu) is the mean and $\sigma$ (sigma) the standard deviation (the same letter as the sigmoid $\sigma(x)$ in the derivative table, but a different thing). In words: how many standard deviations $x$ sits above the mean (negative means below). With $\mu = 50$, $\sigma = 5$, $x = 35$: $z = \frac{-15}{5} = -3$, three standard deviations below. For a normal distribution, about 68% of values lie within $z = \pm 1$, 95% within $\pm 2$ and 99.7% within $\pm 3$.
+
+<QuickProbability />
+
+<Steps title="Bayes in 100 people: a 90%-accurate test for a 10% condition">
+  <Step title="Split the 100 people">
+    10% have the condition: **10 ill**, 90 healthy.
+  </Step>
+  <Step title="Who tests positive?">
+    The test catches 90% of the ill: **9** true positives. It also flags 10% of the healthy: **9** false positives.
+  </Step>
+  <Step title="Count among the positives">
+    18 people test positive and 9 of them are ill: $P(\text{ill} \mid \text{positive}) = \frac{9}{18} = 50\%$. A "90% accurate" test is right only half the time when it says yes, because the condition is rare.
+  </Step>
+</Steps>
+
+<KeyIdea>
+
+When a condition is rare, many of the positive tests are false alarms. Count people, not percentages, and the answer falls out.
+
+</KeyIdea>
+
+<PastPaperQuestion paper="prelim2026" n={54} />
+
+## Metrics from counts
+
+The metrics routine has one rule: **write the four counts first**. A <Term def="A 2 × 2 table of a classifier's results: true positives, false negatives, false positives and true negatives.">confusion matrix</Term> splits every prediction into four groups: true positives $TP$ (positive, predicted positive), false negatives $FN$ (positive, missed), false positives $FP$ (negative, wrongly flagged) and true negatives $TN$. Then every metric is one fraction:
+
+$$
+\text{precision} = \frac{TP}{TP + FP} \qquad \text{recall} = \frac{TP}{TP + FN}
+$$
+
+$$
+\text{accuracy} = \frac{TP + TN}{\text{total}}
+$$
+
+$$
+F_1 = \frac{2PR}{P + R} = \frac{2\,TP}{2\,TP + FP + FN}
+$$
+
+- **Precision** looks along the *predicted positive* column: of everything flagged, how much was real?
+- **Recall** looks along the *actually positive* row: of everything real, how much was caught?
+- **F1** is the <Term def="A kind of average that is pulled towards the smaller number: 2ab/(a + b). For 1 and 0 it gives 0, not 0.5.">harmonic mean</Term> of precision $P$ and recall $R$. The count form on the right is the same number and much faster: no fractions inside fractions.
+
+This drill puts the positive class first, as many textbooks do; scikit-learn puts class 0 first. Always read the row and column labels before taking $TP$.
+
+<MetricsFromCounts />
+
+<Steps title="All four metrics for TP = 8, FP = 2, FN = 4, TN = 86">
+  <Step title="Precision and recall">
+    $P = \frac{8}{8 + 2} = \frac{8}{10} = 0.8$. $R = \frac{8}{8 + 4} = \frac{8}{12} = \frac23 \approx 0.67$.
+  </Step>
+  <Step title="F1 by counts">
+    $F_1 = \frac{2 \times 8}{16 + 2 + 4} = \frac{16}{22} = \frac{8}{11} \approx 0.73$. (Check: $\frac{2 \times 0.8 \times \frac23}{0.8 + \frac23} = \frac{16/15}{22/15} = \frac{16}{22}$.)
+  </Step>
+  <Step title="Accuracy">
+    $\frac{8 + 86}{100} = 0.94$. High, because the 86 easy negatives dominate: this is why accuracy misleads on imbalanced data.
+  </Step>
+</Steps>
+
+<QuickCheck
+  q="A classifier has precision 0.25 and recall 1. What is its F1 score?"
+  options={['0.4', '0.625', '0.5', '0.25']}
+  answer={0}
+  explain="$F_1 = \frac{2PR}{P + R} = \frac{2 \times 0.25 \times 1}{1.25} = \frac{0.5}{1.25} = 0.4$. The ordinary average, 0.625, is the trap: the harmonic mean is always pulled towards the smaller of the two, though not all the way to 0.25. And 0.5 is $2PR$ before dividing by $P + R$."
+/>
+
+<PastPaperQuestion paper="prelim2026" n={57} />
+
+<KeyIdea>
+
+Write $TP$, $FP$, $FN$ and $TN$ first. Then precision and recall share the numerator $TP$, and $F_1 = \frac{2TP}{2TP + FP + FN}$ needs no fractions inside fractions.
+
+</KeyIdea>
+
+<Mistake>
+
+Swapping precision and recall. Tie each to its question: **precision** is about the **predictions** ("when it says yes, is it right?"), **recall** is about the **real positives** ("did it find them all?"). Both share the numerator $TP$; only the second count in the denominator differs.
+
+</Mistake>
+
+## The anchor values
+
+<Analogy title="Estimating a supermarket trolley">
+
+If you know roughly what a loaf of bread, a carton of milk and a tray of eggs cost at the supermarket, you can estimate a whole trolley before you reach the till: two loaves, three cartons, add them up. You never memorise the price of every combination. A few memorised anchor values do the same job for logarithms and exponentials: everything else is a sum or a multiple of them.
+
+</Analogy>
+
+Without a calculator, every log, exponential, square root or sigmoid in a question is meant to be **built from a few anchors**. These are the ones to learn by heart:
+
+| Anchor | Value | Typical use |
+| --- | --- | --- |
+| $\ln 2$ | $\approx 0.69$ | loss of a coin-flip guess, $-\ln 0.5$ |
+| $\ln 3$ | $\approx 1.10$ | 3-class problems |
+| $\ln 10$ | $\approx 2.30$ | so $-\ln 0.1 \approx 2.30$; initial loss of a 10-class model |
+| $\log_2 1024$ | $= 10$ | bits, tree depths, $2^{10} \approx 10^3$ |
+| $e$, $e^2$, $e^{-1}$ | $\approx 2.72$, $7.39$, $0.37$ | <Term def="The function that turns a list of scores into probabilities: raise e to each score, then divide each result by their total.">softmax</Term> and sigmoid arithmetic |
+| $\sqrt2$, $\sqrt3$ | $\approx 1.41$, $1.73$ | norms such as $\lVert [1, 1] \rVert = \sqrt2$ |
+| $\sigma(0)$, $\sigma(2)$, $\sigma(-2)$ | $0.5$, $\approx 0.88$, $\approx 0.12$ | sigmoid outputs; $\sigma(-z) = 1 - \sigma(z)$ |
+
+Combine them with two log rules: $\ln(ab) = \ln a + \ln b$ and $\ln(a^k) = k \ln a$. So $\ln 4 = 2\ln 2 \approx 1.39$, $\ln 5 = \ln 10 - \ln 2 \approx 1.61$, and $\ln 8 = 3 \ln 2 \approx 2.08$.
+
+<AnchorSlideRule />
+
+<Steps title="Two loss values without a calculator">
+  <Step title="Loss at p = 0.25">
+    When the true class gets probability 0.25, the cross-entropy loss is $-\ln 0.25 = \ln 4 = 2 \ln 2 \approx 2 \times 0.69 = 1.39$.
+  </Step>
+  <Step title="A fresh 10-class model">
+    Before training, a sensible model spreads its probability evenly: $\frac{1}{10}$ for every class. Its cross-entropy is $-\ln \frac{1}{10} = \ln 10 \approx 2.30$. If your first logged loss is far from 2.30, something in the set-up is wrong.
+  </Step>
+</Steps>
+
+<ExamTip>
+
+Look at how far apart the options are before you compute. If they are 0.69, 1.39, 2.30 and 4.61, you only need to know which anchor the question is built on. If two options are close (say 1.39 and 1.61), then work it out properly with the log rules.
+
+</ExamTip>
+
+<KeyIdea>
+
+A dozen anchor values plus two log rules, $\ln(ab) = \ln a + \ln b$ and $\ln a^k = k \ln a$, replace the calculator: every log, exponential, root or sigmoid value in a question is built from them in one or two steps.
+
+</KeyIdea>
+
+<Takeaways>
+
+- **Derivatives:** $x^n \to nx^{n-1}$, $e^x \to e^x$, $\ln x \to \frac1x$, $\sigma' = \sigma(1 - \sigma) \le 0.25$, $\tanh' = 1 - \tanh^2$, ReLU' is 0 or 1, $\nabla \lVert x \rVert^2 = 2x$, $\frac{\partial}{\partial w}(wx - y)^2 = 2(wx - y)x$.
+- **Probability:** describe a list (mean, median, variance, SD), count equally likely outcomes, use $1 - P(\text{none})$ for "at least one", multiply independent events, do Bayes with 100 people, and $z = \frac{x - \mu}{\sigma}$.
+- **Metrics:** write $TP, FP, FN, TN$ first; precision $\frac{TP}{TP + FP}$, recall $\frac{TP}{TP + FN}$, $F_1 = \frac{2TP}{2TP + FP + FN}$, accuracy $\frac{TP + TN}{\text{total}}$.
+- **Anchors:** $\ln 2 \approx 0.69$, $\ln 10 \approx 2.30$, $e \approx 2.72$, $e^2 \approx 7.39$, $\sqrt2 \approx 1.41$, $\sigma(0) = 0.5$, $\sigma(\pm 2) \approx 0.88 / 0.12$; build everything else with the log rules.
+
+</Takeaways>

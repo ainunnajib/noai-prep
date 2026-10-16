@@ -1,0 +1,1150 @@
+{
+ "paper": "prelim2026_chunk1",
+ "source": "NOAI 2026 Preliminary Round Assessment (20 Feb 2026, 300 MCQs, Google Form PDF), AI Singapore. Google-Form items 12-61 = assessment questions 1-50. https://aisingapore.org/wp-content/uploads/2026/04/NOAI-2026-Preliminary-Round-Assessment-300-MCQs-Google-Forms.pdf",
+ "questions": [
+  {
+   "n": 1,
+   "question": "What is the result of multiplying a 3×2 matrix by a 2×4 matrix?",
+   "options": [
+    "3×4 matrix",
+    "2×2 matrix",
+    "3×2 matrix",
+    "Cannot multiply"
+   ],
+   "answer": 0,
+   "domain": "mathematics",
+   "subtopic": "linear-algebra",
+   "difficulty": "beginner",
+   "style": "computation",
+   "concepts": [
+    "matrix multiplication",
+    "inner dimensions must match",
+    "shape of a matrix product"
+   ],
+   "explanation": "An $(m \\times n)$ matrix times an $(n \\times p)$ matrix gives an $(m \\times p)$ matrix. Here the inner dimensions match ($2 = 2$), so the product exists, and the result keeps the outer dimensions: $(3 \\times 2)(2 \\times 4) \\rightarrow 3 \\times 4$. 'Cannot multiply' is tempting if you compare the wrong numbers (e.g. 3 vs 4), but only the *inner* pair has to agree. $2 \\times 2$ would be the shape of the shared inner dimension, which disappears in the product.",
+   "confidence": "high",
+   "notes": ""
+  },
+  {
+   "n": 2,
+   "question": "Given vector v = [3, 4], what is its L2 norm (Euclidean length)?",
+   "options": [
+    "5",
+    "7",
+    "25",
+    "12"
+   ],
+   "answer": 0,
+   "domain": "mathematics",
+   "subtopic": "linear-algebra",
+   "difficulty": "beginner",
+   "style": "computation",
+   "concepts": [
+    "L2 norm",
+    "Euclidean length",
+    "Pythagoras' theorem"
+   ],
+   "explanation": "The L2 norm is the square root of the sum of squared components: $\\|v\\|_2 = \\sqrt{3^2 + 4^2} = \\sqrt{9 + 16} = \\sqrt{25} = 5$. This is just Pythagoras' theorem for the arrow from the origin to the point $(3, 4)$. 25 is the *squared* norm (you forgot the square root), and 7 is $3 + 4$, which is the L1 (Manhattan) norm, not the L2 norm.",
+   "confidence": "high",
+   "notes": ""
+  },
+  {
+   "n": 3,
+   "question": "Which operation is NOT valid for matrices A (3×3) and B (3×3)?",
+   "options": [
+    "A+B",
+    "A×B",
+    "A÷B",
+    "A-B"
+   ],
+   "answer": 2,
+   "domain": "mathematics",
+   "subtopic": "linear-algebra",
+   "difficulty": "beginner",
+   "style": "definition",
+   "concepts": [
+    "matrix operations",
+    "matrix inverse",
+    "element-wise vs matrix operations"
+   ],
+   "explanation": "Two $3 \\times 3$ matrices can be added and subtracted (same shape, done element by element) and multiplied (inner dimensions $3 = 3$ match). There is no 'division' operation for matrices. The closest idea is multiplying by an inverse, $AB^{-1}$, and that only works when $B$ is invertible (and $AB^{-1} \\neq B^{-1}A$ in general, so even that is not a single well-defined 'division'). So $A \\div B$ is the operation that is not defined.",
+   "confidence": "high",
+   "notes": "In NumPy, A / B on two arrays is element-wise division and does run, but as a matrix operation (linear algebra), division is undefined. The intended answer is clear.",
+   "caveat": "In NumPy, A / B on two arrays is element-wise division and does run, but as a matrix operation (linear algebra), division is undefined. The intended answer is clear."
+  },
+  {
+   "n": 4,
+   "question": "What property does the identity matrix (I) has?",
+   "options": [
+    "All elements are 1",
+    "Diagonal elements are 1, rest are 0",
+    "All elements are 0",
+    "Transpose equals inverse"
+   ],
+   "answer": 1,
+   "domain": "mathematics",
+   "subtopic": "linear-algebra",
+   "difficulty": "beginner",
+   "style": "definition",
+   "concepts": [
+    "identity matrix",
+    "multiplicative identity",
+    "diagonal matrix"
+   ],
+   "explanation": "The identity matrix has 1s on the main diagonal and 0s everywhere else, e.g. $I_2 = \\begin{bmatrix}1 & 0\\\\ 0 & 1\\end{bmatrix}$. That is why $AI = IA = A$: it is the matrix version of the number 1. A matrix of all 1s is the 'ones matrix', and a matrix of all 0s is the zero matrix, which are both different things. The last option is a trap: $I^T = I = I^{-1}$ is *also* true, but it describes all orthogonal matrices, not just the identity. The *defining* property is the diagonal of 1s.",
+   "confidence": "high",
+   "notes": "Flawed options: 'Transpose equals inverse' is also a true statement about I (I is orthogonal, so I^T = I^{-1} = I). The intended answer is the defining property (index 1), and the official NOAI self-assessment tool (noai.aisingapore.org/preliminary-trial) keys index 1 too. Grammar 'has' (should be 'have') and the Roman-numeral glyph 'Ⅰ' are normalised to 'I' from the source.",
+   "caveat": "Flawed options: 'Transpose equals inverse' is also true of the identity matrix (I is orthogonal, so Iᵀ = I⁻¹ = I). The intended answer is the defining property (option B), which AI Singapore's online self-assessment tool also keys."
+  },
+  {
+   "n": 5,
+   "question": "If matrix A is 2×3, what is the shape of A^T (transpose)?",
+   "options": [
+    "2×3",
+    "3×2",
+    "3×3",
+    "2×2"
+   ],
+   "answer": 1,
+   "domain": "mathematics",
+   "subtopic": "linear-algebra",
+   "difficulty": "beginner",
+   "style": "computation",
+   "concepts": [
+    "matrix transpose",
+    "matrix shape"
+   ],
+   "explanation": "Transposing swaps rows and columns: entry $(i, j)$ of $A$ becomes entry $(j, i)$ of $A^T$. So a matrix with 2 rows and 3 columns becomes one with 3 rows and 2 columns: $3 \\times 2$. '2×3' is wrong because the shape only stays the same for square matrices. 3×3 and 2×2 are the shapes of $A^TA$ and $AA^T$, not of $A^T$ itself.",
+   "confidence": "high",
+   "notes": ""
+  },
+  {
+   "n": 6,
+   "question": "What is the dot product of [1, 2, 3] and [4, 5, 6]?",
+   "options": [
+    "20",
+    "28",
+    "32",
+    "36"
+   ],
+   "answer": 2,
+   "domain": "mathematics",
+   "subtopic": "linear-algebra",
+   "difficulty": "beginner",
+   "style": "computation",
+   "concepts": [
+    "dot product",
+    "element-wise multiply then sum"
+   ],
+   "explanation": "Multiply matching entries and add them up: $1\\times4 + 2\\times5 + 3\\times6 = 4 + 10 + 18 = 32$. The dot product always gives a single number (a scalar), not a vector. The other options come from arithmetic slips, such as forgetting one of the terms or multiplying the wrong pairs.",
+   "confidence": "high",
+   "notes": ""
+  },
+  {
+   "n": 7,
+   "question": "Which matrix is symmetric?",
+   "options": [
+    "[[1, 2], [3, 4]]",
+    "[[1, 2], [2, 3]]",
+    "[[1, 0], [1, 0]]",
+    "[[0, 1], [0, 0]]"
+   ],
+   "answer": 1,
+   "domain": "mathematics",
+   "subtopic": "linear-algebra",
+   "difficulty": "beginner",
+   "style": "computation",
+   "concepts": [
+    "symmetric matrix",
+    "transpose",
+    "off-diagonal entries"
+   ],
+   "explanation": "A matrix is symmetric when $A = A^T$, i.e. $a_{ij} = a_{ji}$, so it mirrors across the main diagonal. In $\\begin{bmatrix}1 & 2\\\\ 2 & 3\\end{bmatrix}$ both off-diagonal entries are 2, so it equals its transpose. In $\\begin{bmatrix}1 & 2\\\\ 3 & 4\\end{bmatrix}$ the off-diagonals are 2 and 3. In $\\begin{bmatrix}1 & 0\\\\ 1 & 0\\end{bmatrix}$ they are 0 and 1, and in $\\begin{bmatrix}0 & 1\\\\ 0 & 0\\end{bmatrix}$ they are 1 and 0, so none of those is symmetric.",
+   "confidence": "high",
+   "notes": ""
+  },
+  {
+   "n": 8,
+   "question": "What is the determinant of [[1, 0], [0, 1]]?",
+   "options": [
+    "0",
+    "1",
+    "2",
+    "-1"
+   ],
+   "answer": 1,
+   "domain": "mathematics",
+   "subtopic": "linear-algebra",
+   "difficulty": "beginner",
+   "style": "computation",
+   "concepts": [
+    "determinant of a 2×2 matrix",
+    "identity matrix"
+   ],
+   "explanation": "For $\\begin{bmatrix}a & b\\\\ c & d\\end{bmatrix}$, the determinant is $ad - bc$. Here it is $1\\cdot1 - 0\\cdot0 = 1$. This is the $2\\times2$ identity matrix, and $\\det(I) = 1$ always: the identity does not stretch or shrink area at all. 2 comes from adding the diagonal (that is the *trace*, not the determinant).",
+   "confidence": "high",
+   "notes": ""
+  },
+  {
+   "n": 9,
+   "question": "In matrix multiplication AB, which dimension must match?",
+   "options": [
+    "Rows of A = rows of B",
+    "Columns of A = rows of B",
+    "Rows of A = columns of B",
+    "All dimensions must match"
+   ],
+   "answer": 1,
+   "domain": "mathematics",
+   "subtopic": "linear-algebra",
+   "difficulty": "beginner",
+   "style": "definition",
+   "concepts": [
+    "matrix multiplication rule",
+    "inner dimensions"
+   ],
+   "explanation": "Each entry of $AB$ is a dot product of a **row of A** with a **column of B**, so these two vectors must have the same length. A row of $A$ has as many entries as $A$ has columns, and a column of $B$ has as many entries as $B$ has rows. So we need columns of $A$ = rows of $B$. For example, $(3\\times2)(2\\times4)$ works. 'All dimensions must match' is too strict: that is only required for addition and subtraction.",
+   "confidence": "high",
+   "notes": ""
+  },
+  {
+   "n": 10,
+   "question": "What is the rank of a zero matrix (all elements = 0)?",
+   "options": [
+    "0",
+    "1",
+    "Equal to its rows",
+    "Undefined"
+   ],
+   "answer": 0,
+   "domain": "mathematics",
+   "subtopic": "linear-algebra",
+   "difficulty": "intermediate",
+   "style": "definition",
+   "concepts": [
+    "matrix rank",
+    "linear independence",
+    "zero matrix"
+   ],
+   "explanation": "Rank is the number of linearly independent rows (or columns). This is also the dimension of the space the matrix's outputs can reach. Every row of a zero matrix is the zero vector, and the zero vector is never linearly independent, so there are 0 independent rows. Every input is also sent to the single point $\\mathbf{0}$. So the rank is 0. It is well defined, not 'undefined', and 1 is the smallest rank of any *non-zero* matrix.",
+   "confidence": "high",
+   "notes": ""
+  },
+  {
+   "n": 11,
+   "question": "A square matrix with determinant 0 is called:",
+   "options": [
+    "Orthogonal",
+    "Singular",
+    "Symmetric",
+    "Diagonal"
+   ],
+   "answer": 1,
+   "domain": "mathematics",
+   "subtopic": "linear-algebra",
+   "difficulty": "beginner",
+   "style": "definition",
+   "concepts": [
+    "singular matrix",
+    "determinant",
+    "invertibility"
+   ],
+   "explanation": "A square matrix with $\\det(A) = 0$ is **singular**: it squashes space into a lower dimension, so it has no inverse. Orthogonal matrices have $\\det = \\pm 1$, so they can never have determinant 0. Symmetric and diagonal describe the *pattern* of entries. Some symmetric or diagonal matrices have determinant 0 and many do not, so those words do not mean 'determinant 0'.",
+   "confidence": "high",
+   "notes": ""
+  },
+  {
+   "n": 12,
+   "question": "In eigenvalue decomposition, what does Av = λv represent?",
+   "options": [
+    "v is an eigenvector with eigenvalue λ",
+    "λ is an eigenvector with eigenvalue v",
+    "A is diagonal",
+    "v must be orthogonal"
+   ],
+   "answer": 0,
+   "domain": "mathematics",
+   "subtopic": "linear-algebra",
+   "difficulty": "intermediate",
+   "style": "definition",
+   "concepts": [
+    "eigenvector",
+    "eigenvalue",
+    "linear transformation"
+   ],
+   "explanation": "$Av = \\lambda v$ says that applying $A$ to the non-zero vector $v$ only *scales* it by the number $\\lambda$, without changing its direction. Such a $v$ is an **eigenvector** and the scale factor $\\lambda$ is its **eigenvalue**. Option B swaps the roles: $\\lambda$ is a scalar and $v$ is a vector. The equation says nothing about $A$ being diagonal, and one vector on its own cannot be 'orthogonal'.",
+   "confidence": "high",
+   "notes": ""
+  },
+  {
+   "n": 13,
+   "question": "Why is the covariance matrix always symmetric?",
+   "options": [
+    "By definition, Cov(X,Y) = Cov(Y,X)",
+    "It only works for symmetric data",
+    "It's a required property for PCA",
+    "Due to matrix multiplication rules"
+   ],
+   "answer": 0,
+   "domain": "mathematics",
+   "subtopic": "linear-algebra",
+   "difficulty": "intermediate",
+   "style": "why-reasoning",
+   "concepts": [
+    "covariance matrix",
+    "symmetric matrix",
+    "covariance definition"
+   ],
+   "explanation": "Entry $(i, j)$ of the covariance matrix is $\\mathrm{Cov}(X_i, X_j) = E[(X_i - \\mu_i)(X_j - \\mu_j)]$. Swapping $i$ and $j$ just swaps the two factors in the product, which gives the same number. So $\\Sigma_{ij} = \\Sigma_{ji}$ and the matrix equals its own transpose. It has nothing to do with the data being 'symmetric'. PCA *uses* this symmetry (it guarantees real eigenvalues and orthogonal eigenvectors), but PCA is not the cause. The matrix form $\\Sigma = \\frac{1}{n-1}X_c^TX_c$ is symmetric too, but that comes from the same fact underneath.",
+   "confidence": "high",
+   "notes": "Option D is partly defensible, because the matrix form (1/(n-1)) X_c^T X_c is symmetric by transpose rules. Option A is the intended and most fundamental reason, and the official self-assessment tool keys A.",
+   "caveat": "Option D is partly defensible, because the matrix form (1/(n-1)) X_c^T X_c is symmetric by transpose rules. Option A is the intended and most fundamental reason, and the official self-assessment tool keys A."
+  },
+  {
+   "n": 14,
+   "question": "In PCA, what do the eigenvectors of the covariance matrix represent?",
+   "options": [
+    "Principal component directions",
+    "Data variance",
+    "Mean of data",
+    "Number of features"
+   ],
+   "answer": 0,
+   "domain": "mathematics",
+   "subtopic": "linear-algebra",
+   "difficulty": "intermediate",
+   "style": "definition",
+   "concepts": [
+    "PCA",
+    "eigenvectors of the covariance matrix",
+    "explained variance"
+   ],
+   "explanation": "In PCA, the eigenvectors of the covariance matrix are the **directions** (axes) of the principal components. The first one points where the data spread out the most. The matching **eigenvalues** (not the eigenvectors) give the variance along each direction, which is why 'Data variance' is the tempting wrong answer. The mean is subtracted *before* computing the covariance, and the number of features is just the size of the matrix.",
+   "confidence": "high",
+   "notes": ""
+  },
+  {
+   "n": 15,
+   "question": "If matrix A has eigenvalues [4, 2, 0], what can you conclude?",
+   "options": [
+    "A is invertible",
+    "A is singular (non-invertible)",
+    "A is orthogonal",
+    "A is diagonal"
+   ],
+   "answer": 1,
+   "domain": "mathematics",
+   "subtopic": "linear-algebra",
+   "difficulty": "intermediate",
+   "style": "computation",
+   "concepts": [
+    "eigenvalues and determinant",
+    "singular matrix",
+    "invertibility"
+   ],
+   "explanation": "The determinant equals the product of the eigenvalues: $\\det(A) = 4 \\times 2 \\times 0 = 0$. A determinant of 0 means $A$ is singular, with no inverse. Put another way, an eigenvalue of 0 means some non-zero vector $v$ has $Av = 0$, so $A$ flattens that direction and cannot be undone. Orthogonal matrices have eigenvalues of absolute value 1, so 0 rules that out. The eigenvalues alone also do not tell us whether $A$ itself is a diagonal matrix: many non-diagonal matrices have eigenvalues 4, 2, 0. (Three *distinct* eigenvalues do guarantee that $A$ is *diagonalisable*, but that is a different property from *being* diagonal.)",
+   "confidence": "high",
+   "notes": ""
+  },
+  {
+   "n": 16,
+   "question": "What is the trace of a matrix?",
+   "options": [
+    "Sum of all elements",
+    "Sum of diagonal elements",
+    "Product of diagonal elements",
+    "Determinant"
+   ],
+   "answer": 1,
+   "domain": "mathematics",
+   "subtopic": "linear-algebra",
+   "difficulty": "beginner",
+   "style": "definition",
+   "concepts": [
+    "trace",
+    "main diagonal"
+   ],
+   "explanation": "The trace of a square matrix is the sum of its main-diagonal entries: $\\mathrm{tr}(A) = \\sum_i a_{ii}$. For $\\begin{bmatrix}1 & 2\\\\ 3 & 4\\end{bmatrix}$, the trace is $1 + 4 = 5$. It also equals the *sum* of the eigenvalues, while the determinant equals their *product*. The product of the diagonal entries is the determinant only for triangular matrices, and it is never the definition of the trace.",
+   "confidence": "high",
+   "notes": ""
+  },
+  {
+   "n": 17,
+   "question": "In Singular Value Decomposition (A = UΣV^T), what does Σ represent?",
+   "options": [
+    "Singular values (diagonal matrix)",
+    "Eigenvectors",
+    "Rotation matrix",
+    "Covariance"
+   ],
+   "answer": 0,
+   "domain": "mathematics",
+   "subtopic": "linear-algebra",
+   "difficulty": "intermediate",
+   "style": "definition",
+   "concepts": [
+    "SVD",
+    "singular values",
+    "matrix factorisation"
+   ],
+   "explanation": "SVD writes any matrix as rotate/reflect ($V^T$), then stretch ($\\Sigma$), then rotate/reflect ($U$). $\\Sigma$ is a (rectangular) diagonal matrix whose diagonal entries are the non-negative **singular values** $\\sigma_1 \\ge \\sigma_2 \\ge \\dots \\ge 0$, which say how much each direction is stretched. The orthogonal 'rotation' matrices are $U$ and $V$, and their columns are the singular vectors. These are eigenvectors of $AA^T$ and $A^TA$. That is why 'Eigenvectors' and 'Rotation matrix' are tempting but wrong for $\\Sigma$.",
+   "confidence": "high",
+   "notes": ""
+  },
+  {
+   "n": 18,
+   "question": "Why do neural networks prefer orthogonal weight initialisation?",
+   "options": [
+    "Prevents vanishing/exploding gradients",
+    "Reduces memory usage",
+    "Speeds up computation",
+    "Increases model capacity"
+   ],
+   "answer": 0,
+   "domain": "mathematics",
+   "subtopic": "linear-algebra",
+   "difficulty": "intermediate",
+   "style": "why-reasoning",
+   "concepts": [
+    "orthogonal matrix preserves norms",
+    "weight initialisation",
+    "vanishing/exploding gradients"
+   ],
+   "explanation": "An orthogonal matrix $W$ preserves vector length: $\\|Wx\\| = \\|x\\|$, because all its singular values equal 1. When signals pass through many layers, both forwards (activations) and backwards (gradients), they are multiplied by the weight matrices again and again. With orthogonal weights they neither blow up nor shrink towards zero. It does not save memory or speed up computation (the matrix has the same size), and it does not change how many functions the network can represent.",
+   "confidence": "high",
+   "notes": "The premise 'prefer' is overstated. He/Xavier initialisation are the usual defaults, and orthogonal initialisation is used mainly in RNNs and very deep networks. The intended answer is clear.",
+   "caveat": "The premise 'prefer' is overstated. He/Xavier initialisation are the usual defaults, and orthogonal initialisation is used mainly in RNNs and very deep networks. The intended answer is clear."
+  },
+  {
+   "n": 19,
+   "question": "If A is 100×50 matrix, what is the maximum possible rank?",
+   "options": [
+    "100",
+    "50",
+    "150",
+    "5000"
+   ],
+   "answer": 1,
+   "domain": "mathematics",
+   "subtopic": "linear-algebra",
+   "difficulty": "intermediate",
+   "style": "computation",
+   "concepts": [
+    "matrix rank",
+    "rank ≤ min(m, n)"
+   ],
+   "explanation": "Row rank always equals column rank, so $\\mathrm{rank}(A) \\le \\min(m, n)$. $A$ has only 50 columns, so at most 50 of them can be linearly independent: $\\max \\mathrm{rank} = \\min(100, 50) = 50$. 100 is tempting because there are 100 rows, but each row is a vector with only 50 entries (it lives in $\\mathbb{R}^{50}$), and a 50-dimensional space cannot hold more than 50 linearly independent vectors. 150 ($100 + 50$) and 5000 ($100 \\times 50$) are not ranks at all.",
+   "confidence": "high",
+   "notes": ""
+  },
+  {
+   "n": 20,
+   "question": "In QR decomposition (A = QR), what is Q?",
+   "options": [
+    "Orthogonal matrix",
+    "Upper triangular matrix",
+    "Diagonal matrix",
+    "Symmetric matrix"
+   ],
+   "answer": 0,
+   "domain": "mathematics",
+   "subtopic": "linear-algebra",
+   "difficulty": "advanced",
+   "style": "definition",
+   "concepts": [
+    "QR decomposition",
+    "orthogonal matrix",
+    "Gram-Schmidt"
+   ],
+   "explanation": "QR decomposition writes $A = QR$, where $Q$ is **orthogonal** (its columns are orthonormal, so $Q^TQ = I$) and $R$ is **upper triangular**. You can think of it as Gram-Schmidt: $Q$ holds the orthonormalised columns of $A$, and $R$ records how to rebuild the original columns from them. 'Upper triangular' is the classic mix-up, because it describes $R$, not $Q$.",
+   "confidence": "high",
+   "notes": "For a non-square (tall) A, the reduced QR gives a Q with orthonormal columns rather than a square orthogonal matrix. That does not change the answer.",
+   "caveat": "For a non-square (tall) A, the reduced QR gives a Q with orthonormal columns rather than a square orthogonal matrix. That does not change the answer."
+  },
+  {
+   "n": 21,
+   "question": "What property makes a matrix positive definite?",
+   "options": [
+    "All elements > 0",
+    "All eigenvalues > 0",
+    "Determinant > 0",
+    "Trace > 0"
+   ],
+   "answer": 1,
+   "domain": "mathematics",
+   "subtopic": "linear-algebra",
+   "difficulty": "intermediate",
+   "style": "definition",
+   "concepts": [
+    "positive definite matrix",
+    "eigenvalues",
+    "quadratic form"
+   ],
+   "explanation": "A symmetric matrix $A$ is positive definite when $x^TAx > 0$ for every non-zero $x$. This is equivalent to **all eigenvalues being positive**. Positive entries are not enough: $\\begin{bmatrix}1 & 2\\\\ 2 & 1\\end{bmatrix}$ has all entries $> 0$ but eigenvalues $3$ and $-1$. $\\det > 0$ is not enough either: $-I$ has $\\det = (-1)(-1) = 1 > 0$ but eigenvalues $-1, -1$. $\\det > 0$ and trace $> 0$ are *necessary* (they are the product and sum of positive eigenvalues) but not *sufficient* in general.",
+   "confidence": "high",
+   "notes": "Positive definiteness is normally defined for symmetric (Hermitian) matrices, and the question leaves this out. For a non-symmetric matrix, positive eigenvalues are not enough: [[1, 10], [0, 1]] has eigenvalues 1, 1, but x = [1, -1] gives x^T A x = -8. The intended answer (all eigenvalues > 0, for a symmetric matrix) is clear.",
+   "caveat": "Positive definiteness is normally defined for symmetric (Hermitian) matrices, and the question leaves this out. For a non-symmetric matrix, positive eigenvalues are not enough: [[1, 10], [0, 1]] has eigenvalues 1, 1, but x = [1, -1] gives x^T A x = -8. The intended answer (all eigenvalues > 0, for a symmetric matrix) is clear."
+  },
+  {
+   "n": 22,
+   "question": "The Frobenius norm of a matrix is:",
+   "options": [
+    "Square root of sum of squared elements",
+    "Maximum absolute value",
+    "Sum of absolute values",
+    "Determinant"
+   ],
+   "answer": 0,
+   "domain": "mathematics",
+   "subtopic": "linear-algebra",
+   "difficulty": "intermediate",
+   "style": "definition",
+   "concepts": [
+    "Frobenius norm",
+    "matrix norms"
+   ],
+   "explanation": "The Frobenius norm treats the matrix like one long vector and takes its L2 length: $\\|A\\|_F = \\sqrt{\\sum_{i,j} a_{ij}^2}$. For example, for $\\begin{bmatrix}1 & 2\\\\ 3 & 4\\end{bmatrix}$ it is $\\sqrt{1+4+9+16} = \\sqrt{30} \\approx 5.48$. The maximum absolute entry is the max-norm, and the sum of absolute values is the entry-wise L1 norm. Both are different norms. The determinant is not a norm at all, because it can be negative.",
+   "confidence": "high",
+   "notes": ""
+  },
+  {
+   "n": 23,
+   "question": "In the Moore-Penrose pseudoinverse, when is A^+ = (A^T A)^(-1) A^T valid?",
+   "options": [
+    "Always",
+    "When A has full column rank",
+    "When A is square",
+    "When A is symmetric"
+   ],
+   "answer": 1,
+   "domain": "mathematics",
+   "subtopic": "linear-algebra",
+   "difficulty": "advanced",
+   "style": "why-reasoning",
+   "concepts": [
+    "pseudoinverse",
+    "full column rank",
+    "least squares / normal equations"
+   ],
+   "explanation": "The formula needs $(A^TA)^{-1}$ to exist. $A^TA$ is invertible exactly when the columns of $A$ are linearly independent, i.e. $A$ has **full column rank**. This is the usual case in least-squares regression with more data rows than features, where $\\hat{w} = (X^TX)^{-1}X^Ty$. It is not 'always' valid. If two columns are duplicates, $A^TA$ is singular. Being square or symmetric does not guarantee it either, since a square or symmetric matrix can still be singular.",
+   "confidence": "high",
+   "notes": ""
+  },
+  {
+   "n": 24,
+   "question": "Why is the condition number important for numerical stability?",
+   "options": [
+    "It measures how much output changes with small input changes",
+    "It determines matrix rank",
+    "It calculates determinant",
+    "It counts non-zero elements"
+   ],
+   "answer": 0,
+   "domain": "mathematics",
+   "subtopic": "linear-algebra",
+   "difficulty": "advanced",
+   "style": "why-reasoning",
+   "concepts": [
+    "condition number",
+    "numerical stability",
+    "sensitivity to perturbations"
+   ],
+   "explanation": "The condition number $\\kappa(A) = \\sigma_{\\max}/\\sigma_{\\min}$ (the ratio of the largest to the smallest singular value) measures how *sensitive* a problem like solving $Ax = b$ is. A small relative error in the input can be amplified by up to a factor of about $\\kappa$ in the output. So a large $\\kappa$ (an ill-conditioned matrix) means rounding errors can wreck the answer. It does not give the rank, the determinant, or the number of non-zeros. A matrix can have a tiny determinant and still be perfectly conditioned, e.g. $0.1I$ has $\\kappa = 1$.",
+   "confidence": "high",
+   "notes": ""
+  },
+  {
+   "n": 25,
+   "question": "In spectral clustering, why do we use eigenvectors of the graph Laplacian?",
+   "options": [
+    "They reveal cluster structure in the data",
+    "They speed up computation",
+    "They reduce dimensionality",
+    "They normalise the data"
+   ],
+   "answer": 0,
+   "domain": "mathematics",
+   "subtopic": "linear-algebra",
+   "difficulty": "advanced",
+   "style": "why-reasoning",
+   "concepts": [
+    "spectral clustering",
+    "graph Laplacian",
+    "eigenvectors",
+    "connected components"
+   ],
+   "explanation": "In spectral clustering, the data points become nodes in a similarity graph. The eigenvectors of its Laplacian $L = D - W$ with the smallest eigenvalues change slowly across strongly connected nodes. So points in the same cluster get similar coordinates in these eigenvectors; in the ideal case of $k$ completely separate groups, the eigenvalue $0$ appears $k$ times and its eigenvectors are spanned by the 'indicator' vectors of the groups. Running k-means on these coordinates then separates the clusters, even ring-shaped ones. Using a few eigenvectors does give a lower-dimensional embedding, but that is a side effect of exposing the cluster structure (and eigendecomposition is expensive, not a speed-up).",
+   "confidence": "high",
+   "notes": "Option C (reduce dimensionality) is partly true as a side effect. Option A is the intended reason.",
+   "caveat": "Option C (reduce dimensionality) is partly true as a side effect. Option A is the intended reason."
+  },
+  {
+   "n": 26,
+   "question": "What is the derivative of f(x) = x²?",
+   "options": [
+    "x",
+    "2x",
+    "x²",
+    "2"
+   ],
+   "answer": 1,
+   "domain": "mathematics",
+   "subtopic": "calculus",
+   "difficulty": "beginner",
+   "style": "computation",
+   "concepts": [
+    "power rule",
+    "derivative"
+   ],
+   "explanation": "By the power rule $\\frac{d}{dx}x^n = nx^{n-1}$, we get $\\frac{d}{dx}x^2 = 2x^{1} = 2x$. Intuitively, the slope of the parabola $y = x^2$ gets steeper the further you go from 0. At $x = 3$ the slope is 6. '2' is the *second* derivative, and 'x' forgets to bring the power down as a factor.",
+   "confidence": "high",
+   "notes": ""
+  },
+  {
+   "n": 27,
+   "question": "What is the derivative of f(x) = 5x + 3?",
+   "options": [
+    "5",
+    "3",
+    "5x",
+    "8"
+   ],
+   "answer": 0,
+   "domain": "mathematics",
+   "subtopic": "calculus",
+   "difficulty": "beginner",
+   "style": "computation",
+   "concepts": [
+    "derivative of a linear function",
+    "constant rule"
+   ],
+   "explanation": "$f(x) = 5x + 3$ is a straight line with slope 5, so $f'(x) = 5$ everywhere. Term by term: $\\frac{d}{dx}(5x) = 5$, and the derivative of a constant is 0, so $\\frac{d}{dx}(3) = 0$. '3' is the y-intercept, which does not affect the slope. '8' wrongly adds the constant.",
+   "confidence": "high",
+   "notes": ""
+  },
+  {
+   "n": 28,
+   "question": "The chain rule states that d/dx[f(g(x))] equals:",
+   "options": [
+    "f'(x) × g'(x)",
+    "f'(g(x)) × g'(x)",
+    "f(x) × g'(x)",
+    "f'(x) + g'(x)"
+   ],
+   "answer": 1,
+   "domain": "mathematics",
+   "subtopic": "calculus",
+   "difficulty": "beginner",
+   "style": "definition",
+   "concepts": [
+    "chain rule",
+    "composite functions",
+    "backpropagation"
+   ],
+   "explanation": "For a composite function, take the derivative of the outer function, *evaluated at the inner function*, and multiply by the derivative of the inner function: $\\frac{d}{dx}f(g(x)) = f'(g(x))\\,g'(x)$. Example: $\\frac{d}{dx}(3x+1)^2 = 2(3x+1)\\cdot 3$. Option A is the most tempting error: it evaluates $f'$ at $x$ instead of at $g(x)$. The chain rule is the engine of backpropagation in neural networks.",
+   "confidence": "high",
+   "notes": ""
+  },
+  {
+   "n": 29,
+   "question": "What is the partial derivative ∂/∂x of f(x,y) = x²y + 3x?",
+   "options": [
+    "2xy + 3",
+    "x² + 3",
+    "2xy",
+    "x²y"
+   ],
+   "answer": 0,
+   "domain": "mathematics",
+   "subtopic": "calculus",
+   "difficulty": "intermediate",
+   "style": "computation",
+   "concepts": [
+    "partial derivative",
+    "treat other variables as constants"
+   ],
+   "explanation": "For $\\partial/\\partial x$, treat $y$ as a constant. $\\frac{\\partial}{\\partial x}(x^2y) = 2x\\cdot y = 2xy$ and $\\frac{\\partial}{\\partial x}(3x) = 3$. So $\\frac{\\partial f}{\\partial x} = 2xy + 3$. '2xy' forgets the $3x$ term. 'x² + 3' differentiates with respect to $y$ for the first term ($\\partial(x^2y)/\\partial y = x^2$) but with respect to $x$ for the second, mixing the two.",
+   "confidence": "high",
+   "notes": ""
+  },
+  {
+   "n": 30,
+   "question": "What is the gradient of f(x,y) = x² + y²?",
+   "options": [
+    "[2x, 2y]",
+    "[x, y]",
+    "[x², y²]",
+    "2x + 2y"
+   ],
+   "answer": 0,
+   "domain": "mathematics",
+   "subtopic": "calculus",
+   "difficulty": "intermediate",
+   "style": "computation",
+   "concepts": [
+    "gradient vector",
+    "partial derivatives"
+   ],
+   "explanation": "The gradient is the vector of partial derivatives: $\\nabla f = \\left[\\frac{\\partial f}{\\partial x}, \\frac{\\partial f}{\\partial y}\\right] = [2x, 2y]$. It points directly away from the origin, the direction in which this bowl-shaped function rises fastest. '2x + 2y' has the right pieces but adds them into a single number. A gradient is a *vector*, with one entry per input variable.",
+   "confidence": "high",
+   "notes": ""
+  },
+  {
+   "n": 31,
+   "question": "The derivative of e^x is:",
+   "options": [
+    "e^x",
+    "xe^(x-1)",
+    "e",
+    "1"
+   ],
+   "answer": 0,
+   "domain": "mathematics",
+   "subtopic": "calculus",
+   "difficulty": "beginner",
+   "style": "definition",
+   "concepts": [
+    "exponential function",
+    "derivative of e^x"
+   ],
+   "explanation": "$e^x$ is the special function that is its own derivative: $\\frac{d}{dx}e^x = e^x$. So its slope at every point equals its height. 'xe^(x-1)' is the trap of applying the power rule. The power rule only works when the *exponent* is a constant ($x^n$), not when the variable is in the exponent. This property makes $e^x$ show up everywhere in ML, e.g. in softmax, sigmoid and log-likelihoods.",
+   "confidence": "high",
+   "notes": ""
+  },
+  {
+   "n": 32,
+   "question": "What is the second derivative of f(x) = x³?",
+   "options": [
+    "3x²",
+    "6x",
+    "x²",
+    "3"
+   ],
+   "answer": 1,
+   "domain": "mathematics",
+   "subtopic": "calculus",
+   "difficulty": "beginner",
+   "style": "computation",
+   "concepts": [
+    "second derivative",
+    "power rule"
+   ],
+   "explanation": "Differentiate twice. First $f'(x) = 3x^2$, then $f''(x) = 3 \\cdot 2x = 6x$. '3x²' is only the *first* derivative, which is the most common trap. The second derivative measures curvature: for $x^3$ it is negative when $x < 0$ (curving down) and positive when $x > 0$ (curving up).",
+   "confidence": "high",
+   "notes": ""
+  },
+  {
+   "n": 33,
+   "question": "In gradient descent, what does the negative gradient point toward?",
+   "options": [
+    "Direction of steepest ascent",
+    "Direction of steepest descent",
+    "Local maximum",
+    "Saddle point"
+   ],
+   "answer": 1,
+   "domain": "mathematics",
+   "subtopic": "optimisation",
+   "difficulty": "beginner",
+   "style": "definition",
+   "concepts": [
+    "gradient descent",
+    "steepest descent",
+    "gradient direction"
+   ],
+   "explanation": "The gradient $\\nabla f$ points in the direction of steepest *increase* of $f$, so $-\\nabla f$ points in the direction of steepest **decrease**. Gradient descent takes small steps $\\theta \\leftarrow \\theta - \\eta\\nabla L(\\theta)$ to go 'downhill' on the loss. 'Steepest ascent' describes the positive gradient. The negative gradient is only a *local* direction, so it does not necessarily point at a minimum, a maximum or a saddle point.",
+   "confidence": "high",
+   "notes": ""
+  },
+  {
+   "n": 34,
+   "question": "What is ∂/∂x of sigmoid σ(x) = 1/(1+e^(-x))?",
+   "options": [
+    "σ(x)",
+    "σ(x)(1-σ(x))",
+    "e^(-x)",
+    "-σ(x)"
+   ],
+   "answer": 1,
+   "domain": "mathematics",
+   "subtopic": "calculus",
+   "difficulty": "intermediate",
+   "style": "computation",
+   "concepts": [
+    "sigmoid derivative",
+    "chain rule",
+    "quotient rule"
+   ],
+   "explanation": "Write $\\sigma(x) = (1+e^{-x})^{-1}$. By the chain rule, $\\sigma'(x) = \\frac{e^{-x}}{(1+e^{-x})^2} = \\frac{1}{1+e^{-x}}\\cdot\\frac{e^{-x}}{1+e^{-x}}$. The second factor equals $1 - \\sigma(x)$, so $\\sigma'(x) = \\sigma(x)(1-\\sigma(x))$. For example, at $x = 0$ we have $\\sigma = 0.5$, so $\\sigma' = 0.25$, which is the largest the slope ever gets. 'σ(x)' is wrong because that property belongs to $e^x$, not to the sigmoid.",
+   "confidence": "high",
+   "notes": ""
+  },
+  {
+   "n": 35,
+   "question": "In backpropagation, if L = (ŷ - y)² and ŷ = wx, what is ∂L/∂w?",
+   "options": [
+    "2(ŷ - y)",
+    "2(ŷ - y)x",
+    "(ŷ - y)x",
+    "2w"
+   ],
+   "answer": 1,
+   "domain": "mathematics",
+   "subtopic": "calculus",
+   "difficulty": "intermediate",
+   "style": "computation",
+   "concepts": [
+    "chain rule",
+    "backpropagation",
+    "squared error loss"
+   ],
+   "explanation": "Use the chain rule: $\\frac{\\partial L}{\\partial w} = \\frac{\\partial L}{\\partial \\hat{y}}\\cdot\\frac{\\partial \\hat{y}}{\\partial w} = 2(\\hat{y}-y)\\cdot x$. Check with numbers: $w = 1.5$, $x = 2$, $y = 1$ gives $\\hat{y} = 3$ and $\\partial L/\\partial w = 2(3-1)(2) = 8$. '2(ŷ - y)' stops at $\\partial L/\\partial \\hat{y}$ and forgets the factor $x$. '(ŷ - y)x' drops the 2 that comes from differentiating the square.",
+   "confidence": "high",
+   "notes": ""
+  },
+  {
+   "n": 36,
+   "question": "Why is ReLU's derivative problematic at x=0?",
+   "options": [
+    "It's undefined/discontinuous",
+    "It equals infinity",
+    "It equals zero",
+    "It's always negative"
+   ],
+   "answer": 0,
+   "domain": "mathematics",
+   "subtopic": "calculus",
+   "difficulty": "intermediate",
+   "style": "why-reasoning",
+   "concepts": [
+    "ReLU",
+    "differentiability",
+    "subgradient"
+   ],
+   "explanation": "$\\mathrm{ReLU}(x) = \\max(0, x)$ has a sharp corner at $x = 0$. The slope from the left is 0 and from the right is 1, so the derivative is **undefined** at exactly 0, and the derivative function jumps (is discontinuous) there. It is never infinite (there is no vertical tangent) and never negative (it is 0 or 1). In practice, frameworks simply pick a subgradient, usually 0, at $x = 0$, so this rarely causes trouble.",
+   "confidence": "high",
+   "notes": "ReLU itself is continuous at 0. It is the derivative that is undefined there and discontinuous around it, and 'problematic' overstates how much this matters in practice. The intended answer is clear.",
+   "caveat": "ReLU itself is continuous at 0. It is the derivative that is undefined there and discontinuous around it, and 'problematic' overstates how much this matters in practice. The intended answer is clear."
+  },
+  {
+   "n": 37,
+   "question": "The Hessian matrix contains:",
+   "options": [
+    "First-order partial derivatives",
+    "Second-order partial derivatives",
+    "Eigenvalues",
+    "Gradients"
+   ],
+   "answer": 1,
+   "domain": "mathematics",
+   "subtopic": "calculus",
+   "difficulty": "intermediate",
+   "style": "definition",
+   "concepts": [
+    "Hessian matrix",
+    "second-order partial derivatives",
+    "curvature"
+   ],
+   "explanation": "The Hessian $H$ of $f(x_1, \\dots, x_n)$ is the $n \\times n$ matrix of **second-order** partial derivatives, $H_{ij} = \\frac{\\partial^2 f}{\\partial x_i \\partial x_j}$. It describes the curvature of $f$. First-order partial derivatives make up the *gradient* (a vector), not the Hessian. Eigenvalues are something you can *compute from* the Hessian, for example to classify a critical point, but they are not what it contains.",
+   "confidence": "high",
+   "notes": ""
+  },
+  {
+   "n": 38,
+   "question": "In optimisation, what does a positive definite Hessian at a critical point indicate?",
+   "options": [
+    "Local minimum",
+    "Local maximum",
+    "Saddle point",
+    "Inflection point"
+   ],
+   "answer": 0,
+   "domain": "mathematics",
+   "subtopic": "optimisation",
+   "difficulty": "intermediate",
+   "style": "why-reasoning",
+   "concepts": [
+    "second-derivative test",
+    "positive definite Hessian",
+    "critical points"
+   ],
+   "explanation": "At a critical point the gradient is zero. If the Hessian is positive definite (all eigenvalues $> 0$), the function curves **upward in every direction**, like the bottom of a bowl, so the point is a strict local minimum. This is the multivariable version of '$f'(x) = 0$ and $f''(x) > 0$ means a minimum'. All eigenvalues $< 0$ (negative definite) would give a local maximum. Mixed signs give a saddle point.",
+   "confidence": "high",
+   "notes": ""
+  },
+  {
+   "n": 39,
+   "question": "What is the Taylor series used for in optimisation?",
+   "options": [
+    "Approximating functions locally",
+    "Computing exact solutions",
+    "Finding global minima",
+    "Normalising inputs"
+   ],
+   "answer": 0,
+   "domain": "mathematics",
+   "subtopic": "optimisation",
+   "difficulty": "intermediate",
+   "style": "definition",
+   "concepts": [
+    "Taylor series",
+    "local approximation",
+    "Newton's method"
+   ],
+   "explanation": "A Taylor expansion approximates a function near a point using its derivatives: $f(x+\\Delta) \\approx f(x) + \\nabla f(x)^T\\Delta + \\tfrac12\\Delta^T H\\Delta$. Gradient descent comes from the first-order (linear) approximation, and Newton's method from the second-order (quadratic) one. The approximation is only reliable *locally*, near the current point. So it neither gives exact solutions in general nor guarantees finding the global minimum.",
+   "confidence": "high",
+   "notes": ""
+  },
+  {
+   "n": 40,
+   "question": "In momentum-based optimisation, what does the momentum term do?",
+   "options": [
+    "Accumulates past gradients to smooth updates",
+    "Increases learning rate",
+    "Computes second derivatives",
+    "Regularises weights"
+   ],
+   "answer": 0,
+   "domain": "mathematics",
+   "subtopic": "optimisation",
+   "difficulty": "intermediate",
+   "style": "definition",
+   "concepts": [
+    "momentum",
+    "exponential moving average of gradients",
+    "SGD"
+   ],
+   "explanation": "Momentum keeps a 'velocity' that is a running (exponentially decaying) sum of past gradients, e.g. $v \\leftarrow \\beta v + \\nabla L$, $\\theta \\leftarrow \\theta - \\eta v$. Gradient components that point the same way every step build up speed, and components that flip sign (zig-zags) cancel out. This smooths the path and speeds up progress along shallow valleys. It can feel like a bigger learning rate, but the learning rate $\\eta$ itself is unchanged. Momentum uses only first derivatives and does not penalise weights.",
+   "confidence": "high",
+   "notes": ""
+  },
+  {
+   "n": 41,
+   "question": "Why is the learning rate annealed (decreased) during training?",
+   "options": [
+    "To fine-tune near convergence",
+    "To speed up early training",
+    "To prevent underfitting",
+    "To increase batch size"
+   ],
+   "answer": 0,
+   "domain": "mathematics",
+   "subtopic": "optimisation",
+   "difficulty": "intermediate",
+   "style": "why-reasoning",
+   "concepts": [
+    "learning rate schedule",
+    "annealing / decay",
+    "convergence"
+   ],
+   "explanation": "Early in training a large learning rate makes fast progress. Near a minimum, the same large steps overshoot and bounce around it, especially with noisy mini-batch gradients. Gradually shrinking the learning rate lets the optimiser take smaller, more careful steps and settle (fine-tune) into the minimum. Decreasing the rate does not speed up *early* training (a high rate does that), and it is not about underfitting or batch size.",
+   "confidence": "high",
+   "notes": ""
+  },
+  {
+   "n": 42,
+   "question": "What is the gradient of f(x) = ||x||² (L2 norm squared)?",
+   "options": [
+    "x",
+    "2x",
+    "||x||",
+    "x²"
+   ],
+   "answer": 1,
+   "domain": "mathematics",
+   "subtopic": "calculus",
+   "difficulty": "intermediate",
+   "style": "computation",
+   "concepts": [
+    "gradient of squared norm",
+    "vector calculus",
+    "L2 regularisation"
+   ],
+   "explanation": "$\\|x\\|^2 = x_1^2 + x_2^2 + \\dots + x_n^2$, and $\\frac{\\partial}{\\partial x_i}$ of this is $2x_i$. So $\\nabla\\|x\\|^2 = 2x$. This is the vector version of $\\frac{d}{dx}x^2 = 2x$, and it is why L2 regularisation $\\lambda\\|w\\|^2$ adds $2\\lambda w$ to the gradient (weight decay). 'x' misses the factor 2, and '||x||' is a scalar, but a gradient must be a vector of the same shape as $x$.",
+   "confidence": "high",
+   "notes": ""
+  },
+  {
+   "n": 43,
+   "question": "In automatic differentiation, what is the computational graph?",
+   "options": [
+    "A graph representing operation dependencies",
+    "A plot of loss over time",
+    "A network architecture diagram",
+    "A visualisation of data"
+   ],
+   "answer": 0,
+   "domain": "mathematics",
+   "subtopic": "calculus",
+   "difficulty": "intermediate",
+   "style": "definition",
+   "concepts": [
+    "computational graph",
+    "automatic differentiation",
+    "backpropagation"
+   ],
+   "explanation": "A computational graph records every elementary operation (add, multiply, exp, ...) as a node, with edges showing which values feed into which operations. Autodiff (e.g. PyTorch autograd) walks this graph backwards, applying the chain rule at each node to get exact gradients. A loss-over-time plot is a training curve. A network architecture diagram shows layers, not the fine-grained operations and dependencies autodiff actually uses.",
+   "confidence": "high",
+   "notes": ""
+  },
+  {
+   "n": 44,
+   "question": "Why does the vanishing gradient problem occur with sigmoid activations in deep networks?",
+   "options": [
+    "Sigmoid derivative < 1, causing gradients to exponentially decay",
+    "Sigmoid outputs are too large",
+    "Sigmoid is computationally expensive",
+    "Sigmoid doesn't have a derivative"
+   ],
+   "answer": 0,
+   "domain": "mathematics",
+   "subtopic": "calculus",
+   "difficulty": "intermediate",
+   "style": "why-reasoning",
+   "concepts": [
+    "vanishing gradients",
+    "sigmoid derivative",
+    "chain rule through many layers"
+   ],
+   "explanation": "Backpropagation multiplies one local derivative per layer (chain rule). The sigmoid's derivative $\\sigma(1-\\sigma)$ is at most $0.25$, and close to 0 when the neuron saturates. Multiplying many such small factors shrinks the gradient exponentially, e.g. $0.25^{10} \\approx 10^{-6}$, so the early layers barely learn. Sigmoid outputs are bounded in $(0, 1)$, so they are never 'too large'. The sigmoid is smooth and has a derivative everywhere, and its cost is not the issue.",
+   "confidence": "high",
+   "notes": ""
+  },
+  {
+   "n": 45,
+   "question": "In Newton's method for optimisation, why is it rarely used in deep learning?",
+   "options": [
+    "Requires computing and inverting the Hessian (O(n³))",
+    "Doesn't find minima",
+    "Only works for convex functions",
+    "Slower than SGD"
+   ],
+   "answer": 0,
+   "domain": "mathematics",
+   "subtopic": "optimisation",
+   "difficulty": "advanced",
+   "style": "why-reasoning",
+   "concepts": [
+    "Newton's method",
+    "Hessian",
+    "computational cost",
+    "second-order optimisation"
+   ],
+   "explanation": "Newton's update is $\\theta \\leftarrow \\theta - H^{-1}\\nabla L$. With $n$ parameters, the Hessian $H$ is $n \\times n$: that is $O(n^2)$ memory and about $O(n^3)$ time to invert. For a model with $n = 10^6$ parameters, that is $10^{12}$ numbers to store and roughly $10^{18}$ operations to invert, which is hopeless. Newton's method does find minima, often in far fewer steps, and it is not limited to convex functions (though non-convexity makes it trickier). 'Slower than SGD' is a *consequence* of the Hessian cost, not the underlying reason.",
+   "confidence": "high",
+   "notes": ""
+  },
+  {
+   "n": 46,
+   "question": "The mean of [2, 4, 6, 8, 10] is:",
+   "options": [
+    "5",
+    "6",
+    "7",
+    "8"
+   ],
+   "answer": 1,
+   "domain": "mathematics",
+   "subtopic": "probability-statistics",
+   "difficulty": "beginner",
+   "style": "computation",
+   "concepts": [
+    "mean (average)",
+    "sum divided by count"
+   ],
+   "explanation": "Mean = sum ÷ count $= (2+4+6+8+10)/5 = 30/5 = 6$. For an evenly spaced list, the mean is also the middle value. '5' is the number of items, not the average.",
+   "confidence": "high",
+   "notes": ""
+  },
+  {
+   "n": 47,
+   "question": "The median of [1, 3, 5, 7, 9] is:",
+   "options": [
+    "3",
+    "5",
+    "7",
+    "9"
+   ],
+   "answer": 1,
+   "domain": "mathematics",
+   "subtopic": "probability-statistics",
+   "difficulty": "beginner",
+   "style": "computation",
+   "concepts": [
+    "median",
+    "middle value of sorted data"
+   ],
+   "explanation": "The median is the middle value of the sorted list. With 5 values, it is the 3rd one, which is 5. (Here the mean is also $25/5 = 5$, because the data are symmetric.) With an even number of values you would average the two middle ones instead.",
+   "confidence": "high",
+   "notes": ""
+  },
+  {
+   "n": 48,
+   "question": "What is the variance of [0, 0, 0, 0]?",
+   "options": [
+    "0",
+    "1",
+    "4",
+    "Undefined"
+   ],
+   "answer": 0,
+   "domain": "mathematics",
+   "subtopic": "probability-statistics",
+   "difficulty": "beginner",
+   "style": "computation",
+   "concepts": [
+    "variance",
+    "spread of data"
+   ],
+   "explanation": "Variance measures the average squared distance from the mean. The mean is 0, and every value is 0 away from it, so variance $= (0^2+0^2+0^2+0^2)/4 = 0$. In general, a constant list always has variance 0, because there is no spread at all. It is not 'undefined': the mean exists and nothing is divided by zero (the sample version divides by $n - 1 = 3$ and also gives 0). '4' is just the count of values.",
+   "confidence": "high",
+   "notes": ""
+  },
+  {
+   "n": 49,
+   "question": "A fair 6-sided die is rolled. What is P(rolling ≥ 5)?",
+   "options": [
+    "1/6",
+    "1/3",
+    "1/2",
+    "2/3"
+   ],
+   "answer": 1,
+   "domain": "mathematics",
+   "subtopic": "probability-statistics",
+   "difficulty": "beginner",
+   "style": "computation",
+   "concepts": [
+    "classical probability",
+    "counting favourable outcomes"
+   ],
+   "explanation": "The favourable outcomes are 5 and 6, which is 2 of the 6 equally likely faces. So $P(\\ge 5) = 2/6 = 1/3$. '1/6' counts only one face (e.g. just 6, the probability of '> 5'). '1/2' would be $P(\\ge 4)$, i.e. faces 4, 5, 6.",
+   "confidence": "high",
+   "notes": "Not in the official self-assessment tool: the tool's item 49 duplicates the Hessian question (n=38) instead, which is why it lists 299 unique questions. The answer was checked by enumerating the outcomes {5, 6} out of 6, which gives 1/3.",
+   "caveat": "The answer was checked by enumerating the outcomes {5, 6} out of 6, which gives 1/3."
+  },
+  {
+   "n": 50,
+   "question": "In a normal distribution, approximately what % of data is within 1 standard deviation?",
+   "options": [
+    "50%",
+    "68%",
+    "95%",
+    "99%"
+   ],
+   "answer": 1,
+   "domain": "mathematics",
+   "subtopic": "probability-statistics",
+   "difficulty": "beginner",
+   "style": "definition",
+   "concepts": [
+    "normal distribution",
+    "68-95-99.7 rule",
+    "standard deviation"
+   ],
+   "explanation": "The empirical rule (68–95–99.7) says that for a normal distribution about **68%** of values lie within $\\mu \\pm 1\\sigma$, about 95% within $\\pm 2\\sigma$, and about 99.7% within $\\pm 3\\sigma$. More precisely, $P(|Z| \\le 1) \\approx 0.6827$. '95%' is the tempting mix-up, because it belongs to 2 standard deviations.",
+   "confidence": "high",
+   "notes": ""
+  }
+ ]
+}

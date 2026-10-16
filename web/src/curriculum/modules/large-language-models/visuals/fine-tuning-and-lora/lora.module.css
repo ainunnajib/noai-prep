@@ -1,0 +1,281 @@
+/* Styles for the fine-tuning-and-lora visuals. Colours come only from theme tokens. */
+
+.wrap {
+  width: 100%;
+  display: grid;
+  gap: 0.85rem;
+  min-width: 0;
+}
+
+.svgWrap {
+  width: 100%;
+  min-width: 0;
+}
+
+.svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  overflow: visible;
+  font-family: var(--font-body);
+}
+
+.blockLabel {
+  fill: var(--ink);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.blockSub {
+  fill: var(--ink-3);
+  font-size: 11.5px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.op {
+  fill: var(--ink-2);
+  font-size: 22px;
+  font-weight: 800;
+}
+
+.note {
+  margin: 0;
+  font-size: 0.8rem;
+  line-height: 1.45;
+  color: var(--ink-2);
+}
+
+.note b {
+  color: var(--ink);
+}
+
+.subhead {
+  margin: 0;
+  font-size: 0.82rem;
+  font-weight: 800;
+  color: var(--ink);
+  letter-spacing: 0.01em;
+}
+
+.panel {
+  border: 1px solid var(--rule);
+  border-radius: 10px;
+  padding: 0.65rem 0.75rem 0.75rem;
+  background: var(--surface);
+  display: grid;
+  gap: 0.6rem;
+  min-width: 0;
+}
+
+/* ---------- parameter-count bars ---------- */
+.countGrid {
+  display: grid;
+  grid-template-columns: max-content minmax(0, 1fr);
+  gap: 0.35rem 0.6rem;
+  align-items: center;
+  font-size: 0.8rem;
+}
+
+.countLabel {
+  font-weight: 700;
+  color: var(--ink-2);
+  white-space: nowrap;
+}
+
+.countTrack {
+  position: relative;
+  height: 1.35rem;
+  border-radius: 5px;
+  background: var(--surface-2);
+  overflow: hidden;
+}
+
+.countFill {
+  position: absolute;
+  inset: 0 auto 0 0;
+  border-radius: 5px;
+  min-width: 2px;
+  transition: width 0.25s ease;
+}
+
+.countText {
+  position: absolute;
+  left: 0.45rem;
+  top: 50%;
+  transform: translateY(-50%);
+  font-family: var(--font-mono);
+  font-size: 0.76rem;
+  font-weight: 700;
+  color: var(--ink);
+  white-space: nowrap;
+}
+
+/* ---------- outer-product times table ---------- */
+.tableWrap {
+  display: flex;
+  justify-content: center;
+  width: 100%;
+  overflow-x: auto;
+}
+
+.ttable {
+  display: grid;
+  gap: 3px;
+  align-items: center;
+  justify-items: center;
+}
+
+.cell {
+  display: grid;
+  place-items: center;
+  border-radius: 5px;
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--ink);
+  border: 1.5px solid transparent;
+  box-sizing: border-box;
+}
+
+.cellHl {
+  border-color: var(--accent);
+}
+
+.vecCell {
+  display: grid;
+  place-items: center;
+  border-radius: 5px;
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  font-weight: 800;
+  color: var(--ink);
+  box-sizing: border-box;
+}
+
+.stepper {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+}
+
+.stepperCol {
+  flex-direction: column;
+}
+
+.stepBtn {
+  font: inherit;
+  font-size: 0.85rem;
+  font-weight: 700;
+  line-height: 1;
+  width: 1.6rem;
+  height: 1.55rem;
+  padding: 0;
+  border-radius: 4px;
+  border: 1px solid var(--rule);
+  background: var(--surface-2);
+  color: var(--ink-2);
+  cursor: pointer;
+}
+
+.stepBtn:hover {
+  background: var(--surface-3);
+  color: var(--ink);
+}
+
+.stepBtn:focus-visible {
+  outline: 3px solid var(--accent);
+  outline-offset: 1px;
+}
+
+.stepBtn:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+
+@media (max-width: 520px) {
+  .stepBtn {
+    width: 2rem;
+    height: 2rem;
+    font-size: 1rem;
+  }
+  .stepper {
+    gap: 4px;
+  }
+}
+
+.corner {
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--ink-3);
+  text-align: center;
+  line-height: 1.2;
+}
+
+/* ---------- picture approximation ---------- */
+.pics {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem 1.1rem;
+  justify-content: center;
+  align-items: flex-start;
+}
+
+.pic {
+  display: grid;
+  justify-items: center;
+  gap: 0.25rem;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--ink-2);
+  text-align: center;
+}
+
+.layers {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  justify-content: center;
+  align-items: center;
+}
+
+.layerItem {
+  display: grid;
+  justify-items: center;
+  gap: 0.15rem;
+  font-size: 0.68rem;
+  font-weight: 700;
+  color: var(--ink-3);
+}
+
+.plus {
+  font-weight: 800;
+  color: var(--ink-3);
+}
+
+.legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem 0.9rem;
+  font-size: 0.75rem;
+  color: var(--ink-2);
+}
+
+.swatch {
+  display: inline-block;
+  width: 0.8rem;
+  height: 0.8rem;
+  border-radius: 3px;
+  margin-right: 0.3rem;
+  vertical-align: -0.1rem;
+}
+
+.swatchLine {
+  display: inline-block;
+  width: 1.1rem;
+  height: 0;
+  border-top: 2.5px solid;
+  margin-right: 0.3rem;
+  vertical-align: 0.2rem;
+}

@@ -1,0 +1,413 @@
+/* Local styles for the transfer-learning-and-augmentation visuals. */
+
+/* X-ray film: dark film, light bone in both themes. */
+.xray {
+  --xr-dark: var(--ink);
+  --xr-light: var(--surface);
+}
+@media (prefers-color-scheme: dark) {
+  :global(:root:not([data-theme='light'])) .xray {
+    --xr-dark: var(--surface);
+    --xr-light: var(--ink);
+  }
+}
+:global(:root[data-theme='dark']) .xray {
+  --xr-dark: var(--surface);
+  --xr-light: var(--ink);
+}
+
+.panelTitle {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--ink-2);
+  text-align: center;
+}
+
+.small {
+  font-size: 0.8rem;
+  color: var(--ink-2);
+}
+
+/* ---------- feature space ---------- */
+.fsWrap {
+  width: 100%;
+  display: grid;
+  gap: 0.75rem;
+  align-items: start;
+}
+.fsSide {
+  display: grid;
+  gap: 0.5rem;
+  align-content: start;
+}
+.nnRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: flex-start;
+}
+.nnItem {
+  display: grid;
+  justify-items: center;
+  gap: 2px;
+  font-size: 0.72rem;
+  color: var(--ink-2);
+}
+.nnItem b {
+  font-weight: 700;
+}
+.legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem 0.9rem;
+  justify-content: center;
+  font-size: 0.8rem;
+  color: var(--ink-2);
+}
+.legend span {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+.statGrid {
+  display: grid;
+  grid-template-columns: auto auto auto;
+  gap: 2px 10px;
+  font-size: 0.8rem;
+  color: var(--ink-2);
+  align-items: baseline;
+}
+.statGrid .num {
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+  font-weight: 600;
+  color: var(--ink);
+}
+.statGrid .hd {
+  font-weight: 700;
+  font-size: 0.75rem;
+  color: var(--ink-3);
+  text-align: right;
+}
+.statGrid .on {
+  color: var(--accent);
+}
+
+/* ---------- freeze dial ---------- */
+.stack {
+  display: grid;
+  gap: 4px;
+  width: 100%;
+}
+.layer {
+  font: inherit;
+  color: inherit;
+  text-align: left;
+  width: 100%;
+  cursor: pointer;
+  display: grid;
+  grid-template-columns: 26px minmax(0, 1fr) 4.4rem;
+  gap: 8px;
+  align-items: center;
+  padding: 6px 8px;
+  border-radius: 8px;
+  border: 1.5px solid var(--viz-grid);
+  background: var(--surface);
+  transition: background 200ms, border-color 200ms;
+}
+.layer:hover {
+  border-color: var(--accent-line);
+}
+.layer.trainable {
+  border-color: color-mix(in srgb, var(--viz-2) 70%, var(--surface));
+  background: color-mix(in srgb, var(--viz-2) 12%, var(--surface));
+}
+.layer.head {
+  border-style: dashed;
+}
+.layerName {
+  font-weight: 700;
+  font-size: 0.85rem;
+  color: var(--ink);
+}
+.layerWhat {
+  font-size: 0.75rem;
+  color: var(--ink-2);
+}
+.layerBar {
+  height: 6px;
+  border-radius: 3px;
+  background: var(--surface-3);
+  margin-top: 3px;
+  overflow: hidden;
+}
+.layerBar > span {
+  display: block;
+  height: 100%;
+  border-radius: 3px;
+}
+.layerCount {
+  font-variant-numeric: tabular-nums;
+  font-size: 0.78rem;
+  color: var(--ink-2);
+  text-align: right;
+  white-space: nowrap;
+}
+.icon {
+  width: 22px;
+  height: 22px;
+}
+.scen {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) minmax(0, 1fr);
+  gap: 4px;
+  width: 100%;
+  align-items: stretch;
+}
+.scenHead {
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--ink-3);
+  text-align: center;
+  align-self: end;
+  padding: 2px;
+}
+.scenRowHead {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--ink-2);
+  align-self: center;
+  padding: 2px 4px 2px 0;
+}
+.scenBtn {
+  font: inherit;
+  text-align: left;
+  border: 1.5px solid var(--viz-grid);
+  background: var(--surface);
+  color: var(--ink);
+  border-radius: 8px;
+  padding: 6px 8px;
+  cursor: pointer;
+  font-size: 0.78rem;
+  line-height: 1.3;
+}
+.scenBtn:hover {
+  border-color: var(--accent-line);
+}
+.scenBtn.active {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+.scenBtn b {
+  display: block;
+  font-size: 0.8rem;
+}
+.verdict {
+  width: 100%;
+  border-radius: 8px;
+  padding: 8px 10px;
+  font-size: 0.85rem;
+  line-height: 1.45;
+  color: var(--ink);
+  border-left: 4px solid var(--viz-muted);
+  background: var(--surface-2);
+}
+.verdict.good {
+  border-left-color: var(--viz-pos);
+}
+.verdict.warn {
+  border-left-color: var(--viz-2);
+}
+.verdict.bad {
+  border-left-color: var(--viz-neg);
+}
+
+/* ---------- augmentation playground ---------- */
+.augWrap {
+  width: 100%;
+  display: grid;
+  gap: 0.75rem;
+  align-items: start;
+}
+.augGrid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 6px;
+}
+.augCell {
+  font: inherit;
+  padding: 0;
+  border: 2px solid transparent;
+  border-radius: 8px;
+  background: none;
+  cursor: pointer;
+  display: grid;
+  gap: 2px;
+  justify-items: center;
+  color: var(--ink-2);
+  font-size: 0.72rem;
+}
+.augCell.sel {
+  border-color: var(--accent);
+}
+.augCell svg {
+  border-radius: 6px;
+}
+.augOrig {
+  display: grid;
+  gap: 4px;
+  justify-items: center;
+  align-content: start;
+}
+.augInfo {
+  font-size: 0.8rem;
+  color: var(--ink-2);
+  line-height: 1.45;
+  min-height: 2.9em;
+}
+.augControls {
+  display: grid;
+  gap: 0.5rem;
+  width: 100%;
+  align-items: stretch;
+}
+.augGroup {
+  display: grid;
+  gap: 0.35rem;
+  align-content: start;
+  padding: 6px 10px 8px;
+  border-radius: 8px;
+  border: 1.5px solid var(--viz-grid);
+  background: var(--surface);
+}
+.augGroup.augOn {
+  border-color: color-mix(in srgb, var(--accent) 45%, var(--viz-grid));
+}
+.augSliders {
+  border: 0;
+  margin: 0;
+  padding: 0;
+  min-width: 0;
+  display: grid;
+  gap: 0.3rem;
+}
+.augSliders:disabled {
+  opacity: 0.45;
+}
+
+/* ---------- label safety check ---------- */
+.lsTable {
+  display: grid;
+  gap: 4px;
+  width: 100%;
+}
+.lsRow {
+  display: grid;
+  grid-template-columns: minmax(96px, 1.5fr) repeat(4, minmax(0, 1fr));
+  gap: 4px;
+  align-items: stretch;
+}
+.lsColHead {
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: var(--ink-3);
+  text-align: center;
+  line-height: 1.2;
+  align-self: end;
+}
+.lsRowHead {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  font-size: 0.75rem;
+  line-height: 1.2;
+  color: var(--ink-2);
+}
+.lsRowHead b {
+  color: var(--ink);
+  display: block;
+}
+.lsCell {
+  font: inherit;
+  min-height: 34px;
+  border-radius: 6px;
+  border: 1.5px solid var(--viz-grid);
+  background: var(--surface);
+  color: var(--ink-3);
+  cursor: pointer;
+  font-size: 0.8rem;
+  font-weight: 700;
+  padding: 2px;
+}
+.lsCell.sel {
+  outline: 2.5px solid var(--accent);
+  outline-offset: 1px;
+}
+.lsCell.use {
+  background: color-mix(in srgb, var(--viz-pos) 22%, var(--surface));
+  border-color: var(--viz-pos);
+  color: var(--ink);
+}
+.lsCell.breaks {
+  background: color-mix(in srgb, var(--viz-neg) 22%, var(--surface));
+  border-color: var(--viz-neg);
+  color: var(--ink);
+}
+.lsCell.odd {
+  background: color-mix(in srgb, var(--viz-6) 22%, var(--surface));
+  border-color: var(--viz-6);
+  color: var(--ink);
+}
+.lsPanel {
+  width: 100%;
+  display: grid;
+  gap: 0.6rem;
+  border: 1.5px solid var(--viz-grid);
+  border-radius: 10px;
+  padding: 10px;
+  background: var(--surface-2);
+}
+.lsPair {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  gap: 8px;
+  align-items: center;
+  justify-items: center;
+  max-width: 380px;
+  margin: 0 auto;
+  width: 100%;
+}
+.lsArrow {
+  font-size: 0.75rem;
+  color: var(--ink-2);
+  text-align: center;
+  max-width: 80px;
+}
+.lsQ {
+  font-size: 0.9rem;
+  color: var(--ink);
+  text-align: center;
+}
+.lsBtns {
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+.lsKey {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem 0.9rem;
+  font-size: 0.75rem;
+  color: var(--ink-2);
+  justify-content: center;
+}
+.swatch {
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  border-radius: 3px;
+  vertical-align: -2px;
+  margin-right: 4px;
+  border: 1.5px solid;
+}

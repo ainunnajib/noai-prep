@@ -1,0 +1,247 @@
+import PowerLadder from './visuals/powers-and-exponentials/PowerLadder'
+import RepeatedMultiplier from './visuals/powers-and-exponentials/RepeatedMultiplier'
+import CompoundToE from './visuals/powers-and-exponentials/CompoundToE'
+import ExpGraph from './visuals/powers-and-exponentials/ExpGraph'
+import ScoresToProbabilities from './visuals/powers-and-exponentials/ScoresToProbabilities'
+
+Open any training script and you will see numbers like `lr = 3e-4` and `eps = 1e-8`, models with a billion parameters, and formulas full of the letter $e$. All of them rest on one idea: **multiplying by the same number again and again**. This lesson covers the rules for powers, the shorthand for very big and very small numbers, why repeated multiplication explodes or vanishes (the root of a famous deep-learning problem), and the special number $e$ inside sigmoid and softmax.
+
+<Analogy title="Zooming a map">
+
+Picture a map app where every zoom step makes things look ten times bigger or ten times smaller. Zoom out three steps from a single HDB block and the view is $10 \times 10 \times 10 = 1{,}000$ times wider; zoom in three steps and everything looks 1,000 times bigger. Powers of ten are those zoom levels, and the exponent simply counts the steps.
+
+</Analogy>
+
+## Powers are repeated multiplication
+
+$$
+a^n = \underbrace{a \times a \times \dots \times a}_{n \text{ copies of } a}
+$$
+
+- $a$ is the <Term def="The number being multiplied by itself in a power. In 2⁵ the base is 2.">base</Term>: the number being multiplied.
+- $n$ is the <Term def="The small raised number in a power, telling you how many copies of the base to multiply. Also called the power or the index.">exponent</Term> (also called the power or the index): how many copies to multiply.
+
+So $2^5 = 2 \times 2 \times 2 \times 2 \times 2 = 32$, read "2 to the power 5". One value worth memorising: $2^{10} = 1024$, which is roughly a thousand.
+
+Every rule for powers (your school calls them the **laws of indices**) comes from counting copies of the base:
+
+| Rule | Example, and why it works |
+|---|---|
+| ${a^m \times a^n = a^{m+n}}$ | $2^3 \times 2^2 = 2^5 = 32$: three 2s times two 2s is five 2s |
+| ${a^m \div a^n = a^{m-n}}$ | $2^5 \div 2^2 = 2^3 = 8$: two of the five 2s cancel |
+| ${(a^m)^n = a^{mn}}$ | $(2^3)^2 = 2^6 = 64$: two groups of three 2s |
+| ${a^0 = 1}$ (for $a \neq 0$) | $5^0 = 1$: $5^2 \div 5^2 = 5^{2-2} = 5^0$, and any non-zero number divided by itself is 1 |
+| ${a^{-n} = \dfrac{1}{a^n}}$ | $2^{-3} = \dfrac{1}{8}$: $2^2 \div 2^5 = 2^{-3}$, and also $\dfrac{4}{32} = \dfrac{1}{8}$ |
+| ${a^{1/2} = \sqrt{a}}$ (for $a \ge 0$) | $9^{1/2} = 3$: $(9^{1/2})^2 = 9^{1} = 9$, so $9^{1/2}$ is the number that squares to 9 |
+| ${a^{m/n} = \left(\sqrt[n]{a}\right)^m}$ | $8^{2/3} = \left(\sqrt[3]{8}\right)^2 = 2^2 = 4$: take the root first, then the power |
+
+In the same way $a^{1/3}$ is the cube root, so $27^{1/3} = 3$, and $16^{3/4} = \left(\sqrt[4]{16}\right)^3 = 2^3 = 8$. One more rule spreads a power over a product: $(ab)^n = a^n b^n$, for example $(2 \times 5)^3 = 2^3 \times 5^3 = 8 \times 125 = 1000$. You will meet square roots written as powers often in ML: for example, a <Term def="A measure of how spread out a list of numbers is: roughly the typical distance of the numbers from their mean. It is the square root of the variance.">standard deviation</Term> is the square root of the <Term def="The average of the squared distances of a list of numbers from their mean.">variance</Term>, that is, the variance to the power $\tfrac12$.
+
+<KeyIdea>
+
+Multiplying powers of the **same base** adds the exponents. $a^0 = 1$, and a negative exponent means "one over", **not** a negative number: $2^{-3} = \tfrac18$.
+
+</KeyIdea>
+
+<Steps title="Worked example: simplify $\dfrac{3^4 \times 3^{-2}}{3^3}$">
+  <Step title="Multiply on top: add the exponents">
+    $3^4 \times 3^{-2} = 3^{4 + (-2)} = 3^2$.
+  </Step>
+  <Step title="Divide: subtract the exponents">
+    $\dfrac{3^2}{3^3} = 3^{2 - 3} = 3^{-1}$.
+  </Step>
+  <Step title="Negative exponent: one over">
+    $3^{-1} = \dfrac{1}{3}$. Check with plain numbers: $81 \times \tfrac19 = 9$, and $9 \div 27 = \tfrac13$.
+  </Step>
+</Steps>
+
+<Mistake>
+
+Three classic slips, each with the correct version:
+- $2^3 \times 2^4$ is $2^{7}$ (add), not $2^{12}$ (multiply). Multiplying exponents is only for a power of a power: $(2^3)^4 = 2^{12}$.
+- Adding powers does **not** add exponents: $2^3 + 2^3 = 2 \times 2^3 = 2^4$, not $2^6$.
+- The rules need the **same base**: $2^3 \times 3^2 = 8 \times 9 = 72$, not $6^5$.
+
+</Mistake>
+
+<QuickCheck
+  q="Which number is equal to $5^{-2}$?"
+  options={['$\\tfrac{1}{25}$', '$-25$', '$-10$', '$\\tfrac{1}{10}$']}
+  answer={0}
+  explain="A negative exponent means one over: $5^{-2} = \dfrac{1}{5^2} = \dfrac{1}{25}$. It is a small positive number, not a negative one: $-25$ is the classic slip of reading the minus in the exponent as making the answer negative. $-10$ and $\tfrac{1}{10}$ come from multiplying $5 \times 2$ instead of raising to a power."
+/>
+
+## Scientific notation: very big and very small numbers
+
+Writing 0.00000001 or 1,000,000,000 in full is slow and error-prone, so we count the zeros instead. In <Term def="Writing a number as m × 10ⁿ, where m is between 1 and 10 and n is a whole number, e.g. 0.0003 = 3 × 10⁻⁴.">scientific notation</Term> a number is written
+
+$$
+m \times 10^{n}
+$$
+
+where the number in front, $m$, is at least 1 and less than 10, and the exponent $n$ is a whole number that says how many places the decimal point moves: to the right if $n$ is positive, to the left if $n$ is negative.
+
+- $300{,}000 = 3 \times 10^{5}$: the point moves 5 places right.
+- $0.0003 = 3 \times 10^{-4}$: the point moves 4 places left.
+
+Code uses an even shorter form, **e-notation**, where `e` means "times ten to the power". So `3e-4` $= 3 \times 10^{-4} = 0.0003$, a typical learning rate, and `1e-8` $= 0.00000001$, the tiny $\varepsilon$ (epsilon) added to a denominator so that a program never divides by zero.
+
+<PowerLadder />
+
+To **compare** numbers in scientific notation, look at the exponents first: `5e-5` $<$ `3e-4` $<$ `1e-3` because $-5 < -4 < -3$. Only if the exponents match do you compare the front numbers.
+
+To **multiply**, multiply the front numbers and add the exponents. For example, a model with $10^9$ parameters stored as 4-byte numbers needs $4 \times 10^9$ bytes, about 4 gigabytes. And a learning rate of $3 \times 10^{-4}$ times a gradient of $2 \times 10^{3}$ gives a step of $6 \times 10^{-1} = 0.6$.
+
+<Mistake>
+
+The `e` in `3e-4` has nothing to do with the number $e \approx 2.718$ you will meet below. `3e-4` is $3 \times 10^{-4}$, never $3 \times e^{-4}$. And count carefully: `1e-3` is 0.001 (the 1 sits in the third decimal place), not 0.0001.
+
+</Mistake>
+
+## Growth and decay: multiplying again and again
+
+What happens if you keep multiplying by the same factor $r$?
+
+- If $r > 1$, the result **grows**: $2^{10} = 1024$.
+- If $0 < r < 1$, it **shrinks**: $0.5^{10} = \tfrac{1}{1024} \approx 0.001$.
+- If $r = 1$, nothing changes: $1^{n} = 1$.
+
+With a negative factor the sign flips at every step ($-2, 4, -8, 16, \dots$ for $r = -2$); whether the size explodes or vanishes then depends on the size of the factor, $|r|$.
+
+This is <Term def="Change by repeated multiplication by the same factor: growth if the factor is above 1, decay if it is between 0 and 1.">exponential growth or decay</Term>, and it is far more dramatic than it looks. A no-calculator trick: since $2^{10} \approx 10^3$, we get $4^{10} = 2^{20} \approx 10^6$, so $0.25^{10} = \tfrac{1}{4^{10}} \approx 10^{-6}$, about one millionth.
+
+<Analogy title="Photocopying a photocopy">
+
+Shrink a picture to 90% and photocopy the copy, again and again: after 10 copies it is about a third of its size ($0.9^{10} \approx 0.35$). Enlarge to 110% each time instead and after 10 copies it is about 2.6 times bigger and spills off the page ($1.1^{10} \approx 2.59$).
+
+</Analogy>
+
+<RepeatedMultiplier />
+
+### Why deep learning cares: vanishing and exploding gradients
+
+When a network learns, a signal called the <Term def="A number (or list of numbers) that says how the loss changes when a parameter changes. Training uses it to decide which way to adjust each parameter.">gradient</Term> (the slope of the loss: the same idea as a line's slope in [Functions and their graphs](#/learn/maths-foundations/functions-and-graphs)) travels backwards through the layers, and at each layer it gets **multiplied** by a factor, roughly the slope of that layer. Ten layers means ten factors multiplied together. The sigmoid's slope is never more than 0.25 (its value at $x = 0$, where the last lesson's gallery shows its peak). If every layer multiplies the signal by about 0.25, the first layer receives about $0.25^{10} \approx 10^{-6}$ of it and barely learns. That is the <Term def="When gradients shrink towards 0 as they are multiplied back through many layers, so the early layers learn extremely slowly.">vanishing gradient problem</Term>. With factors above 1 the signal **explodes** instead, the numbers overflow and training produces NaN ("not a number"). ReLU's slope is exactly 1 for positive inputs, which is one reason it replaced the sigmoid in <Term def="The layers of a neural network between the input and the output.">hidden layers</Term>.
+
+<QuickCheck
+  q="Roughly how big is $0.5^{20}$?"
+  options={['about $10^{-6}$', 'about $10^{-3}$', 'about $0.025$', 'about $10$']}
+  answer={0}
+  explain="$0.5^{20} = \dfrac{1}{2^{20}}$ and $2^{20} = (2^{10})^2 \approx (10^3)^2 = 10^6$, so it is about one millionth. $10^{-3}$ is only $0.5^{10}$; $0.025$ divides 0.5 by 20 and $10$ multiplies 0.5 by 20, instead of multiplying 0.5 by itself 20 times."
+/>
+
+## The number $e$
+
+Some growth happens continuously, not in steps. To see what that means, imagine a bank that pays 100% interest a year on \$1.
+
+- Paid once at the end of the year: you get $1 + 1 = 2$ dollars.
+- Paid as two halves of 50%: $1.5 \times 1.5 = 2.25$ dollars, because the second half also earns interest on the first.
+- Paid $n$ times a year, each time adding $\tfrac{1}{n}$ of the current balance (so multiplying it by $1 + \tfrac{1}{n}$): you end with $\left(1 + \tfrac{1}{n}\right)^n$ dollars.
+
+As $n$ grows the amount grows, but more and more slowly, and it closes in on a limit: $2.71828\ldots$ That limit is the number
+
+$$
+e = \lim_{n \to \infty} \left(1 + \frac{1}{n}\right)^n \approx 2.718
+$$
+
+where "$\lim_{n \to \infty}$" means "the value this approaches as $n$ gets bigger and bigger". Like $\pi$, $e$ is a never-ending decimal; $2.718$ is enough for the exam.
+
+<CompoundToE />
+
+## The exponential function $e^x$
+
+The function $e^x$ (written `np.exp(x)`, `math.exp(x)` or `torch.exp(x)` in code) is the most important function in ML after the straight line. Its key facts:
+
+- $e^0 = 1$, by the rule $a^0 = 1$. So its graph passes through $(0, 1)$.
+- $e^1 \approx 2.72$, $e^2 \approx 7.39$ and $e^{-1} = \tfrac{1}{e} \approx 0.37$.
+- $e^x$ is **positive for every** $x$. For positive $x$ it is bigger than 1 (for example $e^2 = e \times e \approx 7.39$ and $e^{0.5} = \sqrt{e} \approx 1.65$); for negative $x$ it is one over such a number, so it is still positive. It gets closer and closer to 0 as $x$ heads left, but never reaches it.
+- $e^{-x} = \tfrac{1}{e^x}$ is the **mirror image** of $e^x$ in the $y$-axis: it starts high on the left and decays towards 0 on the right, also passing through $(0, 1)$.
+
+And one property that makes $e$ special: the slope of $e^x$ at every point equals its height. At $x = 1$ the curve is $2.72$ high and climbing at slope $2.72$. That is why $e$ is called the "natural" base, and why, in calculus, $e^x$ is its own derivative.
+
+<ExpGraph />
+
+<KeyIdea>
+
+$e \approx 2.718$. The function $e^x$ is always positive, equals 1 at $x = 0$, and its slope equals its height. $e^{-x}$ is its mirror image, decaying towards 0.
+
+</KeyIdea>
+
+## Why sigmoid and softmax are built from $e^x$
+
+A classifier first produces raw scores, called <Term def="The raw, unbounded scores a classifier outputs before they are turned into probabilities. They can be any real number, positive or negative.">logits</Term>, which can be any number, including negative ones. Probabilities, though, must be positive and add up to 1. $e^x$ solves the first problem for free, because it turns **every** number into a positive one.
+
+**Softmax** (for several classes) applies $e^x$ to each score, then divides by the total. With scores 2, 1 and $-1$ for cat, dog and bird:
+
+$$
+\begin{aligned}
+p_{\text{cat}} &= \frac{e^{2}}{e^{2} + e^{1} + e^{-1}} \\[6pt]
+&\approx \frac{7.39}{7.39 + 2.72 + 0.37} \\[6pt]
+&= \frac{7.39}{10.48} \approx 0.705
+\end{aligned}
+$$
+
+and in the same way $p_{\text{dog}} \approx 0.259$ and $p_{\text{bird}} \approx 0.035$. They add up to 1, and the negative score still gets a small positive probability.
+
+**Sigmoid** (for a yes-or-no answer) squashes one score $z$:
+
+$$
+\sigma(z) = \frac{1}{1 + e^{-z}}
+$$
+
+Read it from the inside out: $e^{-z}$ is positive, so the bottom $1 + e^{-z}$ is more than 1, so $\sigma(z)$ is less than 1; and the bottom is never infinite, so $\sigma(z)$ is more than 0. At $z = 0$, $\sigma(0) = \tfrac{1}{1 + 1} = 0.5$.
+
+<ScoresToProbabilities />
+
+<PastPaperQuestion paper="prelim2026" n={164} />
+
+<ExamTip>
+
+Anchor values to know cold: $e^0 = 1$, $e \approx 2.718$, $e^{-1} \approx 0.37$, $e^2 \approx 7.4$, $\sigma(0) = 0.5$, and $2^{10} \approx 10^3$. Sigmoid outputs lie in $(0, 1)$, softmax outputs add up to 1, and ReLU outputs lie in $[0, \infty)$. Options such as $(-1, 1)$ and $(-\infty, \infty)$ are the usual traps. $(-1, 1)$ is the range of **tanh**, an S-shaped curve like the sigmoid but with outputs between $-1$ and $1$, which you will meet in [Activation functions](#/learn/neural-networks/activation-functions).
+
+</ExamTip>
+
+## In Python
+
+In Python the power operator is `**`. Run this to see the lesson's numbers, including a trap.
+
+<PyRunner packages={['numpy']} code={`import numpy as np
+
+print(2 ** 10, 2 ** -3, 9 ** 0.5)
+# ^ is NOT a power in Python
+print(2 ^ 3)
+print(3e-4, 3e-4 == 0.0003, 1e9 * 4)
+print(0.9 ** 30, 1.1 ** 30)
+print(np.exp(0), np.exp(1), np.exp(-1))
+
+# raw scores (logits)
+z = np.array([2.0, 1.0, -1.0])
+# softmax
+p = np.exp(z) / np.exp(z).sum()
+print(p.round(3), p.sum())`} />
+
+Expected output:
+
+```text
+1024 0.125 3.0
+1
+0.0003 True 4000000000.0
+0.04239115827521624 17.44940226888645
+1.0 2.718281828459045 0.36787944117144233
+[0.705 0.259 0.035] 1.0
+```
+
+<Mistake>
+
+`2 ^ 3` is **not** $2^3$ in Python. The `^` symbol is "bitwise exclusive or", an operation on binary digits, and `2 ^ 3` gives 1. Always write powers as `2 ** 3`, which gives 8.
+
+</Mistake>
+
+<Takeaways>
+
+- $a^m \times a^n = a^{m+n}$, $a^m \div a^n = a^{m-n}$, $(a^m)^n = a^{mn}$, $a^0 = 1$ (for $a \neq 0$), $a^{-n} = \tfrac{1}{a^n}$ and $a^{1/2} = \sqrt{a}$.
+- `3e-4` means $3 \times 10^{-4} = 0.0003$. Compare numbers in scientific notation by their exponents first.
+- Repeated multiplication by a factor above 1 explodes and between 0 and 1 vanishes ($2^{10} = 1024$, $0.25^{10} \approx 10^{-6}$): the root of exploding and vanishing gradients.
+- $e \approx 2.718$ is the limit of $\left(1 + \tfrac1n\right)^n$. $e^x$ is always positive, $e^0 = 1$, and $e^{-x}$ is its mirror image.
+- Sigmoid and softmax use $e^x$ because it turns any score, even a negative one, into a positive number.
+
+</Takeaways>

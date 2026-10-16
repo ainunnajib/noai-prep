@@ -1,0 +1,274 @@
+{
+  "slug": "large-language-models",
+  "order": 29,
+  "part": "generative-ai",
+  "domain": "generative_ai",
+  "title": "Large language models",
+  "tagline": "How ChatGPT-style models really work",
+  "summary": "How LLMs are pretrained, instruction-tuned and aligned, how decoding settings (greedy, beam, temperature, top-k, top-p) shape outputs, context windows and the KV cache, fine-tuning with LoRA and other parameter-efficient methods, and their limits and risks.",
+  "prerequisites": [
+    "pretrained-models-text-speech"
+  ],
+  "syllabus": [
+    "NOAI Generative AI: LLMs",
+    "IOAI 4A5 Pre-trained Language Models (open-source and API-based)",
+    "IOAI 2B13 Model Finetuning (parameter-efficient)",
+    "Pretraining, SFT, RLHF, scaling, sampling strategies, context length, LoRA",
+    "Hallucination, bias, safety and responsible use"
+  ],
+  "paper_subtopics": [
+    "llms",
+    "ai-ethics-safety",
+    "nlp-transformers",
+    "reinforcement-learning"
+  ],
+  "lessons": [
+    {
+      "slug": "how-llms-are-built",
+      "title": "How LLMs are built",
+      "summary": "Pretraining on next-token prediction, instruction tuning, preference alignment (RLHF), and what scale changes.",
+      "minutes": 18,
+      "objectives": [
+        "You can describe the stages pretraining → supervised fine-tuning → preference alignment",
+        "You can explain why pretraining is self-supervised",
+        "You can describe what scaling laws say about size, data and compute"
+      ],
+      "concepts": [
+        {
+          "name": "From base model to assistant",
+          "explain": "A base model is pretrained to predict the next token on trillions of tokens of text, learning grammar, facts and reasoning patterns but not how to be helpful. Supervised fine-tuning (SFT) on example conversations teaches it to follow instructions. Preference alignment (such as RLHF, which trains a reward model from human rankings of answers and then optimises the LLM against it) makes responses more helpful and safer.",
+          "analogy": "A student who has read the entire National Library (pretraining), then attends a course on answering exam questions (SFT), then gets feedback from teachers on which answers are best (RLHF).",
+          "visual": {
+            "component": "LLMTrainingStages",
+            "kind": "stepper",
+            "shows": "Three stages as a pipeline with the data used at each, and the same prompt answered by a base model, an SFT model and an aligned model (illustrative responses).",
+            "interaction": "Step through stages; switch prompts to see how each stage changes behaviour.",
+            "aha": "Knowledge comes mostly from pretraining; helpfulness and manners come from the later, much smaller stages."
+          }
+        },
+        {
+          "name": "Scaling laws",
+          "explain": "Language-model loss falls smoothly and predictably (roughly a power law) as you increase model parameters, training data and compute together. This predictability is why labs train ever larger models; balancing data with model size matters as much as size alone.",
+          "analogy": "Each doubling of training effort gives a steady, predictable improvement, like a well-designed fitness plan.",
+          "visual": {
+            "component": "ScalingLawPlot",
+            "kind": "interactive",
+            "shows": "Log-log plot of loss against compute with illustrative curves for different model sizes and their lower envelope.",
+            "interaction": "Drag a compute budget marker to see the best model size for that budget and the predicted loss.",
+            "aha": "On log-log axes progress is a straight line, which makes big training runs plannable."
+          }
+        }
+      ],
+      "code": "none",
+      "checkpoint_focus": [
+        "GPT = Generative Pre-trained Transformer",
+        "Pretraining on next-token prediction over web-scale text",
+        "SFT on instruction-response pairs",
+        "RLHF with a reward model from human preferences",
+        "Loss falls smoothly with scale"
+      ]
+    },
+    {
+      "slug": "decoding-and-sampling",
+      "title": "Decoding: greedy, beam search, temperature, top-k and top-p",
+      "summary": "How an LLM turns next-token probabilities into text, and how each setting trades accuracy against creativity.",
+      "minutes": 20,
+      "objectives": [
+        "You can apply temperature to logits and predict the effect",
+        "You can perform top-k and top-p filtering on a small distribution",
+        "You can contrast greedy decoding and beam search",
+        "You can choose settings for factual vs creative tasks"
+      ],
+      "concepts": [
+        {
+          "name": "Temperature reshapes the distribution",
+          "explain": "Before softmax, the logits are divided by a temperature T. T below 1 sharpens the distribution (more predictable, closer to greedy), T above 1 flattens it (more random and creative), and T near 0 always picks the top token.",
+          "analogy": "A hawker who usually recommends their bestseller (low temperature) versus one who suggests something different each time (high temperature).",
+          "visual": {
+            "component": "TemperatureSoftmax",
+            "kind": "interactive",
+            "shows": "Next-token probability bars for a prompt, recomputed for the chosen temperature, and five sampled continuations.",
+            "interaction": "Slide T from 0.1 to 2; resample; compare entropy readouts.",
+            "aha": "Temperature does not change the ranking of tokens, only how strongly the top ones dominate."
+          }
+        },
+        {
+          "name": "Top-k and top-p filtering",
+          "explain": "Top-k sampling keeps only the k most likely tokens and renormalises. Top-p (nucleus) sampling keeps the smallest set of tokens whose probabilities add up to at least p, so the set grows when the model is unsure and shrinks when it is confident.",
+          "analogy": "Choosing dinner only from the top 3 stalls (top-k) versus from as many stalls as needed to cover 90% of your usual preferences (top-p).",
+          "visual": {
+            "component": "TopKTopPCutoff",
+            "kind": "interactive",
+            "shows": "Sorted probability bars with a cut-off line for top-k or top-p and the renormalised bars after filtering, for a confident and an uncertain distribution.",
+            "interaction": "Slide k and p; switch between confident and uncertain distributions.",
+            "aha": "Top-p adapts to the model's uncertainty, while top-k uses a fixed number."
+          }
+        },
+        {
+          "name": "Greedy versus beam search",
+          "explain": "Greedy decoding picks the single most likely token each step, which can miss a better overall sentence. Beam search keeps the b best partial sequences at each step and finally returns the one with the highest total probability; it suits translation but can produce bland, repetitive text in open-ended generation.",
+          "analogy": "Greedy is always taking the shortest next road; beam search keeps several route options open on Google Maps before committing.",
+          "visual": {
+            "component": "BeamSearchTree",
+            "kind": "stepper",
+            "shows": "A tree of candidate tokens with probabilities; greedy follows one path while beam search keeps b paths, pruning at each step, with cumulative log-probabilities shown.",
+            "interaction": "Slide beam width from 1 to 4; step through decoding; compare final sequence probabilities.",
+            "aha": "The best first word is not always the start of the best sentence."
+          }
+        }
+      ],
+      "code": "runnable",
+      "checkpoint_focus": [
+        "Temperature divides logits: T < 1 sharper, T > 1 flatter",
+        "Top-k keeps k most likely",
+        "Top-p keeps smallest set with cumulative probability ≥ p",
+        "Beam search maximises sequence probability"
+      ]
+    },
+    {
+      "slug": "context-and-cost",
+      "title": "Context windows, the KV cache and cost",
+      "summary": "What the context window is, why long contexts are expensive, and how caching keys and values speeds up generation.",
+      "minutes": 15,
+      "objectives": [
+        "You can explain what a context window limits",
+        "You can explain the KV cache and why it speeds up generation",
+        "You can reason about cost and latency in tokens"
+      ],
+      "concepts": [
+        {
+          "name": "The context window",
+          "explain": "An LLM can only attend to a fixed number of tokens at once (its context window). Anything beyond it, such as the start of a very long chat, is cut off unless summarised or retrieved again. Because attention compares all pairs of tokens, longer windows cost much more compute and memory.",
+          "analogy": "A whiteboard of fixed size: once it is full, you must erase old notes to write new ones.",
+          "visual": {
+            "component": "ContextWindowSlider",
+            "kind": "animation",
+            "shows": "A long conversation as a scrolling strip of tokens with a fixed-size window frame; tokens leaving the window fade, and a cost meter grows quadratically with window size.",
+            "interaction": "Play the conversation; slide the window size; see which early facts the model can no longer use.",
+            "aha": "An LLM's 'memory' is just its context window, and that window is expensive to enlarge."
+          }
+        },
+        {
+          "name": "The KV cache",
+          "explain": "When generating token by token, the keys and values of earlier tokens do not change, so models store them (the KV cache) and only compute the new token's query, key and value each step. This makes generation much faster but uses memory that grows with the context length.",
+          "analogy": "Keeping your working from earlier steps of a maths problem instead of recomputing it every time you add a new line.",
+          "visual": {
+            "component": "KVCacheStepper",
+            "kind": "stepper",
+            "shows": "Generation steps with the cache of K and V rows growing, and a compute counter compared with recomputing everything each step.",
+            "interaction": "Step through generation; toggle the cache on and off.",
+            "aha": "Caching turns repeated work into memory use, the core trade-off in serving LLMs."
+          }
+        }
+      ],
+      "code": "none",
+      "checkpoint_focus": [
+        "Context length in tokens",
+        "Quadratic attention cost",
+        "KV cache reuses past keys and values",
+        "Tokens ≠ words"
+      ]
+    },
+    {
+      "slug": "fine-tuning-and-lora",
+      "title": "Fine-tuning and LoRA",
+      "summary": "Full fine-tuning versus parameter-efficient methods, the low-rank idea behind LoRA, and catastrophic forgetting.",
+      "minutes": 18,
+      "objectives": [
+        "You can explain how LoRA adds a trainable low-rank update BA to a frozen weight",
+        "You can compute LoRA's trainable parameter count",
+        "You can explain catastrophic forgetting"
+      ],
+      "concepts": [
+        {
+          "name": "Low-rank updates",
+          "explain": "Full fine-tuning updates every weight, which is expensive for billions of parameters. LoRA freezes the original weight matrix W (d × k) and learns a small update ΔW = BA, where B is d × r and A is r × k with a small rank r (e.g. 8). For d = k = 4096 and r = 8, that is 65,536 trainable values instead of about 16.8 million, and B starts at zero so training begins from the original model. Full fine-tuning is costly and can cause catastrophic forgetting of general abilities, which LoRA reduces by leaving W frozen. In practice the Hugging Face peft library adds LoRA adapters to a model in a few lines.",
+          "analogy": "Instead of reprinting a whole textbook, you add a thin booklet of corrections that is applied on top.",
+          "visual": {
+            "component": "LoRAMatrixViz",
+            "kind": "interactive",
+            "shows": "A large frozen W grid, thin B and A grids whose product forms ΔW, and parameter-count bars for full fine-tuning versus LoRA.",
+            "interaction": "Slide d, k and r; see ΔW built as a sum of r outer products; compare counts.",
+            "aha": "A low-rank update can change a model's behaviour while training under 1% of the parameters."
+          }
+        },
+        {
+          "name": "Rank-one building blocks",
+          "explain": "The product of a column vector and a row vector (an outer product) is a rank-1 matrix: every row is a scaled copy of the same pattern. A rank-r matrix is a sum of r such outer products, so a low-rank update can only express a few 'directions' of change, which is often enough for adapting a model.",
+          "analogy": "A tartan pattern made by crossing a few stripes: few ingredients, a whole-sheet pattern.",
+          "visual": {
+            "component": "OuterProductBuilder",
+            "kind": "interactive",
+            "shows": "Two editable vectors and their outer-product heat map, plus a sum of up to 4 outer products approximating a target image-like matrix.",
+            "interaction": "Edit vector entries; add rank-1 terms and watch the approximation improve.",
+            "aha": "Low rank means 'built from a few simple patterns', which is why LoRA is so compact."
+          }
+        }
+      ],
+      "code": "torch-shown",
+      "checkpoint_focus": [
+        "W' = W + BA with rank r",
+        "Trainable params r(d + k) vs d·k",
+        "B initialised to zero",
+        "Full fine-tuning cost and forgetting"
+      ]
+    },
+    {
+      "slug": "limits-and-responsible-ai",
+      "title": "Limits, risks and responsible use of AI",
+      "summary": "Hallucination, bias, privacy, prompt injection and misuse, and how they are evaluated and governed, including Singapore's approach.",
+      "minutes": 16,
+      "objectives": [
+        "You can explain why LLMs hallucinate",
+        "You can explain how biased data leads to biased models",
+        "You can describe prompt injection and why it is hard to prevent",
+        "You can name principles of responsible AI governance"
+      ],
+      "concepts": [
+        {
+          "name": "Why models hallucinate",
+          "explain": "An LLM generates text that is probable, not text that is verified, so when it lacks knowledge it can produce fluent, confident, wrong answers. Grounding with retrieved sources, asking for citations and checking facts reduce but do not eliminate hallucination.",
+          "analogy": "A student who never leaves a blank in an exam and writes a confident-sounding answer even when unsure.",
+          "visual": {
+            "component": "HallucinationConfidence",
+            "kind": "interactive",
+            "shows": "A question about an obscure fact, the next-token distributions at each step of the answer, and a confidence-versus-correctness scatter for sample answers.",
+            "interaction": "Switch between a well-known and an obscure question; toggle 'retrieved source provided'.",
+            "aha": "Fluency and confidence are not evidence of truth."
+          }
+        },
+        {
+          "name": "Bias in, bias out",
+          "explain": "Models learn patterns in their training data, including unfair ones. If historical hiring data favours one group, a model trained on it will too, and its accuracy may differ across groups. Checking metrics per group and auditing data are basic safeguards.",
+          "analogy": "A recipe book written only by one family will make everyone's food taste like that family's.",
+          "visual": {
+            "component": "BiasAmplifier",
+            "kind": "interactive",
+            "shows": "A synthetic dataset of two groups with a skewed label rate, a classifier trained on it, and per-group accuracy, false positive and approval-rate bars.",
+            "interaction": "Slide the skew in the training data; toggle reweighting; compare group metrics.",
+            "aha": "Fairness has to be measured per group; overall accuracy can hide large gaps."
+          }
+        },
+        {
+          "name": "Prompt injection and governance",
+          "explain": "Prompt injection hides instructions inside content the model reads (a web page or email), hijacking an assistant's behaviour. Responsible AI practice adds safeguards, testing and human oversight, guided by principles such as transparency, fairness and accountability; Singapore's Model AI Governance Framework (with a 2024 edition for generative AI) and the AI Verify testing toolkit are local examples.",
+          "analogy": "A forged memo slipped into the boss's inbox that says 'transfer the money now'.",
+          "visual": {
+            "component": "PromptInjectionDemo",
+            "kind": "stepper",
+            "shows": "An email-summarising assistant processing an email that contains a hidden instruction; steps show the system prompt, the email content and the hijacked output, then a safer design with separated instructions and confirmation.",
+            "interaction": "Step through; toggle the defensive design.",
+            "aha": "Anything the model reads can act like an instruction, so untrusted text needs guarding."
+          }
+        }
+      ],
+      "code": "none",
+      "checkpoint_focus": [
+        "Hallucination from next-token prediction",
+        "Bias in data and evaluation",
+        "Prompt injection",
+        "Transparency, fairness, accountability; Singapore's Model AI Governance Framework"
+      ]
+    }
+  ]
+}

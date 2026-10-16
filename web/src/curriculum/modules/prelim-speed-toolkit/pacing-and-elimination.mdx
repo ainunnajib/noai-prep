@@ -1,0 +1,203 @@
+import { PRELIM, DOMAINS } from '../../../data/facts'
+import PaceCheckpoints from './visuals/pacing-and-elimination/PaceCheckpoints'
+import EliminationTrainer from './visuals/pacing-and-elimination/EliminationTrainer'
+import PrelimHeatmap from './visuals/pacing-and-elimination/PrelimHeatmap'
+
+By February you will know most of the content. What decides your Prelim score after that is how you spend {PRELIM.minutes} minutes on {PRELIM.questions} questions: whether you reach the end, and whether you turn half-knowledge into marks. This lesson gives you a pacing plan with checkpoints, a way to sort questions in seconds, and the elimination rules that work on NOAI's options, all built from the real 2026 paper.
+
+You met the basics in [the exam format lesson](#/learn/start-here/exam-format-and-strategy): {PRELIM.minutes} × 60 = 5400 seconds for {PRELIM.questions} questions is **{PRELIM.secondsPerQuestion} seconds** each on average, a wrong answer costs nothing, and a blank is always worth 0. Here we turn those facts into a plan you can run on the day.
+
+## Pacing checkpoints
+
+<Analogy title="Checking your watch at each MRT station">
+
+You are taking the MRT from Pasir Ris to an exam at Jurong East and you must arrive by 9:30. You do not wait until Jurong East to look at your watch. You check at Tanah Merah, at City Hall, at Buona Vista. If you are behind at City Hall, you know to walk fast at the other end. If you only check at the end, it is too late to do anything.
+
+</Analogy>
+
+A <Term def="A fixed point in the exam (here every 15 minutes) where you compare the question you are on with where you should be.">checkpoint</Term> is one of those stations. Every 15 minutes you glance at the clock and at the question number, and compare them with two lines.
+
+**The must-hit line** is the bare average, {PRELIM.secondsPerQuestion} seconds a question. In 15 minutes (900 seconds) that is $900 \div 36 = 25$ questions. So:
+
+$$
+Q_{\text{must}} = \frac{5}{3} \times t
+$$
+
+- $t$ is the number of minutes gone.
+- $Q_{\text{must}}$ is the question you must have finished by then.
+- $\frac{5}{3}$ is 25 questions per 15 minutes. In words: **25 questions every 15 minutes**. Q25 at 15:00, **Q50 at 30:00**, Q75 at 45:00, **Q100 at 60:00**, Q125 at 75:00, Q150 at 90:00.
+
+**The target line** is a little faster, 30 seconds a question, so two questions a minute:
+
+$$
+Q_{\text{target}} = 2 \times t
+$$
+
+In words: **question number = 2 × minutes gone**. On this line you reach Q150 at 75:00, which leaves **15 minutes** for questions you flagged. Below the must-hit line you will not reach the end; between the lines you will finish but with little to spare; above the target you are comfortable.
+
+<PaceCheckpoints />
+
+Try the default settings first. An average of 34 seconds on a normal question sounds close enough to 36, but the 20 hard questions (three times as long each) put the student behind at the very first checkpoint: Q21 at 15:00 instead of Q25. Left alone, they are still on Q134 when time runs out. Speed up at 15:00 and they finish with over 13 minutes to spare for a second pass; wait until 60:00 and only about 3 minutes are left; wait until 75:00 and the paper is never finished. The earlier the warning, the cheaper the fix.
+
+<KeyIdea>
+
+Check the clock every 15 minutes against **25 questions per 15 minutes** (must-hit: Q50 at 30:00, Q100 at 60:00) and **question = 2 × minutes** (target). Below the must-hit line at any checkpoint, switch to **speed mode** immediately: any question still unsolved after about 30 seconds gets your best guess and a flag, and you move on.
+
+</KeyIdea>
+
+<Steps title="Reading a checkpoint at 45:00">
+  <Step title="Where should you be?">
+    Must-hit: $\frac{5}{3} \times 45 = 75$, so Q75. Target: $2 \times 45 = 90$, so Q90.
+  </Step>
+  <Step title="Where are you?">
+    You have just finished Q68. That is $75 - 68 = 7$ questions behind the must-hit line.
+  </Step>
+  <Step title="What does the rest of the paper need?">
+    $150 - 68 = 82$ questions are left in $45 \times 60 = 2700$ seconds. Since $82 \times 33 = 2706$, you need about **33 seconds** each from now on, with no spare time at all. That is faster than you have been going, so switch to speed mode now: any question still unsolved after about 30 s gets your best guess and a flag.
+  </Step>
+</Steps>
+
+### Triage: sorting each question in ten seconds
+
+Speed mode is not "read faster". It is a decision you make about each question in its first few seconds. Doctors in an emergency department call this <Term def="Sorting cases quickly by how much they need and how much you can do for them, so time goes where it helps most.">triage</Term>. Every question goes into one of three bins:
+
+| Bin | You think… | You do |
+| --- | --- | --- |
+| **Answer now** | "I know this" | Answer it in under 30 s and move on. Do not re-check. |
+| **Guess and flag** | "I can do this, but it will take a while" | Pick your best answer now, write its number on your scrap paper, move on. |
+| **Guess and go** | "I have no idea" | Strike what you can, pick from the rest, move on. Do not flag it: more time will not help. |
+
+The middle bin is the important one. A long calculation or a 700-character scenario you *could* solve is worth coming back to, but only after you have collected every quick mark in the paper.
+
+### The two-pass plan
+
+<Steps title="One paper, two passes">
+  <Step title="Pass 1: 0:00 to about 75:00">
+    Go through in order, triaging every question. Every question gets an answer on the first pass, even the flagged ones, so that if time runs out nothing is blank. Check the clock at each 15-minute checkpoint.
+  </Step>
+  <Step title="Pass 2: the spare minutes">
+    Go back to your flag list, most promising first. Change an answer only when you have worked it out properly, not because of a vague feeling.
+  </Step>
+  <Step title="The sweep: last 2 minutes">
+    Stop whatever you are doing and scroll through the whole form. Make sure every question has an answer, then submit.
+  </Step>
+</Steps>
+
+<Mistake>
+
+Skipping a question **without** answering it, planning to come back. If the clock runs out first, that question scores 0 instead of the quarter mark a guess is worth on average. Always leave a best guess behind, then flag.
+
+</Mistake>
+
+<ExamTip>
+
+The Prelim is a Google Form, so do not count on a "flag" button. Keep your own flag list on the scrap paper you are given: just the question numbers, like `37, 52, 88`. Also jot the six checkpoint targets (25, 50, 75, 100, 125, 150) in the corner before the exam starts, so you never have to work them out under pressure.
+
+</ExamTip>
+
+<QuickCheck
+  q="At the 30:00 checkpoint you have just finished Q41. What should you do?"
+  options={['Switch to speed mode: guess and flag any question still unsolved after about 30 s', 'Keep the same pace and plan to catch up during the last 15 minutes of the paper', 'Go back over Q1–41 to make sure those answers are right before moving on', 'Skip straight to the last block of questions, since those are worth more marks each']}
+  answer={0}
+  explain="The must-hit line at 30:00 is Q50 (25 questions per 15 minutes), so you are 9 behind. Act now, while 60 minutes remain. Catching up at the end fails because the last questions are usually the longest, and every question is worth the same 1 mark."
+/>
+
+## Elimination heuristics
+
+<Analogy title="Spotting a scam message">
+
+"Congratulations! You have ALWAYS been our top customer. Click NOW to claim your guaranteed prize from the Singpore Rewards Team." You do not need to phone anyone to know it is fake: the overclaim, the pressure and the misspelt name give it away. Wrong MCQ options leave clues in the same way.
+
+</Analogy>
+
+A wrong option in an MCQ is called a <Term def="A wrong option written to look right, usually built from a common misconception or a confusion between two related ideas.">distractor</Term>. Setters write distractors in a few recurring ways, and each way leaves a mark you can spot. A <Term def="A rule of thumb: a quick method that usually works, but not always.">heuristic</Term> is a rule of thumb for spotting them. These five cover most NOAI distractors:
+
+1. **Absolute words.** "Always", "never", "only", "must", "cannot", "all". Machine learning is full of trade-offs, so a claim with no exceptions is almost always false. In the 2026 Prelim, 50 options started with an absolute word and **only 1** of them was the correct answer. The exception is maths definitions, where the absolute word is the point: "positive definite: all eigenvalues > 0", "only square matrices have a determinant", "the inner dimensions must match". The one correct absolute-word option in 2026 was exactly such a definition (Q21). Strike absolute words in claims about methods and trade-offs, not in definitions.
+2. **Swapped terms.** The option correctly describes the *partner* concept: eigenvalue instead of eigenvector, recall instead of precision, sigmoid instead of ReLU. Before choosing, check that the description matches the word the question asked about.
+3. **Answers a different question.** A true statement or a real formula, but not about what was asked. "(TP + TN) / Total" is a real formula, for accuracy; it is still wrong when the question asks for precision.
+4. **Clashes with the <Term def="The question itself: everything above the four options, including any numbers, tables or code.">stem</Term>.** In scenario questions, an option that contradicts a number or fact in the question is out. "High bias" cannot describe a model with 99% training accuracy.
+5. **Vague or empty.** "More complex", "slower", "no particular reason". A real reason names a mechanism or a cost.
+
+The correct option usually looks the opposite way: it gives the **standard definition** in precise words, or a **reason tied to the scenario's numbers** ("8 × 4 = 32, exactly the batch that did not fit").
+
+<EliminationTrainer />
+
+<KeyIdea>
+
+Strike first, then choose. Each option you can rule out for a concrete reason (absolute word, swapped term, different question, clash with the stem, empty reason) raises your guess from $\frac14$ to $\frac13$ to $\frac12$ of a mark, and often leaves only one option standing.
+
+</KeyIdea>
+
+### One more cue, for last resort only
+
+In the 2026 Prelim, when one option was longer than all the others, it was the correct answer in **215 of 274** such questions (about 78%), and in Generative AI questions it was right 95% of the time. Setters tend to qualify the right answer carefully and write the wrong ones quickly. Use this **only** as a tie-break after real elimination: the 2027 setters may well have fixed it, and our own practice questions deliberately do not follow it.
+
+<Mistake>
+
+Striking an option because it *sounds* unfamiliar. Unfamiliar is not wrong: the right answer is often phrased differently from your notes. Strike only for a reason you could say out loud, and if you are not sure, leave the option in.
+
+</Mistake>
+
+Try both techniques on two real questions. The first is pure elimination; for the second, find the one number in the stem that every wrong option ignores.
+
+<PastPaperQuestion paper="prelim2026" n={270} />
+
+<PastPaperQuestion paper="prelim2026" n={273} />
+
+<Reveal label="How elimination cracks both">
+
+**Q270:** three options contain "never", "only" and "always". Strike them and one is left, before you think about generative models at all.
+
+**Q273:** the decisive number is **10% validation accuracy on a 10-class problem**: exactly what random guessing gives ($1 \div 10$). Overfitting gives validation accuracy *below* training accuracy, but still well above chance; vanishing gradients would stop the training loss from falling, which clashes with "decreases smoothly to 0.01". Leakage in the training set would make the scores look too good, not leave validation stuck at exactly chance. Only a mismatch between the training and validation labels makes a model that has truly learnt something score exactly chance.
+
+</Reveal>
+
+### Keyword triggers
+
+Many scenario questions describe a symptom in a few standard phrases. Learn the phrase-to-diagnosis pairs so you can jump straight to the right option:
+
+| the stem says | think | the fix usually offered |
+|---|---|---|
+| training accuracy far above validation | overfitting | regularise, augment, more data, early stopping |
+| both accuracies low and close together | underfitting | bigger model, more features, train longer |
+| validation accuracy = 1 ÷ number of classes | a label or pipeline bug (chance level) | check the labels and the data loading |
+| loss becomes NaN after training was stable | exploding gradients or a too-high learning rate | lower the learning rate, clip gradients |
+| CUDA out of memory | activations too big | smaller batch, gradient accumulation, mixed precision, checkpointing |
+| 1% positives and 99% accuracy | accuracy paradox | look at recall, precision, F1 or PR-AUC |
+| long inputs are slow or run out of memory | attention is $O(n^2)$ in sequence length | truncate, chunk, or use efficient attention |
+| test score far below validation, same source | leakage or a split problem | re-split by group or time, fit preprocessing on the training set only |
+
+## Where the questions come from
+
+<Analogy title="Knowing the O-level Physics paper">
+
+Anyone who has prepared for O-level Physics with past papers knows that some topics turn up every single year and a few hardly ever. You still revise everything, but you plan your time differently once you know.
+
+</Analogy>
+
+The 2026 Prelim had 300 questions in five domains of almost equal size: {DOMAINS.map((d) => `${d.title} (${d.share2026})`).join(', ')}. They came in **domain blocks**: Mathematics first (Q1–60), then Computing, AI/ML/DL, Generative AI, and Problem solving last (Q238–300). Explore it:
+
+<PrelimHeatmap />
+
+Three patterns stand out.
+
+- **A few topics carry a lot of marks.** Linear algebra (25 questions), PyTorch (24), training and regularisation (23), CNNs and vision (23) and classical ML models (22) together held 117 of the 300 questions, almost 40%.
+- **Most questions are recall.** 166 of the 300 (55%) asked for a definition or a fact. Only 21 needed a calculation, and every one of those was short enough to do in your head. That is what the [speed drills](#/learn/prelim-speed-toolkit/drill-linear-algebra) in this module train.
+- **The style shifts as the paper goes on.** Among the first 150 questions, 87 were recall; among the last 60 only 14 were, while 46 were comparisons, "why" questions or scenarios. The last 30 questions had a median of about 690 characters (stem plus options), against about 110 for the first 60: roughly six times as much reading per question.
+
+What does this mean for 2027? The official page lists the same five domains for the 150-question paper, but AI Singapore has not said how the questions will be split. If the split stays roughly equal, expect about 30 questions per domain. If the paper again ends with the long scenarios, your 15-minute reserve is for them, so do not spend it early.
+
+<ExamTip>
+
+Practise long scenarios with the reading order from [The exam format and how it is scored](#/learn/start-here/exam-format-and-strategy): read the **question line first**, then hunt for the one number or fact that decides it, then strike every option that clashes with it. In 2026 most of those questions came at the end, exactly when you were most tired and shortest of time.
+
+</ExamTip>
+
+<Takeaways>
+
+- Checkpoints every 15 minutes: **25 questions per 15 minutes** is the must-hit line (Q50 at 30:00, Q100 at 60:00); **question = 2 × minutes** is the target, which saves 15 minutes for a second pass.
+- Triage each question in about ten seconds: answer now, guess and flag, or guess and go. Every question gets an answer on the first pass; flags live on your scrap paper.
+- Strike options for a reason: absolute words, swapped terms, answering a different question, clashing with the stem, or giving no mechanism. Each strike makes a guess worth more.
+- The 2026 paper was five near-equal domain blocks, mostly recall, with a few heavy topics, and it ended with long scenarios. Plan your reserve for the end.
+
+</Takeaways>

@@ -1,0 +1,232 @@
+import DiceGrid from './visuals/probability-rules/DiceGrid'
+import ProbabilitySquare from './visuals/probability-rules/ProbabilitySquare'
+import ConditionalZoom from './visuals/probability-rules/ConditionalZoom'
+import ProbabilityTree from './visuals/probability-rules/ProbabilityTree'
+
+When an AI model says "92% cat", or a spam filter flags an email, or a weather app says "70% chance of rain", it is speaking the language of probability. That language has only a handful of rules: counting, *and*, *or*, *given*, and trees. Once you can picture them, a whole family of NOAI questions becomes a 20-second job.
+
+## Outcomes, events and counting
+
+Some words first. An <Term def="Anything with an uncertain result that you could repeat, such as rolling a die or flipping a coin.">experiment</Term> is anything with an uncertain result, like rolling a die. Each possible result is an <Term def="One single possible result of an experiment, such as rolling a 4.">outcome</Term>, and the list of all outcomes is the <Term def="The set of all possible outcomes of an experiment. For one die it is 1, 2, 3, 4, 5, 6.">sample space</Term>. An <Term def="A set of outcomes you care about, such as 'the die shows an even number' (2, 4 or 6).">event</Term> is a group of outcomes you care about, such as "the die shows at least 5".
+
+<Analogy>
+Board an empty MRT carriage and sit in a seat picked completely at random. Every seat is equally likely, so the chance of landing a seat by the door is just (seats by the door) ÷ (all the seats).
+</Analogy>
+
+When every outcome is **equally likely**, probability is just counting:
+
+$$
+P(E) = \frac{\text{number of outcomes in } E}{\text{total number of outcomes}}
+$$
+
+Here $P(E)$ is read "the probability of $E$". For a fair die, "at most 2" contains the outcomes 1 and 2, so $P(\text{at most } 2) = \frac{2}{6} = \frac{1}{3}$. Two facts follow straight away:
+
+- Every probability is between 0 (impossible) and 1 (certain).
+- The <Term def="The event 'E does not happen'. Its probability is 1 minus P(E).">complement</Term> "not $E$" contains every outcome outside $E$, so $P(\text{not } E) = 1 - P(E)$. The chance of rolling *more than* 2 is $1 - \frac{1}{3} = \frac{2}{3}$.
+
+<PastPaperQuestion paper="prelim2026" n={49} />
+
+With two dice you need to be careful about what is equally likely. The totals 2 to 12 are **not** equally likely. The 36 ordered pairs (first die, second die) are.
+
+<DiceGrid />
+
+<Mistake>
+"There are 11 possible totals, so P(total = 7) = 1/11." This is wrong, because the totals are not equally likely. Count the 36 equally likely pairs instead: six of them make 7, so $P(7) = \frac{6}{36} = \frac{1}{6}$, while only one pair (6, 6) makes 12.
+</Mistake>
+
+<QuickCheck
+  id="probability-and-statistics.probability-rules.qc1"
+  q="You roll two fair dice. What is the probability of getting at least one 6?"
+  options={['$1/3$', '$11/36$', '$1/36$', '$25/36$']}
+  answer={1}
+  explain="Use the complement: P(no 6) $= \frac{5}{6} \times \frac{5}{6} = \frac{25}{36}$, so P(at least one 6) $= 1 - \frac{25}{36} = \frac{11}{36}$. Or count the grid: the row of 6s has 6 cells and the column of 6s has 6 cells, but (6, 6) is in both, so $6 + 6 - 1 = 11$. Answering $\frac{12}{36} = \frac{1}{3}$ counts (6, 6) twice."
+/>
+
+## Probability as area
+
+Counting cells works for dice, but there is a picture that works for everything. Draw every possible outcome as a square of area 1. An event is a region inside it, and **its probability is its area**.
+
+<Analogy>
+Picture the floor of a hawker centre as the whole square. Stall A's queue covers one patch of floor and stall B's queue covers another. If the queues cross, the people standing in the overlap are in *both* queues. To count everyone queuing, add the two queues and then subtract the overlap, or you count those people twice.
+</Analogy>
+
+Two pieces of notation:
+
+- $A \cap B$, read "A **and** B", is the overlap: both events happen. ($\cap$ is called "intersection".)
+- $A \cup B$, read "A **or** B", is everything covered by at least one of them. ($\cup$ is called "union".) In probability, "or" always includes the case where both happen.
+
+<ProbabilitySquare />
+
+The area picture gives the **addition rule** ("or" rule) for free:
+
+$$
+P(A \cup B) = P(A) + P(B) - P(A \cap B)
+$$
+
+Adding the two areas counts the overlap twice, so you subtract it once.
+
+<Steps title="Using the addition rule">
+  <Step title="Read the numbers">
+    In a class of 40, 18 students play football, 15 sing in the choir, and 6 do both. Pick a student at random. Let $A$ = football and $B$ = choir.
+  </Step>
+  <Step title="Turn counts into probabilities">
+    $P(A) = \frac{18}{40}$, $P(B) = \frac{15}{40}$ and $P(A \cap B) = \frac{6}{40}$.
+  </Step>
+  <Step title="Add, then subtract the overlap">
+    $P(A \cup B) = \frac{18 + 15 - 6}{40} = \frac{27}{40}$. Without subtracting you would get $\frac{33}{40}$, which counts the 6 students who do both twice.
+  </Step>
+</Steps>
+
+## Mutually exclusive or independent?
+
+These two ideas sound alike, and exam options love to swap them. They mean very different things.
+
+<Term def="Two events that cannot happen at the same time, so P(A and B) = 0.">Mutually exclusive</Term> events **cannot happen together**. Their regions do not overlap, so $P(A \cap B) = 0$ and the addition rule becomes simply $P(A \cup B) = P(A) + P(B)$. On one die, "rolling a 5" and "rolling an even number" are mutually exclusive: $P(5 \text{ or even}) = \frac{1}{6} + \frac{3}{6} = \frac{2}{3}$.
+
+<Term def="Two events where knowing one happened does not change the probability of the other. Then P(A and B) = P(A) × P(B).">Independent</Term> events **do not affect each other**: knowing one happened tells you nothing new about the other. Then, and only then, the "and" probability is a product:
+
+$$
+P(A \cap B) = P(A) \times P(B)
+$$
+
+This product rule is the *definition* of independence, so never use it for events that might influence each other.
+
+Flip a coin and roll a die: $P(\text{heads and } 6) = \frac{1}{2} \times \frac{1}{6} = \frac{1}{12}$. You can check by counting: there are 12 equally likely (coin, die) pairs, and only one of them is (heads, 6).
+
+Now the surprise. Press **Pull them apart** in the square above: the overlap becomes 0, but $P(A) \times P(B)$ does not. **Mutually exclusive events are not independent** (unless one of them has probability 0). If they cannot happen together, then learning that A happened tells you for certain that B did not. That is the opposite of "tells you nothing".
+
+<KeyIdea>
+Mutually exclusive: no overlap, $P(A \cap B) = 0$, so **add** for "or". Independent: no influence, $P(A \cap B) = P(A)\,P(B)$, so **multiply** for "and". The two almost never go together.
+</KeyIdea>
+
+<QuickCheck
+  id="probability-and-statistics.probability-rules.qc2"
+  q="Pick a day at random. A = 'it is Monday', B = 'it is Tuesday'. Which statement is true?"
+  options={['A and B are independent, because one day does not cause the other', 'A and B are both mutually exclusive and independent', 'A and B are neither mutually exclusive nor independent', 'A and B are mutually exclusive, so they are not independent']}
+  answer={3}
+  explain="A day cannot be both Monday and Tuesday, so $P(A \cap B) = 0$: mutually exclusive. But $P(A) \times P(B) = \frac{1}{7} \times \frac{1}{7} \neq 0$, so they are not independent. Knowing it is Monday tells you for sure it is not Tuesday."
+/>
+
+Exam questions often test the definition directly, so learn the product rule as *the* meaning of independence, not "they cannot happen together".
+
+<PastPaperQuestion paper="prelim2026" n={51} />
+
+## Conditional probability: zoom into what you know
+
+Often you learn something before you predict. The <Term def="The probability of A when you already know that B happened. Written P(A | B).">conditional probability</Term> $P(A \mid B)$, read "the probability of A **given** B", asks: now that we know $B$ happened, how likely is $A$?
+
+<Analogy>
+On a typical evening the MRT is crowded maybe 3 days in 10. But if you already know it is raining, you only think about rainy evenings, and on those the train is crowded far more often. Knowing it rains does not change the trains. It changes **which days you are looking at**.
+</Analogy>
+
+Knowing $B$ happened throws away every outcome outside $B$. Back to the dice: once you learn the total is at least 10, only 6 of the 36 cells are still possible.
+
+<DiceGrid given />
+
+The same idea in the area picture: grey out everything outside $B$, then stretch $B$ until it fills the frame.
+
+<ConditionalZoom />
+
+After the zoom, $B$ is the whole world and $A$ only survives where it overlaps $B$. So the conditional probability is "the overlap, as a fraction of $B$":
+
+$$
+P(A \mid B) = \frac{P(A \cap B)}{P(B)}
+$$
+
+- The **numerator** $P(A \cap B)$ is the part of $A$ that is still possible once $B$ is known.
+- The **denominator** $P(B)$ is the size of the new, smaller world.
+
+With the default rectangles, $P(\text{crowded} \mid \text{rain}) = \frac{0.12}{0.2} = 0.6$, double the everyday $P(\text{crowded}) = 0.3$. In the other direction, $P(\text{rain} \mid \text{crowded}) = \frac{0.12}{0.3} = 0.4$. Same overlap, different world, different answer. **$P(A \mid B)$ and $P(B \mid A)$ are usually different.** Mixing them up is one of the most common mistakes in all of statistics, and the next lesson, [Bayes' theorem](#/learn/probability-and-statistics/bayes-theorem), shows how to turn one into the other.
+
+Rearranging the formula gives the **multiplication rule**, which is true for *any* two events:
+
+$$
+P(A \cap B) = P(B) \times P(A \mid B)
+$$
+
+If $A$ and $B$ are independent, knowing $B$ changes nothing, so $P(A \mid B) = P(A)$ and the rule shrinks to $P(A)\,P(B)$. That is the cleanest way to say what independence means.
+
+A survey of 100 students:
+
+|  | Wears glasses | No glasses | Total |
+|---|---|---|---|
+| Sports CCA | 12 | 28 | 40 |
+| Other CCA | 24 | 36 | 60 |
+| Total | 36 | 64 | 100 |
+
+<Steps title="Conditional probability from the table">
+  <Step title="'Given sports CCA' means: look only at that row">
+    The world shrinks to the 40 students in sports CCAs. Of them, 12 wear glasses, so $P(\text{glasses} \mid \text{sports}) = \frac{12}{40} = 0.3$.
+  </Step>
+  <Step title="Swap the condition: look only at that column">
+    $P(\text{sports} \mid \text{glasses}) = \frac{12}{36} = \frac{1}{3}$. The overlap (12 students) is the same, but the denominator is different, so the answer is different.
+  </Step>
+  <Step title="Check for independence">
+    Overall, $P(\text{glasses}) = \frac{36}{100} = 0.36$. Among sports students it is 0.3, so knowing the CCA changes the probability. Equivalently, $P(\text{glasses} \cap \text{sports}) = 0.12$ but $0.36 \times 0.4 = 0.144$. The two are not independent.
+  </Step>
+</Steps>
+
+<ExamTip>
+When a question says "given", find the group you are told about and make it the **denominator**. In a table, that means using a row total or a column total instead of the grand total. Two quick independence tests: is $P(A \mid B) = P(A)$? Is $P(A \cap B) = P(A)\,P(B)$? If either one fails, the events are dependent.
+</ExamTip>
+
+## Probability trees: multiply along, add across
+
+For experiments that happen in stages (flip, then flip again; draw a sweet, then another), draw a tree. Each stage branches into its possible results, and each branch carries a probability.
+
+<Analogy>
+A probability tree is like the MRT map of the routes you could take home. To get the chance of one particular route, **multiply** the chances of each leg along it. To get the chance of ending up at one of several stations, **add** the routes that lead there.
+</Analogy>
+
+<ProbabilityTree />
+
+Two rules run every tree:
+
+- **Multiply along a branch.** This is the multiplication rule, $P(A \cap B) = P(A) \times P(B \mid A)$, used once per stage. The second-stage branches are *conditional* probabilities: they assume the first stage already happened.
+- **Add across branches.** Different leaves are different complete outcomes, so they are mutually exclusive and their probabilities add. All the leaves together add up to 1.
+
+Switch the sweets bag between "eaten" and "put back". If the first sweet is eaten, the bag changes, so the second-stage probabilities depend on the first draw. The draws are dependent. If it is put back, every second stage looks the same, and the draws are independent.
+
+<Steps title="At least one head in three flips">
+  <Step title="Spot 'at least one'">
+    Adding the leaves directly means adding 7 of the 8 leaves. That is slow.
+  </Step>
+  <Step title="Use the complement">
+    The opposite of "at least one head" is "no heads", which is a single leaf: TTT.
+  </Step>
+  <Step title="Multiply along that one branch">
+    $P(\text{TTT}) = \frac{1}{2} \times \frac{1}{2} \times \frac{1}{2} = \frac{1}{8}$.
+  </Step>
+  <Step title="Subtract from 1">
+    $P(\text{at least one head}) = 1 - \frac{1}{8} = \frac{7}{8}$.
+  </Step>
+</Steps>
+
+<KeyIdea>
+"At least one" is almost always fastest as $1 - P(\text{none})$: one multiplication instead of a long sum.
+</KeyIdea>
+
+<QuickCheck
+  id="probability-and-statistics.probability-rules.qc3"
+  q="An image classifier labels 3 images independently, and gets each one right with probability 0.9. What is the probability that it makes at least one mistake?"
+  options={['$0.3$', '$0.729$', '$0.271$', '$0.001$']}
+  answer={2}
+  explain="P(no mistakes) $= 0.9 \times 0.9 \times 0.9 = 0.729$, so P(at least one mistake) $= 1 - 0.729 = 0.271$. Adding $0.1 + 0.1 + 0.1 = 0.3$ counts the cases with two or three mistakes more than once, and $0.001 = 0.1^3$ is the chance that *all three* are wrong."
+/>
+
+<ExamTip>
+Three patterns cover most NOAI probability questions:
+- "and" with independent events: **multiply**.
+- "or" with mutually exclusive events: **add**. (Otherwise, subtract the overlap.)
+- "at least one": **1 − P(none)**.
+
+For definition questions, independence is $P(A \cap B) = P(A) \times P(B)$, and "cannot occur together" is the definition of mutually exclusive, not of independent.
+</ExamTip>
+
+<Takeaways>
+- With equally likely outcomes, $P(E)$ = favourable outcomes ÷ total outcomes, and $P(\text{not } E) = 1 - P(E)$.
+- Probability is area: $P(A \cup B) = P(A) + P(B) - P(A \cap B)$.
+- Mutually exclusive means no overlap. Independent means $P(A \cap B) = P(A)\,P(B)$. Mutually exclusive events (with non-zero probabilities) are never independent.
+- $P(A \mid B) = P(A \cap B) / P(B)$: knowing $B$ shrinks the world to $B$. $P(A \mid B)$ and $P(B \mid A)$ are usually different.
+- Trees: multiply along branches, add across leaves, and use $1 - P(\text{none})$ for "at least one".
+</Takeaways>

@@ -1,0 +1,299 @@
+import GradientCloud from './visuals/sgd-and-mini-batches/GradientCloud'
+import BatchSizePaths from './visuals/sgd-and-mini-batches/BatchSizePaths'
+import EpochCounter from './visuals/sgd-and-mini-batches/EpochCounter'
+import SharpFlatMinima from './visuals/sgd-and-mini-batches/SharpFlatMinima'
+import MinimaEscape from './visuals/sgd-and-mini-batches/MinimaEscape'
+
+In [the gradient descent lesson](#/learn/calculus-and-gradient-descent/gradient-descent), every step looked at **every** training example before the model moved. That is fine for the four Grab rides we fitted there. It is hopeless for ImageNet's 1.28 million photos, where a single step would need 1.28 million forward and backward passes. Deep learning uses a cheaper trick: estimate the gradient from a small random handful of examples, take a step, grab a fresh handful, and repeat. You have already been doing this: in [the training loop](#/learn/pytorch/training-loop) a DataLoader handed your model batches of 32, and you counted $\lceil N/B \rceil$ iterations per epoch. This lesson explains *why* such small, noisy batches work so well, recaps the vocabulary that NOAI tests constantly (batch, iteration, epoch), and ends with a surprise: the noise in those estimates can actually help a model do well on new data.
+
+## The gradient is an average
+
+The training loss is the **average** of the losses on the individual examples:
+
+$$
+L(\mathbf{w}) = \frac{1}{N}\sum_{i=1}^{N} \ell_i(\mathbf{w})
+$$
+
+- $\mathbf{w}$ is the list of all the model's parameters (weights and biases).
+- $N$ is the number of training examples.
+- $\ell_i(\mathbf{w})$ (a curly "l") is the loss on example $i$ alone, for example its squared error.
+
+The slope of an average is the average of the slopes, so the gradient is an average too:
+
+$$
+\nabla L(\mathbf{w}) = \frac{1}{N}\sum_{i=1}^{N} \nabla \ell_i(\mathbf{w})
+$$
+
+Think of it as a vote. Each example's gradient $\nabla \ell_i$ says "to fit *me* better, move the weights this way", and the true gradient is the average of all $N$ votes. You do not have to count every vote to get a good idea of the result.
+
+<Analogy title="Polling for Singapore's favourite hawker dish">
+
+To find the nation's favourite dish you could ask all six million people: exact, but it takes months. You could ask one random person: instant, but you might hear "durian pengat". Or you could ask a random group of 32 people: quick, and usually close to the true answer. Ask a new group every day and the odd answers average out over time.
+
+</Analogy>
+
+## Three ways to estimate the gradient
+
+Those three polls are the three flavours of gradient descent. They differ only in **how many examples** are used to estimate the gradient before each update. With a random <Term def="A small group of training examples, chosen at random, used together to estimate the gradient for one update.">mini-batch</Term> $\mathcal{B}$ of $B$ examples:
+
+$$
+\mathbf{g}_{\mathcal{B}} = \frac{1}{B}\sum_{i \in \mathcal{B}} \nabla \ell_i(\mathbf{w}),
+\qquad
+\mathbf{w} \leftarrow \mathbf{w} - \eta\, \mathbf{g}_{\mathcal{B}}
+$$
+
+- $\mathcal{B}$ (a curly B) is the set of examples picked for this step, and $B$ is how many there are: the <Term def="The number of training examples used to compute one gradient estimate, and so one update of the weights.">batch size</Term>.
+- $\mathbf{g}_{\mathcal{B}}$ is the average gradient over just those examples: our estimate of $\nabla L$.
+- $\eta$ (eta) is the learning rate, exactly as before.
+
+| | Batch gradient descent | Mini-batch gradient descent | Stochastic gradient descent (SGD) |
+|---|---|---|---|
+| Examples per update | all $N$ | $B$, often 32 to 256 | 1, chosen at random |
+| Cost of one update | highest | medium | lowest |
+| Gradient estimate | exact | a little noisy | very noisy |
+| Path to the minimum | smooth | slightly wiggly | zig-zag |
+| Updates per pass through the data | 1 | $N/B$ (rounded up) | $N$ |
+
+Watch the naming trap: in **batch** gradient descent, "batch" means the *whole* dataset. *Stochastic* means "random", from the random choice of example.
+
+Is a noisy estimate any good? Two facts make it work:
+
+1. **It is right on average.** If you averaged $\mathbf{g}_{\mathcal{B}}$ over every possible random mini-batch, you would get exactly $\nabla L$. Statisticians call such an estimate <Term def="An estimate whose average over all possible random samples equals the true value: it is not systematically too high or too low.">unbiased</Term>. Each step may point a bit off, but there is no systematic error, so the errors cancel out over many steps.
+2. **Its error shrinks like $1/\sqrt{B}$.** Averaging $B$ independent noisy numbers makes the typical error $\sqrt{B}$ times smaller: it is the standard error $\sigma/\sqrt{n}$ from [distributions and the CLT](#/learn/probability-and-statistics/distributions-and-clt). Multiplying the batch size by 4 halves the noise, but costs 4 times as much. Bigger batches give diminishing returns.
+
+<GradientCloud />
+
+<KeyIdea>
+
+A mini-batch gradient is the average gradient over $B$ random examples. It points the right way **on average**; its typical error shrinks like $1/\sqrt{B}$ while its cost grows like $B$.
+
+</KeyIdea>
+
+<QuickCheck
+  q="You raise the batch size from 16 to 64. Roughly what happens to the typical error of each gradient estimate?"
+  options={['It halves', 'It becomes 4 times smaller', 'It doubles', 'It stays the same, only the cost changes']}
+  answer={0}
+  explain="The error shrinks like $1/\sqrt{B}$. The batch is $64 \div 16 = 4$ times bigger, so the error is $\sqrt{4} = 2$ times smaller: it halves. '4 times smaller' forgets the square root; the cost, not the error, grows 4 times."
+/>
+
+<PastPaperQuestion paper="prelim2026" n={69} />
+
+## Racing the three methods
+
+Now let all three methods loose on the same problem: fitting a straight line $y = wx + b$ to 200 points. The loss depends on two parameters, so you can see it from above as a contour map, like the hiking maps in [Gradient descent on a loss landscape](#/learn/calculus-and-gradient-descent/gradient-descent).
+
+<BatchSizePaths />
+
+Two lessons hide in this race.
+
+**Per step, the full batch is best; per unit of work, small batches win.** Far from the minimum, almost every mini-batch points roughly downhill (check this in the 40-batch fan above), so many cheap, rough steps beat a few expensive, perfect ones. That is the whole reason deep learning uses mini-batches.
+
+**Near the minimum, noise takes over.** There the true slope is almost zero, but single examples still disagree, so SGD keeps rattling around the bottom instead of settling. This is one reason the learning rate is usually lowered late in training, which you will meet in the lesson on learning-rate schedules.
+
+Why not always use $B = 1$, then? Because of hardware. A GPU computes 32 or 256 examples **in parallel**, in about the same time as one, so $B = 1$ wastes most of the chip, and its very noisy steps force a small learning rate. Why not huge batches? Memory: backpropagation stores the intermediate values of *every* example in the batch, and a batch that is too big triggers `CUDA out of memory`. Mini-batches are the practical middle ground.
+
+<Mistake title="What does “SGD” mean?">
+
+In textbooks and in NOAI multiple-choice questions, stochastic gradient descent uses **one random example per update**. In PyTorch, `torch.optim.SGD` just applies $\mathbf{w} \leftarrow \mathbf{w} - \eta\,\mathbf{g}$ to whatever gradient you hand it: the batch size is set by your `DataLoader`, so in practice it is almost always *mini-batch* SGD. Practitioners say "SGD" for both; answer exam definitions with the textbook meaning.
+
+</Mistake>
+
+<PastPaperQuestion paper="prelim2026" n={68} />
+
+## Epochs, iterations and batch size: a recap
+
+Three words describe every training run:
+
+- **Batch size** $B$: how many examples go into one gradient estimate.
+- <Term def="One update of the weights: process one batch, compute its gradient, take one step. Also called a step.">Iteration</Term> (or **step**): one batch processed and one update made.
+- <Term def="One complete pass through the whole training set, so that every example has been used once.">Epoch</Term>: one complete pass through the training data, so every example has been used once.
+
+Picture reading a 1,000-page textbook at 32 pages a night. Each night is an iteration, finishing the book once is an epoch, and the last night only has 8 pages left. Counting iterations is just that division, rounded **up**:
+
+$$
+\text{iterations per epoch} = \left\lceil \frac{N}{B} \right\rceil
+$$
+
+$$
+\text{total iterations} = \text{epochs} \times \left\lceil \frac{N}{B} \right\rceil
+$$
+
+The brackets $\lceil\ \rceil$ mean <Term def="Round up to the next whole number: ⌈31.25⌉ = 32, but ⌈32⌉ = 32. The matching floor brackets ⌊ ⌋ mean round down.">ceiling</Term>: round up to a whole number. The final batch is simply smaller. Some code throws that small batch away (`drop_last=True` in PyTorch), and then you round **down** instead, written $\lfloor N/B \rfloor$.
+
+<EpochCounter />
+
+<Steps title="N = 50,000 examples, batch size 128, 5 epochs">
+  <Step title="Divide">
+    $50000 \div 128 = 390.625$. Mental shortcut: $128 \times 400 = 51{,}200$ is too many; $128 \times 390 = 49{,}920$, which leaves $50000 - 49920 = 80$ examples.
+  </Step>
+  <Step title="Round up">
+    390 full batches use $49{,}920$ examples, and the 80 left over form a 391st, smaller batch. So one epoch has $\lceil 390.625 \rceil = 391$ iterations.
+  </Step>
+  <Step title="Multiply by the epochs">
+    $391 \times 5 = 1{,}955$ iterations, which means 1,955 weight updates. The model has seen $50{,}000 \times 5 = 250{,}000$ examples in total.
+  </Step>
+  <Step title="With drop_last">
+    $\lfloor 390.625 \rfloor = 390$ iterations per epoch, so $1{,}950$ updates, and 80 examples sit out each epoch (different ones each time, because the data are reshuffled).
+  </Step>
+</Steps>
+
+Reshuffling every epoch (as in [the training loop](#/learn/pytorch/training-loop)) keeps each mini-batch a fair random sample, which is exactly what the "right on average" argument needs.
+
+<PastPaperQuestion paper="prelim2026" n={167} />
+
+<PastPaperQuestion paper="prelim2026" n={168} />
+
+<QuickCheck
+  q="A dataset has 500 examples. You train for 4 epochs with batch size 64 (the last smaller batch is kept). How many weight updates happen?"
+  options={['32', '28', '31.25', '2,000']}
+  answer={0}
+  explain="$500 \div 64 = 7.8125$, rounded up to 8 iterations per epoch, so $8 \times 4 = 32$ updates. 28 rounds down (that is drop_last), 31.25 forgets to round at all, and 2,000 is the number of examples seen, not updates."
+/>
+
+## Mini-batches in code
+
+Here is mini-batch gradient descent from scratch for the same kind of line fit: shuffle, slice the data into batches of 32, and update after every batch. Run it, then try `batch_size = 1` (SGD) and `batch_size = 1000` (full batch) and compare how many updates happen.
+
+<PyRunner packages={['numpy']} code={`import numpy as np
+
+rng = np.random.default_rng(0)
+N = 1000
+# inputs, and targets on a noisy line
+X = rng.uniform(-1, 2, size=N)
+y = 1.2 * X - 0.3 + rng.normal(0, 0.5, size=N)
+
+# parameters to learn, learning rate
+w, b = 0.0, 0.0
+lr = 0.1
+batch_size = 32
+epochs = 3
+
+print("iterations per epoch:", int(np.ceil(N / batch_size)))
+step = 0
+for epoch in range(epochs):
+    # reshuffle every epoch
+    order = rng.permutation(N)
+    for start in range(0, N, batch_size):
+        # the last batch may be smaller
+        idx = order[start:start + batch_size]
+        xb, yb = X[idx], y[idx]
+        err = w * xb + b - yb
+        # MSE gradient on this batch only
+        gw = 2 * np.mean(err * xb)
+        gb = 2 * np.mean(err)
+        w -= lr * gw
+        b -= lr * gb
+        step += 1
+    # loss on the WHOLE dataset
+    loss = np.mean((w * X + b - y) ** 2)
+    print(f"epoch {epoch + 1}: {step} updates, w = {w:.3f}, b = {b:.3f}, loss = {loss:.4f}")`} />
+
+The true line is $w = 1.2$, $b = -0.3$, and one epoch of 32 cheap updates already gets close. Notice that the loss does not fall neatly every epoch: each update saw only 32 examples, so near the minimum it wobbles, just like the SGD path in the race.
+
+In PyTorch, a `DataLoader` does the shuffling and slicing for you, and the training loop makes one update per batch:
+
+```python
+import torch
+from torch.utils.data import TensorDataset, DataLoader
+
+torch.manual_seed(0)
+X = torch.randn(1000, 5)          # 1000 examples, 5 features each
+y = torch.randn(1000, 1)          # 1000 targets
+train_set = TensorDataset(X, y)
+
+loader = DataLoader(train_set, batch_size=32, shuffle=True)
+print("iterations per epoch:", len(loader))
+sizes = [xb.shape[0] for xb, yb in loader]
+print("batch sizes:", sizes[:3], "...", sizes[-2:])
+
+loader_drop = DataLoader(train_set, batch_size=32, shuffle=True, drop_last=True)
+print("with drop_last=True:", len(loader_drop))
+
+model = torch.nn.Linear(5, 1)
+optimiser = torch.optim.SGD(model.parameters(), lr=0.1)
+loss_fn = torch.nn.MSELoss()
+
+steps = 0
+for epoch in range(3):
+    for xb, yb in loader:            # one mini-batch at a time
+        loss = loss_fn(model(xb), yb)
+        optimiser.zero_grad()
+        loss.backward()
+        optimiser.step()             # one iteration = one update
+        steps += 1
+print("updates after 3 epochs:", steps)
+```
+
+```text
+iterations per epoch: 32
+batch sizes: [32, 32, 32] ... [32, 8]
+with drop_last=True: 31
+updates after 3 epochs: 96
+```
+
+`len(loader)` is exactly $\lceil 1000/32 \rceil = 32$, the last batch holds the 8 leftover examples, and 3 epochs give $3 \times 32 = 96$ updates.
+
+## Sharp and flat minima
+
+Training only sees the training data, but we care about new data. A model that also does well on data it has never seen is said to <Term def="To perform well on new data that the model was not trained on, not just on the training set.">generalise</Term>. Here the *shape* of the minimum matters. A <Term def="A minimum at the bottom of a narrow, steep-sided pit: the loss rises quickly as soon as the parameters move a little.">sharp minimum</Term> is a narrow pit; a <Term def="A minimum at the bottom of a wide, gently sloping basin: the loss stays low even if the parameters move a little.">flat minimum</Term> is a wide basin. They can be equally deep, so the training loss cannot tell them apart.
+
+The test data come from the same source but are not identical, so their loss landscape looks like the training one, slightly **shifted**. Slide the shift and compare.
+
+<SharpFlatMinima />
+
+[The curvature lesson](#/learn/calculus-and-gradient-descent/curvature-convexity) gives the numbers. Near a minimum $w^\ast$ the loss is close to a parabola,
+
+$$
+L(w^\ast + \delta) \approx L(w^\ast) + \tfrac{1}{2}\, c\, \delta^2,
+$$
+
+where $\delta$ (delta) is how far you move and $c$ is the curvature. Moving by $\delta = 0.25$ in the sharp valley ($c = 24$) raises the loss by $\tfrac{1}{2} \times 24 \times 0.0625 = 0.75$. In the flat valley ($c = 1.2$) the rise is $\tfrac{1}{2} \times 1.2 \times 0.0625 = 0.0375$, twenty times smaller.
+
+<Analogy title="Parking on a ramp">
+
+Parking at the tip of a narrow ramp in a multi-storey carpark: one small nudge and the car rolls off. Parking in a wide flat lot: a nudge barely matters. A flat minimum is the flat lot.
+
+</Analogy>
+
+Why would training *find* the flat valley? Noisy, fast training cannot stay in a sharp pit, for two reasons you already know:
+
+- **The speed limit.** Gradient descent can only settle in a valley if $\eta < 2/c$. A sharp pit has a big curvature $c$, so a large learning rate overshoots it again and again until the parameters bounce out.
+- **The kicks.** A mini-batch sees the loss curve slightly shifted, so its gradient is a little wrong and gives the parameters a random kick each step. Where the curve is steep-sided the same shift means a much more wrong slope, so the kicks are strongest exactly in a sharp pit, and they throw the parameters out of it.
+
+<MinimaEscape />
+
+<KeyIdea>
+
+Flat minima generalise better because a small shift between training and test data barely changes their loss. The noise of small mini-batches and a large learning rate shake the parameters out of sharp pits, so they tend to end up in flat ones.
+
+</KeyIdea>
+
+This is a useful rule of thumb rather than a law, and researchers still argue about the details. It explains a real observation, though: training with very large batches (thousands of examples) often generalises slightly worse unless the learning rate and schedule are adjusted, a topic for [the stability-and-scale lesson](#/learn/training-deep-networks/stability-and-scale).
+
+<QuickCheck
+  q="Two models reach the same training loss, 0.30. Model P sits in a minimum with curvature 50; model Q in one with curvature 2. If the test data shift the best parameter by 0.2, what are their approximate test losses?"
+  options={['P about 1.30, Q about 0.34', 'P about 0.34, Q about 1.30', 'Both about 0.30', 'P about 5.30, Q about 0.50']}
+  answer={0}
+  explain="Use $L \approx 0.30 + \tfrac{1}{2} c \delta^2$ with $\delta^2 = 0.04$. For P: $0.30 + 25 \times 0.04 = 1.30$. For Q: $0.30 + 1 \times 0.04 = 0.34$. The flat minimum (Q) generalises far better. Forgetting the square gives 5.30 and 0.50; swapping the two curvatures gives the reversed pair; ignoring curvature altogether gives 0.30 for both."
+/>
+
+<ExamTip>
+
+How NOAI asks about this topic:
+
+- **Definitions**: batch GD uses all the data per update, SGD uses one random example, mini-batch GD uses a small random subset and is the compromise between the two. An **epoch** is one full pass through the training data; **batch size** is the number of examples per update.
+- **Quick arithmetic**: iterations per epoch $= \lceil N/B \rceil$; total updates $=$ epochs $\times \lceil N/B \rceil$. Read carefully whether the question asks for updates, epochs or examples seen.
+- **Trade-offs**: smaller batches mean noisier but cheaper updates, more updates per epoch and less memory; larger batches mean smoother gradients, better GPU use and more memory. `CUDA out of memory` means: reduce the batch size.
+- **Generalisation**: flat minima generalise better than sharp ones, and gradient noise helps find them.
+
+</ExamTip>
+
+<Takeaways>
+
+- The gradient is an average over examples, so a random mini-batch gives an unbiased estimate of it; its error shrinks like $1/\sqrt{B}$ while its cost grows like $B$.
+- Batch GD uses all $N$ examples per update, SGD uses 1, mini-batch GD uses $B$ (typically 32 to 256): the practical compromise that also suits GPUs.
+- An iteration is one batch and one update; an epoch is one pass through the data; iterations per epoch $= \lceil N/B \rceil$ (or $\lfloor N/B \rfloor$ with `drop_last`).
+- Small batches reach the valley with far less compute, then rattle around the bottom.
+- Flat minima generalise better than sharp ones, and noisy small-batch training with a healthy learning rate tends to find them.
+
+</Takeaways>

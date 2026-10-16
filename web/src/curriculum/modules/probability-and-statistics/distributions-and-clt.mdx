@@ -1,0 +1,279 @@
+import RunningAverage from './visuals/distributions-and-clt/RunningAverage'
+import NormalExplorer from './visuals/distributions-and-clt/NormalExplorer'
+import CLTSampler from './visuals/distributions-and-clt/CLTSampler'
+
+Machine learning runs on randomness: random starting weights, random mini-batches, noisy data. You cannot predict one random outcome, but you *can* predict how random outcomes behave on average. This lesson gives you three tools for that: the **expected value**, the **normal curve** and the **Central Limit Theorem**.
+
+## Random variables and their distributions
+
+A <Term def="A number whose value is decided by chance, such as the result of a die roll or the height of a randomly picked student.">random variable</Term> is a number decided by chance. We name it with a capital letter such as $X$, and write a particular value it might take in lower case, $x$. Its <Term def="The list of values a random variable can take, together with how likely each one is.">probability distribution</Term> lists every possible value and how likely each one is. For one roll of a fair die:
+
+| $x$ | 1 | 2 | 3 | 4 | 5 | 6 |
+| --- | --- | --- | --- | --- | --- | --- |
+| $P(X = x)$ | $\tfrac16$ | $\tfrac16$ | $\tfrac16$ | $\tfrac16$ | $\tfrac16$ | $\tfrac16$ |
+
+No probability is negative, and all of them add up to 1, because *something* must happen.
+
+## Expectation: the long-run average
+
+<Analogy title="The lucky dip at the school carnival">
+
+At your CCA's carnival lucky dip, one ticket in ten wins a \$10 voucher and the rest win nothing. Any one ticket wins \$10 or \$0, never "\$1". But sell 1000 tickets and about 100 win, so the stall pays out about \$1000: **\$1 per ticket on average**. That \$1 is the *expected* payout: a promise about the long run, not about one ticket.
+
+</Analogy>
+
+The <Term def="The long-run average of a random variable: each possible value times its probability, all added up. Also called the mean of the distribution.">expected value</Term> of $X$ is
+
+$$
+E[X] = \sum_{x} x \cdot P(X = x)
+$$
+
+- $E[X]$ is read "the expected value of $X$". It is also called the **mean** of the distribution and written $\mu$ (the Greek letter mu).
+- $\sum_x$ adds up over every possible value $x$. In words: *multiply each outcome by its probability, then add.*
+
+For the lucky dip, the expected payout is $10 \times 0.1 + 0 \times 0.9 = 1$ dollar.
+
+<Steps title="Expected value of one fair die roll">
+  <Step title="Weight each face">
+    Each face has probability $\tfrac16$, so the terms are $1 \cdot \tfrac16,\ 2 \cdot \tfrac16,\ \dots,\ 6 \cdot \tfrac16$.
+  </Step>
+  <Step title="Add them up">
+    $E[X] = \dfrac{1 + 2 + 3 + 4 + 5 + 6}{6} = \dfrac{21}{6} = 3.5$.
+  </Step>
+  <Step title="Notice">
+    You can never roll a 3.5. An expected value does not have to be a possible outcome: it is where the **average** of many rolls ends up.
+  </Step>
+</Steps>
+
+<RunningAverage />
+
+Press **Play** above and watch the blue line settle onto the orange one. That is the <Term def="The fact that the average of many independent repeats of a random experiment gets closer and closer to the expected value as the number of repeats grows.">law of large numbers</Term>: the more rolls you average, the closer the average sits to $E[X]$. It is why a model's accuracy measured on 10,000 test images is far more trustworthy than one measured on 10.
+
+<Mistake title="The gambler's fallacy">
+
+After five 6s in a row, the next roll is **not** "due" to be low. A die has no memory: each face still has probability $\tfrac16$. The average drifts back to 3.5 not because later rolls make up for the streak, but because thousands of ordinary rolls swamp it.
+
+</Mistake>
+
+<QuickCheck
+  id="probability-and-statistics.distributions-and-clt.qc1"
+  q="A loaded die shows 6 with probability 0.5 and each of 1, 2, 3, 4 and 5 with probability 0.1. What is its expected value?"
+  options={['3.5', '6', '4.5', '3']}
+  answer={2}
+  explain="$E[X] = 0.1 \times (1 + 2 + 3 + 4 + 5) + 0.5 \times 6 = 1.5 + 3 = 4.5$. 3.5 is the fair die's value; 6 is the most likely face, not the average; 3 counts only the six's share ($0.5 \times 6$) and forgets the other faces. Switch to the loaded die in the visual to see the average settle at 4.5."
+/>
+
+### Spread: the variance of a random variable
+
+Two random variables can share an expected value yet spread very differently. The <Term def="The expected squared distance from the mean, Var(X) = E[(X − μ)²]. It is large when values are often far from the mean.">variance</Term> measures spread as the average *squared* distance from the mean, and the <Term def="The square root of the variance, written σ (sigma). It measures spread in the same units as the data.">standard deviation</Term> $\sigma$ (sigma) is its square root, back in the original units:
+
+$$
+\operatorname{Var}(X) = E\big[(X - \mu)^2\big], \qquad \sigma = \sqrt{\operatorname{Var}(X)}
+$$
+
+This is the variance from [Describing data](#/learn/probability-and-statistics/describing-data), with each squared distance weighted by its probability instead of by $\frac{1}{n}$: $\operatorname{Var}(X) = \sum_x (x - \mu)^2 \, P(X = x)$.
+
+For the fair die $\mu = 3.5$, and the squared distances from the mean, $6.25$, $2.25$ and $0.25$ (total $8.75$), each occur for two of the six faces, so
+
+$$
+\operatorname{Var}(X) = \frac{2 \times 8.75}{6} = \frac{17.5}{6} \approx 2.92
+$$
+
+and the standard deviation is $\sigma = \sqrt{2.92} \approx 1.71$.
+
+Four rules let you find means and variances without listing every outcome. Here $a$ and $b$ are fixed numbers (constants):
+
+| Rule | In words |
+| --- | --- |
+| ${E[aX + b] = a\,E[X] + b}$ | scaling and shifting the values does the same to the mean |
+| ${\operatorname{Var}(aX + b) = a^2 \operatorname{Var}(X)}$ | shifting does not change the spread; scaling by $a$ multiplies the variance by $a^2$ (and $\sigma$ by $\lvert a \rvert$) |
+| ${E[X + Y] = E[X] + E[Y]}$ | means always add |
+| ${\operatorname{Var}(X + Y) = \operatorname{Var}(X) + \operatorname{Var}(Y)}$ | variances add, **if $X$ and $Y$ are independent** |
+
+<Term def="Two random variables are independent if knowing the value of one tells you nothing about the other, like two separate dice.">Independent</Term> means that knowing one tells you nothing about the other, like two separate dice. Their total has mean $3.5 + 3.5 = 7$ and variance $2.92 + 2.92 \approx 5.83$. It is the *variances* that add, not the standard deviations: the total of $n$ independent values has variance $n\sigma^2$ and standard deviation $\sqrt{n}\,\sigma$, because the ups and downs partly cancel. (This same fact explains the $\sqrt{d_k}$ in Transformer attention, later in the course.)
+
+<Note title="Three distributions worth naming">
+
+- $\textbf{Bernoulli}(p)$: one trial that scores 1 ("success") with probability $p$ and 0 otherwise. Mean $p$, variance $p(1 - p)$.
+- $\textbf{Binomial}(n, p)$: the number of successes in $n$ independent $\text{Bernoulli}(p)$ trials, so its mean is $np$ and its variance $np(1 - p)$. For 100 fair coin tosses: mean 50, variance 25, standard deviation 5.
+- **Uniform**: every value in a range is equally likely, like one fair die.
+
+</Note>
+
+## The normal curve
+
+Heights are not like dice: a height can be 163.2 cm or 163.27 cm, with no gaps. Such a <Term def="A random variable that can take any value in a range (like height or time), not just separate values like die faces.">continuous</Term> random variable is described by a smooth curve called a <Term def="A curve describing a continuous random variable. The probability of landing in a range is the area under the curve over that range, and the total area is 1.">probability density</Term>. The probability of landing between two values is the **area under the curve** between them, and the total area is 1. So the *height* of the curve is not a probability (it can even exceed 1), and any one exact value has probability 0.
+
+The most important density is the <Term def="The bell-shaped, symmetric distribution fixed by its mean μ and standard deviation σ. Also called the Gaussian distribution.">normal distribution</Term> (also called the Gaussian), written $N(\mu, \sigma^2)$. Note that the second number is the *variance*. Its density is
+
+$$
+f(x) = \frac{1}{\sigma\sqrt{2\pi}}\; e^{-\frac{(x - \mu)^2}{2\sigma^2}}
+$$
+
+You will not need to evaluate it by hand. Just notice:
+
+- The curve peaks at $x = \mu$ and is symmetric around it, so its mean, median and mode are all $\mu$.
+- $\sigma$ sets the width, and the factor $\frac{1}{\sigma\sqrt{2\pi}}$ keeps the total area at 1, so a wider bell must be lower.
+
+Heights of Sec 3 students are roughly normal: most cluster around the average, and very short or very tall students are rare.
+
+For **every** normal distribution, whatever its $\mu$ and $\sigma$, the same fractions lie within the same number of standard deviations of the mean: about **68%** lie within $1\sigma$ (between $\mu - \sigma$ and $\mu + \sigma$), about **95%** within $2\sigma$ and about **99.7%** within $3\sigma$. This is the **68-95-99.7 rule**, also called the empirical rule.
+
+<NormalExplorer />
+
+<PastPaperQuestion paper="prelim2026" n={50} />
+
+### z-scores: one ruler for every normal curve
+
+The purple ruler in the visual measures the <Term def="z = (x − μ)/σ: how many standard deviations a value x lies above (positive) or below (negative) the mean.">z-score</Term>:
+
+$$
+z = \frac{x - \mu}{\sigma}
+$$
+
+Here $x - \mu$ is the distance from the mean in the original units (cm, marks, dollars), and dividing by $\sigma$ turns it into a *number of standard deviations*: $z > 0$ is above the mean, $z < 0$ below it.
+
+Replacing every value by its z-score is called <Term def="Subtracting the mean and dividing by the standard deviation, so the result has mean 0 and standard deviation 1.">standardisation</Term>. By the scaling rules above, standardised values have mean 0 and standard deviation 1, and standardised normal data follows the **standard normal** $N(0, 1)$. This is exactly what scikit-learn's `StandardScaler` does to each feature (and what `(X - X.mean(axis=0)) / X.std(axis=0)` did in [Broadcasting](#/learn/numpy/broadcasting)).
+
+<Steps title="Which result is more impressive?">
+  <Step title="The data">
+    Mei scores 72 in Maths (class mean 60, sd 6) and 80 in English (class mean 70, sd 10). Both classes' marks are roughly normal.
+  </Step>
+  <Step title="z-scores">
+    Maths: $z = \dfrac{72 - 60}{6} = 2$. English: $z = \dfrac{80 - 70}{10} = 1$.
+  </Step>
+  <Step title="Turn each z into a percentage">
+    95% lie within $\pm 2\sigma$, so 2.5% lie above $+2\sigma$: $z = 2$ beats about 97.5% of the class (exactly 97.7%; the rule is rounded). 32% lie outside $\pm 1\sigma$, so 16% lie above $+1\sigma$: $z = 1$ beats about 84%.
+  </Step>
+  <Step title="Answer">
+    The Maths result is more impressive, even though the mark itself is lower.
+  </Step>
+</Steps>
+
+<PastPaperQuestion paper="prelim2026" n={54} />
+
+<ExamTip title="Percentages you can do in your head">
+
+Halve the rule: about 34% lie between $\mu$ and $\mu + 1\sigma$, so about 84% lie below $\mu + 1\sigma$. Questions often hide the z-score: "mean 50, sd 5: what fraction scored above 60?" is just $z = 2$, so about 2.5%.
+
+</ExamTip>
+
+In code, `torch.randn` draws from the standard normal $N(0, 1)$. To get $N(\mu, \sigma^2)$, run the z-score formula backwards: $x = \mu + \sigma z$.
+
+<Reveal label="See it in PyTorch">
+
+```python
+import torch
+
+torch.manual_seed(0)
+z = torch.randn(100_000)        # standard normal: mean 0, sd 1
+x = 160 + 8 * z                 # heights: mean 160 cm, sd 8 cm
+
+print(round(z.mean().item(), 3), round(z.std().item(), 3))
+print(round(x.mean().item(), 2), round(x.std().item(), 2))
+within_1sd = ((x > 152) & (x < 168)).float().mean()
+print(round(within_1sd.item(), 3))
+z_back = (x - x.mean()) / x.std()   # standardise again
+print(round(z_back.mean().item(), 3), round(z_back.std().item(), 3))
+```
+
+```text
+-0.002 1.001
+159.98 8.01
+0.681
+0.0 1.0
+```
+
+The fraction between 152 cm and 168 cm (within $1\sigma$) comes out at 0.681, the 68% of the rule.
+
+</Reveal>
+
+<Mistake title="NumPy's scale is σ, not σ²">
+
+`np.random.normal(loc=5, scale=2, size=1000)` draws from a normal with mean 5 and **standard deviation** 2, so its variance is 4. The maths notation $N(\mu, \sigma^2)$ puts the variance second; the code puts the standard deviation second. Mixing them up is a classic bug and exam trap.
+
+</Mistake>
+
+## The Central Limit Theorem
+
+Why does the bell curve turn up so often, from heights to measurement errors?
+
+<Analogy title="Waiting at your favourite hawker stall">
+
+One visit's wait is unpredictable: usually a minute or two, occasionally ten when a tour group arrives first. Those waiting times are **skewed**, nothing like a bell. But record the *average* wait over 30 visits, again and again, and those averages pile up in a neat bell shape.
+
+</Analogy>
+
+Take a <Term def="A group of n values picked at random from a population.">sample</Term> of $n$ independent values from any population with mean $\mu$ and standard deviation $\sigma$, and compute its <Term def="The average of the n values in one sample, written x̄ (x-bar).">sample mean</Term> $\bar{x}$ (read "x-bar"). Repeat this many times. The **Central Limit Theorem (CLT)** says that, for large enough $n$,
+
+$$
+\bar{x} \ \text{ is approximately } \ N\!\left(\mu,\ \frac{\sigma^2}{n}\right).
+$$
+
+- The sample means are centred on the population mean $\mu$.
+- Their standard deviation is $\dfrac{\sigma}{\sqrt{n}}$, called the <Term def="The standard deviation of a sample mean, σ/√n. It shrinks as the sample size n grows.">standard error</Term>.
+- Their shape is approximately normal **whatever the shape of the population**.
+
+Careful with the word: in statistics a **sample** is the whole group of $n$ values you collected. ML books often call a single row of a dataset "a sample" too, as in [Matrices](#/learn/vectors-and-matrices/matrices-and-multiplication) ("rows are samples"). In this module it always means the whole group.
+
+<CLTSampler />
+
+The $\sqrt{n}$ comes straight from the variance rules. A sum of $n$ independent values has variance $n\sigma^2$. The mean divides that sum by $n$, which divides the variance by $n^2$:
+
+$$
+\operatorname{Var}(\bar{x}) = \frac{n\sigma^2}{n^2} = \frac{\sigma^2}{n}
+$$
+
+Taking the square root, the standard deviation of $\bar{x}$ is $\sigma/\sqrt{n}$.
+
+Averaging 4 values halves the spread, and averaging 100 values cuts it to a tenth. To halve the noise you need **four times** as much data.
+
+<Mistake title="The CLT is about averages, not the data">
+
+More data does **not** make the data itself normal: a million hawker waiting times are still skewed. It is the **sample means** that become approximately normal, and that is the phrase NOAI questions look for. "Large enough" is often taken as $n \ge 30$, more for very skewed populations; if the population is already normal, any $n$ works.
+
+</Mistake>
+
+<PastPaperQuestion paper="prelim2026" n={59} />
+
+<QuickCheck
+  id="probability-and-statistics.distributions-and-clt.qc2"
+  q="Exam marks in a large cohort have mean 60 and standard deviation 12. You repeatedly pick 36 students at random and average their marks. What is the standard deviation of these averages?"
+  options={['12', '0.33', '6', '2']}
+  answer={3}
+  explain="The standard error is $\sigma/\sqrt{n} = 12/\sqrt{36} = 12/6 = 2$. 12 is the spread of single marks, not of averages; 0.33 divides by $n = 36$ instead of $\sqrt{n} = 6$; 6 is $\sqrt{36}$ itself, not $12/6$."
+/>
+
+Here is the CLT in NumPy, with skewed waiting times (mean 2 minutes, standard deviation 2 minutes):
+
+<PyRunner packages={['numpy']} code={`import numpy as np
+
+rng = np.random.default_rng(2)
+sigma = 2.0  # mean 2 min, sd 2 min
+
+for n in [1, 4, 16, 64]:
+    # 20,000 samples of n waits each
+    waits = rng.exponential(
+        scale=2.0, size=(20_000, n))
+    means = waits.mean(axis=1)
+    se = sigma / np.sqrt(n)  # CLT
+    print(f"n={n:2d}:",
+          f"sd of means={means.std():.3f},",
+          f"sigma/sqrt(n)={se:.3f}")`} />
+
+Each fourfold increase in $n$ halves the spread of the means, as $\sigma/\sqrt{n}$ predicts.
+
+<Note title="Why AI cares about the CLT">
+
+A mini-batch gradient is an average over the $B$ examples in the batch, so its noise shrinks like $1/\sqrt{B}$. A test accuracy is an average of "right or wrong" scores, so its uncertainty shrinks like $1/\sqrt{\text{test-set size}}$.
+
+</Note>
+
+<Takeaways>
+
+- The expected value $E[X] = \sum x \, P(X = x)$ is the long-run average, not a prediction for one trial.
+- Variance is the expected squared distance from the mean. For independent variables the variances add, not the SDs.
+- For a normal distribution about 68%, 95% and 99.7% of values lie within 1, 2 and 3 standard deviations of the mean, and $z = (x - \mu)/\sigma$ counts standard deviations from the mean.
+- CLT: sample means are approximately $N(\mu, \sigma^2/n)$ for large $n$, whatever the population's shape. Their spread $\sigma/\sqrt{n}$ shrinks as $n$ grows.
+
+</Takeaways>

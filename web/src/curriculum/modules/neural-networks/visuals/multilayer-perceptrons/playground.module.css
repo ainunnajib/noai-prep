@@ -1,0 +1,368 @@
+/* Local styles for the multi-layer perceptron visuals. Colours come only from theme tokens. */
+
+.wrap {
+  width: 100%;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 0.9rem;
+  min-width: 0;
+}
+
+.panels {
+  display: grid;
+  grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr);
+  gap: 1rem;
+  align-items: start;
+  width: 100%;
+  min-width: 0;
+}
+
+.panelsEqual {
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+}
+
+.panelsNarrow {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.panel {
+  min-width: 0;
+  display: grid;
+  gap: 0.35rem;
+}
+
+.panelTitle {
+  font-size: var(--step--1);
+  font-weight: 700;
+  color: var(--ink-2);
+  line-height: 1.35;
+  min-height: 2.7em;
+}
+
+.panelTitle b {
+  color: var(--ink);
+}
+
+.diagram {
+  position: relative;
+  width: 100%;
+  min-width: 0;
+}
+
+.diagram canvas {
+  display: block;
+  width: 100%;
+}
+
+.nodeBtn {
+  position: absolute;
+  padding: 0;
+  margin: 0;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  border-radius: 5px;
+}
+
+.nodeBtn:focus-visible {
+  outline: 3px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.stepper {
+  position: absolute;
+  display: flex;
+  align-items: center;
+  gap: 1px;
+  transform: translateX(-50%);
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.stepper span {
+  min-width: 1em;
+  text-align: center;
+}
+
+.stepBtn {
+  position: relative;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  border: 1.5px solid var(--rule);
+  background: var(--surface-2);
+  color: var(--ink);
+  font: inherit;
+  font-weight: 800;
+  line-height: 1;
+  padding: 0;
+  cursor: pointer;
+  display: inline-grid;
+  place-items: center;
+}
+
+/* a 34 × 44 px tap area around the 26 px button (kept narrow sideways so neighbouring steppers don't overlap) */
+.stepBtn::after {
+  content: '';
+  position: absolute;
+  inset: -9px -4px;
+}
+
+.stepBtn:hover:not(:disabled) {
+  border-color: var(--accent);
+}
+
+.stepBtn:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+
+.stepBtn:focus-visible {
+  outline: 3px solid var(--accent);
+  outline-offset: 1px;
+}
+
+.colLabel {
+  position: absolute;
+  transform: translateX(-50%);
+  font-size: 0.74rem;
+  font-weight: 700;
+  color: var(--ink-3);
+  white-space: nowrap;
+}
+
+.mapBox {
+  position: relative;
+  width: 100%;
+  max-width: 360px;
+  justify-self: center;
+  aspect-ratio: 1;
+  border-radius: 8px;
+  overflow: hidden;
+  border: 1px solid var(--rule);
+  background: var(--surface);
+}
+
+.mapBox canvas,
+.mapBox svg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+.row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem 1.2rem;
+  align-items: flex-end;
+  width: 100%;
+}
+
+.layerStepper {
+  display: grid;
+  gap: 0.25rem;
+}
+
+.layerStepper > span:first-child {
+  font-size: var(--step--1);
+  font-weight: 600;
+  color: var(--ink-2);
+}
+
+.inline {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--ink);
+}
+
+.legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem 1rem;
+  font-size: 0.8rem;
+  color: var(--ink-2);
+}
+
+.legend i {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  margin-right: 0.35rem;
+  vertical-align: -1px;
+}
+
+.legend i.ring {
+  background: transparent !important;
+  border: 2px solid;
+}
+
+.swatchLine {
+  display: inline-block;
+  width: 18px;
+  height: 0;
+  margin-right: 0.35rem;
+  vertical-align: 3px;
+  border-top: 2.5px solid;
+}
+
+.note {
+  font-size: 0.82rem;
+  color: var(--ink-3);
+}
+
+/* ---------- parameter counter ---------- */
+.stack {
+  width: 100%;
+  display: grid;
+  gap: 0;
+  min-width: 0;
+}
+
+.layerRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4rem 0.7rem;
+  padding: 0.45rem 0.7rem;
+  border: 1.5px solid var(--viz-axis);
+  border-radius: 10px;
+  background: var(--surface-2);
+}
+
+.layerName {
+  font-weight: 800;
+  font-size: var(--step--1);
+  color: var(--ink);
+  min-width: 5.5em;
+}
+
+.numInput {
+  width: 6.5em;
+  font: inherit;
+  font-family: var(--font-mono);
+  font-size: 0.95rem;
+  font-weight: 700;
+  padding: 0.2rem 0.4rem;
+  border: 1.5px solid var(--rule);
+  border-radius: 6px;
+  background: var(--surface);
+  color: var(--ink);
+}
+
+.numInput[aria-invalid='true'] {
+  border-color: var(--viz-neg);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--viz-neg) 30%, transparent);
+}
+
+.rangeHint {
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--viz-neg);
+}
+
+.editHint {
+  width: 100%;
+  text-align: center;
+  font-size: 0.8rem;
+  color: var(--ink-3);
+}
+
+/* clickable matrix cells: a dashed outline says "tap me" */
+.editable :global(.matrix-cell.is-clickable:not(.is-hl)) {
+  border-style: dashed;
+  border-color: var(--viz-muted);
+}
+
+.editable :global(.matrix-cell.is-clickable:hover),
+.editable :global(.matrix-cell.is-clickable:focus-visible) {
+  border-style: solid;
+  border-color: var(--accent);
+  outline: none;
+}
+
+.numInput:focus-visible {
+  outline: 3px solid var(--accent);
+  outline-offset: 1px;
+}
+
+.unit {
+  font-size: 0.82rem;
+  color: var(--ink-3);
+}
+
+.removeBtn {
+  margin-left: auto;
+  font: inherit;
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--ink-2);
+  background: transparent;
+  border: 1.5px solid var(--rule);
+  border-radius: 999px;
+  padding: 0.15rem 0.6rem;
+  cursor: pointer;
+}
+
+.removeBtn:hover {
+  border-color: var(--viz-neg);
+  color: var(--viz-neg);
+}
+
+.conn {
+  display: grid;
+  gap: 0.25rem;
+  margin-left: 1.2rem;
+  padding: 0.45rem 0 0.45rem 0.9rem;
+  border-left: 2px dashed var(--viz-muted);
+}
+
+.connText {
+  font-size: 0.86rem;
+  color: var(--ink-2);
+  font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
+}
+
+.connText b {
+  color: var(--ink);
+}
+
+.track {
+  display: flex;
+  height: 14px;
+  width: 100%;
+  border-radius: 4px;
+  background: var(--surface-2);
+  overflow: hidden;
+}
+
+.track span {
+  display: block;
+  height: 100%;
+  transition: width 0.25s ease;
+}
+
+.total {
+  margin-top: 0.6rem;
+  padding: 0.55rem 0.75rem;
+  border-radius: 10px;
+  background: var(--accent-soft);
+  color: var(--ink);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
+}
+
+.total strong {
+  font-size: 1.15em;
+  color: var(--accent);
+}

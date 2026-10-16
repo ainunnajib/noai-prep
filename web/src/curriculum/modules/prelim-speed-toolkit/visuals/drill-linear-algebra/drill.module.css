@@ -1,0 +1,386 @@
+/* Shared styles for the speed-drill visuals (drill-linear-algebra and drill-calculus-probability). Theme tokens only. */
+
+.wrap {
+  width: 100%;
+  min-width: 0;
+  display: grid;
+  gap: 0.75rem;
+}
+
+.row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.45rem 0.6rem;
+  min-width: 0;
+}
+
+.spread {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.35rem 0.8rem;
+  min-width: 0;
+}
+
+.small {
+  font-size: 0.86rem;
+  line-height: 1.45;
+  color: var(--ink-2);
+}
+
+.muted {
+  color: var(--ink-3);
+}
+
+.label {
+  font-size: 0.72rem;
+  font-weight: 750;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+}
+
+/* the question card */
+.stage {
+  border: 1.5px solid var(--rule);
+  border-radius: var(--radius-m);
+  background: var(--surface-2);
+  padding: 0.8rem 0.8rem 0.7rem;
+  display: grid;
+  gap: 0.7rem;
+  justify-items: center;
+  min-width: 0;
+}
+.prompt {
+  font-size: 1rem;
+  font-weight: 650;
+  color: var(--ink);
+  text-align: center;
+  line-height: 1.45;
+}
+.big {
+  font-size: 1.15rem;
+}
+
+/* timer bar */
+.timer {
+  width: 100%;
+  height: 8px;
+  border-radius: 999px;
+  background: var(--surface-3);
+  overflow: hidden;
+}
+.timerFill {
+  height: 100%;
+  border-radius: 999px;
+  transition: background-color 0.3s;
+}
+
+/* answer box */
+.answer {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+  justify-content: center;
+  align-items: center;
+  width: 100%;
+}
+.input {
+  font: inherit;
+  font-size: 1rem;
+  font-family: var(--font-mono);
+  width: 9.5rem;
+  max-width: 100%;
+  padding: 0.45rem 0.6rem;
+  border-radius: var(--radius-s);
+  border: 1.5px solid var(--rule);
+  background: var(--surface);
+  color: var(--ink);
+  text-align: center;
+}
+.input:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+/* feedback */
+.feedback {
+  width: 100%;
+  border-radius: var(--radius-m);
+  padding: 0.6rem 0.75rem;
+  font-size: 0.9rem;
+  line-height: 1.5;
+  color: var(--ink);
+  border: 1.5px solid var(--rule);
+  background: var(--surface);
+  display: grid;
+  gap: 0.35rem;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.ok {
+  border-color: color-mix(in srgb, var(--viz-pos) 65%, var(--rule));
+  background: color-mix(in srgb, var(--viz-pos) 9%, var(--surface));
+}
+.miss {
+  border-color: color-mix(in srgb, var(--viz-neg) 65%, var(--rule));
+  background: color-mix(in srgb, var(--viz-neg) 8%, var(--surface));
+}
+.okText {
+  color: var(--viz-pos);
+  font-weight: 750;
+}
+.missText {
+  color: var(--viz-neg);
+  font-weight: 750;
+}
+
+/* stats strip */
+.stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem 1rem;
+  font-size: 0.84rem;
+  color: var(--ink-2);
+}
+.stat {
+  display: inline-flex;
+  gap: 0.3rem;
+  align-items: baseline;
+  white-space: nowrap;
+}
+.stat strong {
+  font-variant-numeric: tabular-nums;
+  color: var(--ink);
+  font-size: 0.98rem;
+}
+
+/* dominoes for shape chains */
+.chain {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  justify-content: center;
+  align-items: center;
+}
+.domino {
+  display: inline-grid;
+  grid-template-columns: auto auto auto;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.35rem 0.5rem;
+  border-radius: var(--radius-s);
+  border: 1.5px solid var(--viz-axis);
+  background: var(--surface);
+  font-family: var(--font-mono);
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--ink);
+  position: relative;
+  font-variant-numeric: tabular-nums;
+}
+.dominoT {
+  border-style: dashed;
+}
+.dimBox {
+  min-width: 1.6em;
+  text-align: center;
+  padding: 0.05rem 0.2rem;
+  border-radius: 4px;
+}
+.times {
+  color: var(--ink-3);
+  font-weight: 500;
+}
+.supT {
+  font-size: 0.75rem;
+  color: var(--viz-4);
+  font-weight: 800;
+  margin-left: 0.1rem;
+  align-self: start;
+}
+.match {
+  background: color-mix(in srgb, var(--viz-pos) 25%, var(--surface));
+  color: var(--ink);
+}
+.clash {
+  background: color-mix(in srgb, var(--viz-neg) 28%, var(--surface));
+  color: var(--ink);
+}
+.outer {
+  background: color-mix(in srgb, var(--viz-1) 22%, var(--surface));
+}
+.dot {
+  color: var(--ink-3);
+  font-weight: 700;
+}
+
+/* vectors and matrices */
+.vec {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.15rem;
+  font-family: var(--font-mono);
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+}
+.vecEl {
+  min-width: 1.7em;
+  text-align: center;
+  padding: 0.15rem 0.15rem;
+  border-radius: 4px;
+}
+.working {
+  font-family: var(--font-mono);
+  font-size: 0.86rem;
+  line-height: 1.6;
+  color: var(--ink);
+  overflow-wrap: anywhere;
+}
+.chip {
+  font: inherit;
+  font-size: 0.78rem;
+  font-weight: 700;
+  padding: 0.1rem 0.5rem;
+  border-radius: 999px;
+  border: 1.5px solid currentColor;
+  white-space: nowrap;
+}
+
+.history {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 3px;
+}
+.histDot {
+  width: 12px;
+  height: 12px;
+  border-radius: 3px;
+}
+
+/* flashcards */
+.card {
+  width: 100%;
+  max-width: 26rem;
+  min-height: 11rem;
+  border-radius: var(--radius-l);
+  border: 1.5px solid var(--rule);
+  background: var(--surface);
+  box-shadow: var(--shadow-card);
+  display: grid;
+  place-items: center;
+  padding: 1rem;
+  text-align: center;
+  gap: 0.5rem;
+  cursor: pointer;
+  font: inherit;
+  color: var(--ink);
+}
+.card:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+.cardBack {
+  border-color: color-mix(in srgb, var(--accent) 55%, var(--rule));
+  background: color-mix(in srgb, var(--accent) 6%, var(--surface));
+}
+.boxes {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.4rem;
+  width: 100%;
+}
+.box {
+  border: 1.5px solid var(--rule);
+  border-radius: var(--radius-s);
+  background: var(--surface);
+  padding: 0.35rem 0.4rem;
+  display: grid;
+  gap: 0.25rem;
+  justify-items: center;
+  min-width: 0;
+}
+.boxTitle {
+  font-size: 0.72rem;
+  font-weight: 750;
+  color: var(--ink-3);
+  text-align: center;
+  line-height: 1.2;
+}
+.boxCount {
+  font-size: 1.15rem;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  color: var(--ink);
+}
+.pips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px;
+  justify-content: center;
+}
+.pip {
+  width: 8px;
+  height: 8px;
+  border-radius: 2px;
+}
+
+/* confusion matrix */
+.cm {
+  display: grid;
+  grid-template-columns: auto repeat(2, minmax(4.6rem, 6.5rem));
+  gap: 4px;
+  font-size: 0.82rem;
+  align-items: stretch;
+}
+.cmHead {
+  font-size: 0.72rem;
+  font-weight: 750;
+  color: var(--ink-3);
+  text-align: center;
+  align-self: end;
+  line-height: 1.2;
+  padding: 0 0.2rem 0.15rem;
+}
+.cmSide {
+  font-size: 0.72rem;
+  font-weight: 750;
+  color: var(--ink-3);
+  text-align: right;
+  align-self: center;
+  line-height: 1.2;
+  padding-right: 0.3rem;
+}
+.cmCell {
+  border-radius: var(--radius-s);
+  border: 2px solid transparent;
+  background: var(--surface);
+  padding: 0.4rem 0.3rem;
+  display: grid;
+  justify-items: center;
+  gap: 0.05rem;
+  transition: border-color 0.2s, background-color 0.2s;
+}
+.cmName {
+  font-size: 0.72rem;
+  font-weight: 800;
+  color: var(--ink-3);
+}
+.cmVal {
+  font-size: 1.2rem;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  color: var(--ink);
+}
+.cmNum {
+  border-color: var(--viz-pos);
+  background: color-mix(in srgb, var(--viz-pos) 18%, var(--surface));
+}
+.cmDen {
+  border-color: var(--viz-1);
+  background: color-mix(in srgb, var(--viz-1) 12%, var(--surface));
+}

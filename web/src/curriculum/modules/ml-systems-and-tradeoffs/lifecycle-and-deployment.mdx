@@ -1,0 +1,241 @@
+import MLLifecycleLoop from './visuals/lifecycle-and-deployment/MLLifecycleLoop'
+import ServingModeCompare from './visuals/lifecycle-and-deployment/ServingModeCompare'
+import DriftMonitor from './visuals/lifecycle-and-deployment/DriftMonitor'
+import VersionTimeline from './visuals/lifecycle-and-deployment/VersionTimeline'
+import { SEED_DEMO } from './visuals/lifecycle-and-deployment/snippets'
+
+The last module was about making one training run work; this one is about everything around it. A model that scores 95% in a notebook helps nobody until it makes real decisions, and the day it starts doing so, the world it learned from begins to change. Most of the work in real machine learning happens around the training cell: getting data in, getting predictions out, noticing when they go stale, and being able to say exactly which model did what. NOAI's Problem Solving domain asks about all of it.
+
+## Training is one stop on a loop
+
+<Analogy title="Running a hawker stall">
+
+Every day you buy ingredients, prepare them, cook, serve, and listen to what customers say. If they start leaving the chilli untouched, you adjust the recipe and the next day's shopping list. Nobody would describe the stall as "cooking": cooking is one step in a loop that runs every day.
+
+</Analogy>
+
+A machine-learning system works the same way. The **ML lifecycle** is the loop of stages a model goes through, from a business question to live predictions and back again:
+
+1. **Frame the problem**: what decision is being made, what metric reflects its cost, and what simple baseline must be beaten.
+2. **Collect and clean data**: often an <Term def="Extract, Transform, Load: pull raw data out of its sources (extract), clean and reshape it (transform), and store it where training can use it (load).">ETL</Term> job.
+3. **Engineer features**: turn the clean table into model-ready numbers.
+4. **Train** the model.
+5. **Evaluate** it on held-out data against the baseline and the model currently in use.
+6. **Deploy** it, so it starts answering real requests.
+7. **Monitor** it, and **retrain** when performance drops, which sends you back to step 2 with fresh data (or to step 1, if the problem itself has changed).
+
+It is a loop because the world keeps moving: customers, prices and fraud tricks change, so a model trained once slowly goes out of date. Click around the loop below.
+
+<MLLifecycleLoop />
+
+Running this loop by hand is slow and error-prone: someone downloads a file, forgets a cleaning step, or copies the wrong model into production. <Term def="Machine-learning operations: applying software-engineering habits (automation, testing, version control, monitoring) to the whole ML lifecycle, so every step is repeatable.">MLOps</Term> is the discipline of automating the loop so that every step runs the same way every time. Its usual building blocks are:
+
+- A **pipeline**: the steps above written as code that runs end to end without a person in the middle.
+- An <Term def="A scheduler that runs pipeline steps in the right order, on a timetable or when triggered (e.g. new data arrives), and retries or reports steps that fail. Apache Airflow is a common one.">orchestrator</Term> that runs the pipeline on a schedule ("every night at 02:00") or a trigger ("when a drift alert fires"), in the right order, retrying failed steps.
+- An <Term def="A tool (e.g. MLflow, Weights & Biases) that records every training run: its code version, data version, hyperparameters, seed, metrics and output files.">experiment tracker</Term> that logs every training run.
+- A <Term def="A catalogue of trained models with their versions, lineage (how each was made) and stage, such as staging or production, so you can promote a new model or roll back to an old one.">model registry</Term> that stores each model version with a stage label (staging, production) for promotion and rollback.
+- <Term def="Continuous integration and continuous delivery: every code change is automatically tested, and changes that pass are automatically packaged and deployed.">CI/CD</Term>: automatic tests on every change, then automatic deployment.
+- **Monitoring dashboards** that track the model's inputs and predictions, not only server errors.
+
+<KeyIdea>
+
+Training is one stage of a continuous loop: frame, data, features, train, evaluate, deploy, monitor, retrain. MLOps automates the loop so each step is **repeatable**, **versioned** and **watched**.
+
+</KeyIdea>
+
+<PastPaperQuestion paper="prelim2026" n={295} />
+
+## Serving: batch or real-time?
+
+<Term def="Using a trained model to make predictions on new inputs (as opposed to training it).">Inference</Term> is using the trained model; **serving** is how those predictions reach the people or programs that need them. There are two basic designs.
+
+<Analogy title="Canteen set lunch or zi char stall">
+
+The school canteen cooks 500 set lunches in advance, cheaply, because it knows what everyone will eat. The zi char stall cooks each order when it arrives: you get exactly what you asked for, fresh, but someone has to stand at the wok all evening. Neither is better; it depends on whether you know the order in advance.
+
+</Analogy>
+
+- **Batch inference** scores many inputs together on a schedule (say, every night) and stores the results in a table. Later requests just look up the answer. It is cheap and simple, but every prediction is only as fresh as the last run.
+- **Real-time (online) inference** answers each request the moment it arrives, usually behind an <Term def="Application programming interface: a fixed way for one program to send a request to another (often over the internet) and get an answer back.">API</Term>, within a strict <Term def="The time from sending a request to getting the answer back, often measured in milliseconds (ms).">latency</Term> budget such as 100 ms. It needs a fast model and a server that is always on, which costs more.
+
+<ServingModeCompare />
+
+Two questions decide the design. **Does the input exist before the prediction is needed?** A customer's viewing history does; a card payment does not exist until the card is tapped. **How fast and how fresh must the answer be?** A weekly forecast can be hours old; a fraud check must arrive in a fraction of a second.
+
+| Use case | Input known early? | Answer needed | Serving |
+|---|---|---|---|
+| Nightly recommendations | yes | next morning | batch |
+| Weekly sales forecast | yes | Monday 09:00 | batch |
+| Card fraud check | no | ≈ 0.2 s | real-time |
+| Ride-hailing ETA | no | ≈ 1 s | real-time |
+
+<QuickCheck
+  q="A bank wants to email every customer a personalised savings tip on the first day of each month, based on last month's spending. Which serving design fits best?"
+  options={[
+    'Batch inference: score all customers in one scheduled job before the emails go out',
+    'Real-time inference: score each customer through an API at the moment their email is sent',
+    'Real-time inference, because personalised predictions always need a live model',
+    'No deployment: retrain the model each month and read off its training accuracy',
+  ]}
+  answer={0}
+  explain="All the inputs (last month's spending) exist before the predictions are needed, and nobody is waiting on a millisecond answer, so one scheduled batch job is cheapest and simplest. Real-time serving would also work, but it pays for an always-on server to do work that could be done in one go. 'Personalised' does not mean 'real-time': each customer still gets their own prediction from the batch job."
+/>
+
+### Packaging a model for serving
+
+A PyTorch model in a training notebook is Python code plus weights. For serving it is usually **exported** to a self-contained format that a fast server (possibly with no Python at all) can run, and sometimes **quantised**: weights stored as 8-bit integers (int8) instead of 32-bit floats, about 4 times smaller and often faster, for a small loss of accuracy (the last lesson of this module, [designing an ML solution](#/learn/ml-systems-and-tradeoffs/designing-ml-solutions), shows how it works). Two classic export routes are <Term def="PyTorch's format for saving a model as a self-contained program that can run without the original Python code. Created with torch.jit.trace or torch.jit.script.">TorchScript</Term> and <Term def="Open Neural Network Exchange: a standard file format for neural networks, so a model trained in one framework can be served by another runtime.">ONNX</Term>. TorchScript offers two ways to export, and the difference is a favourite trap:
+
+- `torch.jit.trace(model, example)` runs the model **once** on the example and records the operations that happened. Any `if` that depends on the data is frozen into whichever branch the example took.
+- `torch.jit.script(model)` **compiles the code itself**, including its `if` statements and loops, so every branch survives.
+
+```python
+import torch
+import torch.nn as nn
+
+class Gate(nn.Module):
+    def forward(self, x):
+        if x.sum() > 0:          # a branch that depends on the data
+            return x * 2
+        else:
+            return -x
+
+model = Gate()
+traced = torch.jit.trace(model, torch.tensor([1.0, 2.0]))    # records ONE run
+scripted = torch.jit.script(model)                            # compiles the code
+
+x = torch.tensor([-1.0, -3.0])
+print("eager:   ", model(x))
+print("traced:  ", traced(x))
+print("scripted:", scripted(x))
+```
+
+```text
+TracerWarning: Converting a tensor to a Python boolean might cause the trace to be incorrect. ... This means that the trace might not generalize to other inputs!
+eager:    tensor([1., 3.])
+traced:   tensor([-2., -6.])
+scripted: tensor([1., 3.])
+```
+
+The example input had a positive sum, so the trace only recorded `x * 2`. Given a negative input, the traced model still doubles it and silently returns the wrong answer, while the scripted model takes the correct branch. PyTorch even warns you while tracing. (Recent versions also print warnings that `torch.jit` itself is deprecated; see the box below.)
+
+<Mistake title="Tracing a model with data-dependent branches">
+
+`torch.jit.trace` is safe only when the same operations run for every input (most plain CNNs). If `forward` contains an `if` or a loop that depends on the values in the tensor, use `torch.jit.script`, or the exported model will follow the example's path forever. (Recent PyTorch versions mark TorchScript as deprecated in favour of `torch.export` and `torch.compile`, but the trace-versus-script idea is what exam questions test.)
+
+</Mistake>
+
+## Monitoring: when the world moves
+
+Once deployed, the model keeps making predictions, but the world that produced its training data keeps changing. The model does not notice; you have to.
+
+<Analogy title="A shop that only sees profit at month-end">
+
+A shop owner only learns the month's profit when the accounts close. Waiting that long to spot a problem would be a disaster, so every day she watches what she *can* see: how many people walk in, and what they buy. A sudden drop in foot traffic is a warning weeks before the profit figure arrives.
+
+</Analogy>
+
+The true outcome (the <Term def="The correct answer for an example, e.g. whether a loan was actually repaid. In monitoring, labels often arrive weeks or months after the prediction.">label</Term>) often arrives long after the prediction: whether a loan is repaid is known months later; whether a flagged payment was really fraud is known after an investigation. So teams monitor four kinds of signal:
+
+1. **Inputs**: the distribution of each feature (for example applicants' incomes) compared with the training data, and data quality, such as missing values or a column that changed units.
+2. **Predictions**: the distribution of the model's outputs, such as the approval rate or the share of payments flagged.
+3. **System health**: latency, error responses, throughput.
+4. **Outcomes**: accuracy or error rate, once labels arrive.
+
+You met the two kinds of change in [data bugs and distribution shift](#/learn/debugging-and-diagnosis/data-bugs-and-shift) as covariate shift and concept drift. Monitoring tools usually call covariate shift **data drift**; it is the same thing. This section is about catching them on a live system. As before, $x$ is the input and $y$ the true outcome.
+
+- <Term def="A change in the distribution of the inputs P(x): the people or things the model sees are different from those in the training data. Also called covariate shift.">Data drift</Term> (covariate shift): $P(x)$ moves. For example, after a downturn, applicants have lower incomes and more of them are gig workers.
+- <Term def="A change in the relationship between inputs and outcome P(y | x): the same input now leads to a different outcome, so the patterns the model learned are out of date.">Concept drift</Term>: $P(y \mid x)$ moves. For example, people with the *same* income now default more often because living costs rose. The inputs can look exactly as before.
+
+<DriftMonitor />
+
+Play with the dashboard until three things feel obvious. With data drift, the input panel and the approval rate raise alerts within a week or two, long before any default labels exist. With concept drift, inputs and approvals stay calm, because the model's decisions depend only on its inputs; only the outcome panel can see it, 12 weeks late. And a threshold set too tight produces a stream of false alarms from ordinary week-to-week wobble, while one set too loose reacts late.
+
+<KeyIdea>
+
+When labels are slow, watch what you can see **today**: input distributions and the prediction distribution (such as the approval rate). They are the early warning for data drift. Concept drift changes $P(y \mid x)$ and often only shows in outcomes, so you also need labels, or fast proxies for them, as early as you can get them.
+
+</KeyIdea>
+
+<Steps title="Reading a dashboard: which drift is it?">
+  <Step title="Did the inputs change?">
+    At training time the mean applicant income was \$58k and 40% were approved. In week 12 the mean is \$54k. Yes: $P(x)$ has moved, so this is **data drift**.
+  </Step>
+  <Step title="Did the predictions follow?">
+    The approval rate fell from 40% to 30%. That fits: the model approves anyone above a fixed income cut-off, and poorer applicants clear it less often. The model is behaving as designed on a different population.
+  </Step>
+  <Step title="What do the (old) labels say?">
+    Loans made 3 months ago still default at about 4%, the same as at training. That only describes the *old* population, so a steady error rate here does not mean all is well.
+  </Step>
+  <Step title="A second dashboard">
+    Incomes steady at \$58k, approvals steady at 40%, but loans from 3 months ago now default at 11% instead of 4%. The inputs did not move but the outcome for the same inputs did: $P(y \mid x)$ changed, so this is **concept drift**.
+  </Step>
+  <Step title="Act">
+    Check first that the alert is not a pipeline bug (a feature that switched units, a column suddenly empty). Then retrain on recent data and evaluate on the most recent weeks before deploying. With concept drift, old labels now describe a world that no longer exists, so give recent data more weight.
+  </Step>
+</Steps>
+
+<QuickCheck
+  q="A spam filter's inputs look unchanged (same mix of senders, lengths and words), but users report far more missed spam, because spammers learned to phrase scams like ordinary emails. What kind of change is this?"
+  options={[
+    'Concept drift: the link between features and being spam, $P(y \\mid x)$, changed',
+    'Data drift: the mix of email features, $P(x)$, moved away from the training data',
+    'Overfitting: the filter memorised its training emails and fails on new ones',
+    'A latency problem: the filter now answers too slowly to block spam in time',
+  ]}
+  answer={0}
+  explain="The inputs look the same, so $P(x)$ has not moved; what changed is which inputs are spam, the relationship $P(y \mid x)$. That is concept drift, and it only shows up in outcomes (user reports, labels). Overfitting would have shown up as a gap between training and validation scores before deployment."
+/>
+
+<PastPaperQuestion paper="prelim2026" n={299} />
+
+<ExamTip>
+
+In "which metric alerts you **first**?" questions, look for the phrase about labels taking weeks or months. A metric built from labels (accuracy, error rate, "ground truth") can only describe old predictions. The first warning comes from something measured on today's traffic: the input distributions or the prediction distribution, such as an approval rate sliding from 40% to 30%. (In Q299 the "error rate" may instead mean system errors; either way it stays flat and cannot react to the change in applicants.)
+
+</ExamTip>
+
+## Versioning: reproduce any past model
+
+Months after deployment, an auditor asks: "Show us exactly the model that flagged transaction X in week 3, and how it was made." If the team only kept the latest model file, they cannot.
+
+<Analogy title="A recipe you can actually repeat">
+
+"Grandma's laksa" is not a recipe. To cook the same pot again you need the ingredients (which batch of prawns and chilli), the method (which version of the steps), the settings (how hot, how long), and ideally the pot she used. Leave out any one and you get a different laksa.
+
+</Analogy>
+
+A trained model is the product of several ingredients. To reproduce it you must **version** (keep a labelled copy of every version of) each one:
+
+- **Data**: the exact training snapshot, or a <Term def="A short fingerprint (a string of letters and digits) computed from a file's contents. Change one byte of the file and the hash changes completely, so it identifies one exact version.">hash</Term> of it that identifies it.
+- **Code**: the <Term def="A saved snapshot of the code in Git, the standard version-control tool. Each commit has its own ID, so you can always return to exactly that version.">commit</Term> of the training and preprocessing code.
+- **Config**: the hyperparameters (learning rate, epochs, model size).
+- **Random seed**: weight initialisation, shuffling and dropout are random, so a different seed gives a different model.
+- **Environment**: library versions (Python, PyTorch, scikit-learn), which can change results slightly.
+- **Fitted preprocessing**: the scaler, encoder or tokeniser fitted on that week's data.
+- **Weights**: the trained model file itself.
+
+<VersionTimeline />
+
+The seed is the ingredient people forget. The same code on the same data with a different seed gives a different model. Run this and compare:
+
+<PyRunner packages={['scikit-learn']} code={SEED_DEMO} />
+
+Seeds 0, 1 and 2 give three different test accuracies, and running seed 0 again gives exactly the first number back. That is what versioning the seed buys you.
+
+In practice nobody tracks all this by hand. Git versions the code, a data-versioning tool or a stored hash identifies the data, an experiment tracker records config, seed, metrics and environment for every run, and the model registry stores the weights and preprocessing files together with a link back to the run that made them.
+
+<PastPaperQuestion paper="prelim2026" n={297} />
+
+<Mistake title="“We saved the weights, so we can reproduce it”">
+
+Weights let you *reload* a model, as long as you also have the matching preprocessing, code and library versions. They do not let you *rebuild* it or explain how it was made: for that you need the data snapshot, code, config and seed. Saving only the latest checkpoint loses every older model.
+
+</Mistake>
+
+<Takeaways>
+- The ML lifecycle is a loop: frame, data (ETL), features, train, evaluate, deploy, monitor, retrain. Training is one stage; MLOps automates the loop with pipelines, an orchestrator, experiment tracking, a model registry, CI/CD and monitoring.
+- Batch inference (scheduled, cheap) suits inputs known in advance; real-time inference (always on, low latency) is needed when the input only exists at request time, as in a fraud check at payment.
+- `torch.jit.trace` records one run and freezes data-dependent `if`s; `torch.jit.script` compiles the code with its control flow.
+- Data drift changes the inputs, $P(x)$; concept drift changes the input–outcome relationship, $P(y \mid x)$. With delayed labels, input and prediction distributions (e.g. approval rate) are the earliest warning.
+- To reproduce a model, version the data, code, config, seed, environment, fitted preprocessing and weights.
+</Takeaways>

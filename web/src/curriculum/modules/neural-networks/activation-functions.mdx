@@ -1,0 +1,304 @@
+import LinearCollapse from './visuals/activation-functions/LinearCollapse'
+import ActivationGallery from './visuals/activation-functions/ActivationGallery'
+import DeadNeuronMap from './visuals/activation-functions/DeadNeuronMap'
+
+export const actCode = `import numpy as np
+
+z = np.array([-3, -1, 0, 1, 3],
+             dtype=float)
+
+sig = 1 / (1 + np.exp(-z))
+tanh = np.tanh(z)
+relu = np.maximum(0, z)
+leaky = np.where(z > 0, z, 0.01*z)
+
+# slopes (derivatives)
+dsig = sig * (1 - sig)
+dtanh = 1 - tanh**2
+drelu = (z > 0).astype(float)
+
+print("z        ", z)
+print("sigmoid  ", sig.round(3))
+print("sigmoid' ", dsig.round(3))
+print("tanh     ", tanh.round(3))
+print("tanh'    ", dtanh.round(3))
+print("relu     ", relu)
+print("relu'    ", drelu)
+print("leaky    ", leaky)
+
+# Two linear layers with no
+# activation collapse into one
+rng = np.random.default_rng(0)
+W1 = rng.normal(size=(4, 3))
+b1 = rng.normal(size=4)
+W2 = rng.normal(size=(2, 4))
+b2 = rng.normal(size=2)
+x = rng.normal(size=3)
+
+two = W2 @ (W1 @ x + b1) + b2
+# the one equivalent layer
+W = W2 @ W1
+b = W2 @ b1 + b2
+one = W @ x + b
+print("two layers:", two.round(4))
+print("one layer: ", one.round(4))`
+
+Stacked perceptrons can beat XOR, but training them needs something smoother than the step function: an **activation function**, the small function every neuron applies to its weighted sum. It decides whether stacking layers gains anything at all, and whether a training signal can flow back through the network.
+
+<Analogy title="Glass panes and a folding screen">
+
+Stack ten flat panes of glass and you still have a flat window: thicker, but just as flat. A folding screen is different. Its panels are joined by **hinges**, so it can bend into zig-zags and curves. Layers of a neural network are like the panes: on their own, each is "flat" (a straight-line function), and stacking them gives another flat one. Activation functions are the hinges that let the network bend.
+
+</Analogy>
+
+## Two layers with no activation are one layer
+
+A layer of neurons computes, for each neuron, a weighted sum plus a bias. In matrix form that is $W\mathbf{x} + \mathbf{b}$: each row of the <Term def="A table of numbers. In a layer, row i of W holds the weights of neuron i, so W times x computes every neuron's weighted sum at once.">weight matrix</Term> $W$ holds one neuron's weights, and $\mathbf{b}$ lists the biases. A function of this shape is called <Term def="Of the form Wx + b: every output is a weighted sum of the inputs plus a constant. In one dimension its graph is a straight line. (Mathematicians call it 'affine' when b is not 0; ML people usually just say linear.)">linear</Term>: with one input and one output, its graph is a straight line.
+
+Now feed one linear layer into another, with nothing in between.
+
+<Steps title="Two layers by hand: h = 2x + 1, then y = 3h − 4">
+  <Step title="Substitute">
+    $y = 3h - 4 = 3(2x + 1) - 4$.
+  </Step>
+  <Step title="Expand">
+    $y = 6x + 3 - 4 = 6x - 1$.
+  </Step>
+  <Step title="Check with a number">
+    For $x = 1$: $h = 3$, then $y = 9 - 4 = 5$. And $6(1) - 1 = 5$. ✓ The two-layer "network" is just the single layer $y = 6x - 1$.
+  </Step>
+</Steps>
+
+The same algebra works with matrices, for any sizes:
+
+$$
+\begin{aligned}
+\mathbf{y} &= W_2(W_1\mathbf{x} + \mathbf{b}_1) + \mathbf{b}_2 \\
+&= \underbrace{(W_2W_1)}_{W}\,\mathbf{x} + \underbrace{(W_2\mathbf{b}_1 + \mathbf{b}_2)}_{\mathbf{b}}
+\end{aligned}
+$$
+
+The product of two matrices is just another matrix, so the two layers equal one layer with weights $W = W_2W_1$ and bias $\mathbf{b} = W_2\mathbf{b}_1 + \mathbf{b}_2$. Repeat the argument and **a hundred linear layers are still one linear layer**. All that depth would buy nothing. Try to bend the output below:
+
+<LinearCollapse />
+
+The fix is to apply a non-linear function $f$ to each neuron's weighted sum before passing it on:
+
+$$
+\mathbf{h} = f(W_1\mathbf{x} + \mathbf{b}_1), \qquad \mathbf{y} = W_2\mathbf{h} + \mathbf{b}_2
+$$
+
+$f$ is the <Term def="A fixed non-linear function applied to each neuron's weighted sum z, giving the neuron's output a = f(z). Examples: ReLU, sigmoid, tanh.">activation function</Term>. It acts on each number separately (<Term def="Applied to every entry of a vector on its own, e.g. ReLU([−1, 2]) = [0, 2].">element-wise</Term>). <Term def="Not of the form Wx + b; in one dimension, a graph that is not a straight line.">Non-linear</Term> simply means its graph is not a straight line, so the substitution trick above no longer simplifies anything. Now each layer can bend, and layers of bends can build complicated shapes. That is exactly how the hidden layer beat XOR at the end of the last lesson, [The perceptron](#/learn/neural-networks/perceptron).
+
+<KeyIdea>
+
+Without activation functions, any stack of layers collapses into a single linear layer: $W_2(W_1\mathbf{x} + \mathbf{b}_1) + \mathbf{b}_2 = W\mathbf{x} + \mathbf{b}$. A non-linear activation between layers stops the collapse, and that is what makes depth worth having.
+
+</KeyIdea>
+
+<QuickCheck
+  q="A layer computes $h = 2x + 1$ and the next computes $y = -3h + 5$, with no activation. Which single layer computes the same thing?"
+  options={['$y = -6x + 2$', '$y = -6x + 5$', '$y = -x + 6$', '$y = -6x - 2$']}
+  answer={0}
+  explain="Substitute: $y = -3(2x + 1) + 5 = -6x - 3 + 5 = -6x + 2$. Forgetting to multiply the first bias by $-3$ gives $-6x + 5$; adding the weights instead of multiplying them gives $-x$."
+/>
+
+<PastPaperQuestion paper="prelim2026" n={162} />
+
+## Why the slope of the activation matters
+
+The perceptron's step function is non-linear, so why not use it? Because of how networks learn. Training uses gradient descent: nudge every weight in the direction that lowers the loss. To find how a weight deep inside the network affects the loss, <Term def="The algorithm that computes the gradient of the loss with respect to every weight, by applying the chain rule backwards from the output, layer by layer.">backpropagation</Term> uses the chain rule, and each neuron on the way contributes a factor equal to the **slope** of its activation, $f'(z)$.
+
+- The step function's slope is 0 everywhere except at the jump, where it is undefined, so every factor is 0 and no weight ever gets a useful signal.
+- Good activations are non-linear **and** have useful slopes over the inputs they actually see.
+
+When a neuron sits where its activation is almost flat, $f'(z) \approx 0$, it is <Term def="Sitting in a flat part of its activation function, where the slope is nearly 0, so changes to its weights barely change its output and it learns very slowly.">saturated</Term>: its weights barely change. If many layers each multiply the signal by a small slope, it shrinks towards nothing by the time it reaches the first layers. That is the <Term def="When gradients get multiplied by many small factors on their way back through a deep network, so the early layers receive almost no learning signal.">vanishing gradient</Term> problem, which you will study properly in [Vanishing and exploding gradients](#/learn/backpropagation/vanishing-and-exploding-gradients).
+
+## The activation gallery
+
+Five activations cover almost everything NOAI asks. Explore them, especially the bottom plot of slopes:
+
+<ActivationGallery />
+
+| Name | $f(z)$ | Range | Slope $f'(z)$ |
+|---|---|---|---|
+| Sigmoid | $1/(1+e^{-z})$ | $(0, 1)$ | $\sigma(1-\sigma) \le 0.25$ |
+| Tanh | $\tanh z$ | $(-1, 1)$ | $1-\tanh^2 \le 1$ |
+| ReLU | $\max(0, z)$ | $[0, \infty)$ | 0 or 1 |
+| Leaky ReLU | $\max(\alpha z, z)$ | $(-\infty, \infty)$ | $\alpha$ or 1 |
+| GELU | $z\,\Phi(z)$ | $\approx[-0.17, \infty)$ | $-0.13$ to $1.13$ |
+
+A few details worth knowing:
+
+- **Sigmoid** is the same squashing function as in logistic regression. At $z = 0$, $\sigma = 0.5$ and the slope is $0.5 \times 0.5 = 0.25$, its maximum. At $z = 5$ the slope is only about $0.0066$.
+- **Tanh** is a stretched, shifted sigmoid ($\tanh z = 2\sigma(2z) - 1$). Its outputs are <Term def="Spread around 0, with negative as well as positive values, rather than always positive like the sigmoid's.">zero-centred</Term>, which usually makes learning in the next layer smoother, and its slope at 0 is a full 1. It still saturates at both ends.
+- **ReLU** (rectified linear unit) has slope exactly 1 for every positive input, so it passes gradients through undiminished, and $\max(0, z)$ is far cheaper than an exponential. At $z = 0$ its slope is undefined (a corner); frameworks simply use 0. In 2012 the team behind AlexNet, the image classifier that kicked off the deep-learning boom, reported that a network with ReLU reached the same training error about six times faster than one with tanh. ReLU soon became the default for hidden layers.
+- **GELU** (Gaussian error linear unit) multiplies $z$ by $\Phi(z)$, the probability that a standard normal value is below $z$. It behaves like a smooth ReLU and is the usual choice inside Transformers. Unlike ReLU's, its slope dips slightly below 0 for negative $z$ and peaks just above 1 (at about 1.13).
+
+<Steps title="Why sigmoid struggles in deep networks (no calculator)">
+  <Step title="One layer, best case">
+    The sigmoid's slope is never more than $\sigma'(0) = 0.25 = \frac{1}{4}$.
+  </Step>
+  <Step title="Ten layers in a row">
+    Ignoring the weights, the gradient gets multiplied by at most $\left(\frac{1}{4}\right)^{10} = \frac{1}{4^{10}}$.
+  </Step>
+  <Step title="Estimate the size">
+    $4^5 = 1024 \approx 10^3$, so $4^{10} \approx 10^6$. So the signal reaching the first layer is at most about a millionth of what left the output, and that is the best case.
+  </Step>
+  <Step title="Compare with ReLU">
+    For an active ReLU neuron ($z > 0$) the factor is exactly 1, so ten layers multiply the gradient by $1^{10} = 1$.
+  </Step>
+</Steps>
+
+<QuickCheck
+  q="A neuron uses tanh and its weighted sum is $z = 0$. What are its output and its slope there?"
+  options={['output 0, slope 1', 'output 0.5, slope 0.25', 'output 0, slope 0', 'output 1, slope 0']}
+  answer={0}
+  explain="$\tanh(0) = 0$ and $\tanh'(0) = 1 - \tanh^2(0) = 1 - 0 = 1$. The pair 0.5 and 0.25 belongs to the sigmoid at $z = 0$. A slope of 0 would mean a saturated neuron, but $z = 0$ is the steepest point of tanh."
+/>
+
+<PastPaperQuestion paper="prelim2026" n={172} />
+
+<Note title="Activations at the output">
+
+Everything above is about **hidden** layers. The output layer's activation is chosen to fit the answer you want: a sigmoid for a single yes/no probability, a softmax for one-of-many classes, and no activation at all for predicting a number. The lesson on output layers and losses covers this.
+
+</Note>
+
+## Dying ReLU
+
+ReLU's flat half has a dark side. Its slope is exactly 0 for every negative input.
+
+<Analogy title="The shop that never reopens">
+
+A shop has a terrible week, pulls down its shutters, and stays shut. With the shutters down, no customer can ever come in, so the owner never sees a reason to reopen. A ReLU neuron whose weighted sum is negative for **every** input is that shop: it outputs 0 for everything, so it receives no feedback, so it never changes.
+
+</Analogy>
+
+Here is why, step by step. The neuron outputs $\max(0, \mathbf{w}\cdot\mathbf{x} + b)$. Suppose a large update has pushed its bias so far down that $z = \mathbf{w}\cdot\mathbf{x} + b < 0$ for every training example. Then:
+
+1. Its output is 0 for every example, so it contributes nothing.
+2. Its slope $\text{ReLU}'(z)$ is 0 for every example.
+3. So the gradient for $\mathbf{w}$ and $b$ is 0 for every example, and gradient descent changes them by exactly nothing.
+
+The neuron cannot revive itself. Only a change in an **earlier** layer, which alters the inputs it sees, could ever switch it back on, and that rarely happens.
+
+This is a <Term def="A ReLU neuron whose weighted sum is negative for every training input, so it always outputs 0 and its own weights get exactly zero gradient: it cannot revive itself.">dead neuron</Term>. The usual cause is a learning rate that is too large (one wild step shoves the neuron off the data) or a badly initialised, very negative bias. See it happen:
+
+<DeadNeuronMap />
+
+<TryIt title="Kill some neurons, then try to rescue them">
+
+1. Press **Train 100 steps** a few times at η = 0.1: every neuron stays alive and the loss falls.
+2. Press **Reset**, set η to 3 and train 100 steps once: 15 of the 16 neurons die. Now set η back to 0.1 and press **Train 500 steps** twice. The dead tiles show "moved 0" every time, and with one neuron left the loss is stuck at about 0.16.
+3. Turn on **Leaky ReLU** (this restarts training) and repeat step 2. Neurons still get knocked off the square, but none ever shows "moved 0", and the loss keeps falling (to about 0.04). Compare the two rows of the "latest run" table. Leaky ReLU keeps neurons alive; it does not rescue a learning rate that is far too big: look at the loss while η = 3.
+
+</TryIt>
+
+<Reveal label="Check the zero gradient in PyTorch">
+
+You will learn PyTorch properly in its own module, where [Autograd: automatic gradients](#/learn/pytorch/autograd) covers these tools in full. All you need here: `requires_grad=True` asks PyTorch to track `w` and `b`, `.backward()` computes the gradient of the loss with respect to each of them, and `.grad` holds the result. One neuron's bias has been pushed to $-6$, so $z$ is negative for all three inputs; the "loss" is a stand-in that adds up the outputs.
+
+```python
+import torch
+import torch.nn.functional as F
+
+X = torch.tensor([[1.0, 2.0], [0.5, -1.0], [2.0, 0.0]])  # 3 inputs
+
+def leaky(z):
+    return F.leaky_relu(z, negative_slope=0.01)
+
+for name, act in [("ReLU", F.relu), ("Leaky ReLU", leaky)]:
+    w = torch.tensor([1.0, 0.5], requires_grad=True)
+    b = torch.tensor(-6.0, requires_grad=True)  # pushed far negative
+    z = X @ w + b                               # negative for every input
+    act(z).sum().backward()                     # gradients of a stand-in loss
+    print(name)                                 # .grad now holds them
+    print("  z      =", z.detach())
+    print("  grad w =", w.grad)
+    print("  grad b =", b.grad)
+```
+
+```text
+ReLU
+  z      = tensor([-4., -6., -4.])
+  grad w = tensor([0., 0.])
+  grad b = tensor(0.)
+Leaky ReLU
+  z      = tensor([-4., -6., -4.])
+  grad w = tensor([0.0350, 0.0100])
+  grad b = tensor(0.0300)
+```
+
+With ReLU the gradients are exactly zero. With Leaky ReLU they are small but real ($0.01 \times$ the inputs), so the neuron can still learn its way back.
+
+</Reveal>
+
+**How to prevent dead neurons:**
+
+- Use **Leaky ReLU**, $\max(\alpha z, z)$ with a small $\alpha$ such as 0.01, whose slope for negative inputs is never 0 (GELU and other variants soften the problem too).
+- Use a **smaller learning rate**, so no single update can throw a neuron off the data.
+- Use a sensible **weight initialisation** (such as He initialisation, introduced in [vanishing and exploding gradients](#/learn/backpropagation/vanishing-and-exploding-gradients) and covered fully in [initialisation and normalisation](#/learn/training-deep-networks/initialisation-and-normalisation)).
+
+<Mistake>
+
+"ReLU has no gradient" is wrong: its slope is exactly 1 for every positive input, which is why it beats the sigmoid in deep networks. Only a neuron that is negative for **every** input is stuck. A few zeros now and then are normal and even useful: they make many neurons quiet for any given input.
+
+</Mistake>
+
+<PastPaperQuestion paper="prelim2026" n={180} />
+
+## Activations in code
+
+Here are the formulas and slopes from the table, plus a numerical check that two linear layers really do equal one:
+
+<PyRunner packages={['numpy']} code={actCode} />
+
+In PyTorch, activations are ready-made functions and layers. You place them between linear layers:
+
+```python
+import torch
+import torch.nn as nn
+
+z = torch.tensor([-2.0, -0.5, 0.0, 0.5, 2.0])
+print(torch.sigmoid(z))
+print(torch.tanh(z))
+print(torch.relu(z))
+print(nn.LeakyReLU(negative_slope=0.01)(z))
+print(nn.GELU()(z))
+
+model = nn.Sequential(
+    nn.Linear(2, 16),
+    nn.ReLU(),        # remove this and the Linears collapse
+    nn.Linear(16, 1),
+)
+```
+
+```text
+tensor([0.1192, 0.3775, 0.5000, 0.6225, 0.8808])
+tensor([-0.9640, -0.4621,  0.0000,  0.4621,  0.9640])
+tensor([0.0000, 0.0000, 0.0000, 0.5000, 2.0000])
+tensor([-0.0200, -0.0050,  0.0000,  0.5000,  2.0000])
+tensor([-0.0455, -0.1543,  0.0000,  0.3457,  1.9545])
+```
+
+<ExamTip>
+
+Activation questions are some of the quickest marks in the Prelim (the 2026 paper had a run of them). Know these cold:
+
+- **Ranges**: sigmoid $(0, 1)$, tanh $(-1, 1)$, ReLU $[0, \infty)$, Leaky ReLU $(-\infty, \infty)$.
+- **Formulas**: ReLU $= \max(0, z)$; sigmoid $= 1/(1+e^{-z})$; $\sigma' = \sigma(1-\sigma)$; $\tanh' = 1 - \tanh^2$.
+- **Anchor values**: $\sigma(0) = 0.5$, $\sigma'(0) = 0.25$; $\tanh(0) = 0$, $\tanh'(0) = 1$; ReLU slope 1 for $z > 0$, 0 for $z < 0$, undefined at 0.
+- **Why**: activations add non-linearity; ReLU beats sigmoid in hidden layers because it does not saturate for positive inputs (much less vanishing gradient) and is cheap; Leaky ReLU fixes dying ReLU with a small negative slope. Distractor alert: "uses an exponential" describes ELU (a smooth ReLU variant that uses $e^z$ for negative inputs), not Leaky ReLU.
+
+</ExamTip>
+
+<Takeaways>
+
+- Without activations, stacked layers collapse into one: $W_2(W_1\mathbf{x} + \mathbf{b}_1) + \mathbf{b}_2 = W\mathbf{x} + \mathbf{b}$. Non-linearity makes depth useful.
+- Training multiplies the gradient by the activation's slope $f'(z)$ at every layer, so flat (saturated) regions choke learning.
+- Sigmoid $(0,1)$ and tanh $(-1,1)$ saturate at both ends; the sigmoid's slope is at most $0.25$, tanh's at most $1$.
+- ReLU, $\max(0, z)$, has slope 1 for positive inputs and is the default for hidden layers; GELU is its smooth cousin used in Transformers.
+- A ReLU neuron negative for every input is dead: zero output and zero gradient, so it cannot revive itself. Leaky ReLU, smaller learning rates and good initialisation prevent it.
+
+</Takeaways>

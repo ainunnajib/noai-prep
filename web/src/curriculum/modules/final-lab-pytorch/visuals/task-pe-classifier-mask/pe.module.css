@@ -1,0 +1,316 @@
+/* Styles for the task-pe-classifier-mask visuals. */
+
+.stack {
+  display: grid;
+  gap: 0.8rem;
+  width: 100%;
+  min-width: 0;
+}
+.codeLine {
+  padding: 0.45rem 0.7rem;
+  border-radius: 8px;
+  border: 1px solid var(--rule);
+  background: var(--surface-2);
+  min-width: 0;
+}
+.error {
+  font-family: var(--font-mono);
+  font-size: 12.5px;
+  line-height: 1.45;
+  padding: 0.6rem 0.75rem;
+  border-radius: 8px;
+  background: var(--bad-soft);
+  color: var(--bad);
+  overflow-wrap: anywhere;
+}
+.verdict {
+  margin: 0;
+  padding: 0.5rem 0.75rem;
+  border-radius: 8px;
+  font-size: var(--step--1);
+  line-height: 1.5;
+  color: var(--ink);
+}
+.ok {
+  background: var(--ok-soft);
+  box-shadow: inset 3px 0 0 var(--ok);
+}
+.bad {
+  background: var(--bad-soft);
+  box-shadow: inset 3px 0 0 var(--bad);
+}
+
+/* heat map */
+.heatWrap {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  grid-template-rows: auto auto;
+  gap: 0.3rem 0.4rem;
+  width: 100%;
+  min-width: 0;
+}
+.heatY {
+  writing-mode: vertical-rl;
+  transform: rotate(180deg);
+  font-size: 12px;
+  color: var(--ink-3);
+  text-align: center;
+}
+.heatBox {
+  position: relative;
+  min-width: 0;
+  border: 1px solid var(--rule);
+  border-radius: 4px;
+  overflow: hidden;
+}
+.heat {
+  display: block;
+  width: 100%;
+  height: 210px;
+  image-rendering: pixelated;
+}
+.marker {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  margin-left: -1px;
+  background: var(--ink);
+  opacity: 0.75;
+  pointer-events: none;
+}
+.heatX {
+  grid-column: 2;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 0.3rem 1rem;
+  font-size: 12px;
+  color: var(--ink-3);
+}
+.legend {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+.legend i,
+.key i {
+  display: inline-block;
+  width: 0.8rem;
+  height: 0.8rem;
+  border-radius: 3px;
+}
+.plotBox {
+  display: grid;
+  gap: 0.2rem;
+  width: 100%;
+  min-width: 0;
+  justify-items: center;
+}
+.plotTitle {
+  font-size: var(--step--1);
+  font-weight: 700;
+  color: var(--ink-2);
+}
+.key {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem 1rem;
+  font-size: 12.5px;
+  color: var(--ink-2);
+}
+.key span {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+/* ClassifierHeadFlow */
+.tokens {
+  display: grid;
+  gap: 0.35rem;
+  width: 100%;
+  justify-items: center;
+}
+.tokRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+  align-items: center;
+  justify-content: center;
+}
+.tokLab {
+  font-size: 12px;
+  color: var(--ink-3);
+  min-width: 4.5rem;
+  text-align: right;
+}
+.tok {
+  display: grid;
+  justify-items: center;
+  min-width: 3.4rem;
+  padding: 0.2rem 0.45rem;
+  border-radius: 7px;
+  border: 1.5px solid var(--viz-1);
+  background: color-mix(in srgb, var(--viz-1) 12%, var(--surface));
+  font-family: var(--font-mono);
+  font-size: 12.5px;
+  color: var(--ink);
+}
+.tok small {
+  font-size: 11px;
+  color: var(--ink-3);
+}
+/* phones: keep each sentence on one row of 4 */
+.tokensCompact .tokRow {
+  flex-wrap: nowrap;
+  gap: 0.2rem;
+}
+.tokensCompact .tokLab {
+  min-width: 0;
+  font-size: 11px;
+}
+.tokensCompact .tok {
+  min-width: 0;
+  padding: 0.15rem 0.3rem;
+  font-size: 11.5px;
+}
+.tokensCompact .tok small {
+  font-size: 10px;
+}
+.tokPad {
+  border-style: dashed;
+  border-color: var(--viz-muted);
+  background: var(--surface-2);
+  color: var(--ink-3);
+}
+.flow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  align-items: center;
+  justify-content: center;
+}
+.box {
+  padding: 0.3rem 0.6rem;
+  border-radius: 8px;
+  border: 1.5px solid var(--rule);
+  background: var(--surface);
+  font-family: var(--font-mono);
+  font-size: 12.5px;
+  color: var(--ink-2);
+}
+.boxOn {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+  color: var(--accent);
+  font-weight: 700;
+}
+.arrow {
+  color: var(--ink-3);
+  font-size: 14px;
+}
+.pool {
+  display: grid;
+  gap: 0.5rem;
+  width: 100%;
+  justify-items: center;
+}
+.vecRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  justify-content: center;
+  align-items: center;
+}
+.vec {
+  display: grid;
+  justify-items: center;
+  gap: 0.1rem;
+  padding: 0.25rem 0.45rem;
+  border-radius: 7px;
+  border: 1.5px solid var(--viz-3);
+  background: color-mix(in srgb, var(--viz-3) 12%, var(--surface));
+  font-family: var(--font-mono);
+  font-size: 12.5px;
+  color: var(--ink);
+}
+.vec small {
+  font-size: 11px;
+  color: var(--ink-3);
+}
+.vecOut {
+  opacity: 0.4;
+  text-decoration: line-through;
+}
+.vecPad {
+  border-style: dashed;
+  border-color: var(--viz-4);
+  background: color-mix(in srgb, var(--viz-4) 10%, var(--surface));
+}
+.result {
+  font-family: var(--font-mono);
+  font-size: 13.5px;
+  font-weight: 700;
+  color: var(--ink);
+  text-align: center;
+}
+
+/* CausalMaskBuilder */
+.maskGrid {
+  display: grid;
+  gap: 3px;
+  align-items: center;
+}
+.mcell {
+  display: grid;
+  place-items: center;
+  height: 34px;
+  min-width: 30px;
+  border-radius: 5px;
+  font-family: var(--font-mono);
+  font-size: 13px;
+  font-weight: 700;
+  border: 1.5px solid transparent;
+  cursor: pointer;
+  padding: 0;
+  color: var(--ink);
+  background: var(--surface-2);
+}
+.mAllowed {
+  background: color-mix(in srgb, var(--ok) 22%, var(--surface));
+}
+.mPeek {
+  background: color-mix(in srgb, var(--bad) 30%, var(--surface));
+  border-color: var(--bad);
+}
+.mBlind {
+  background: repeating-linear-gradient(135deg, var(--surface-2) 0 5px, color-mix(in srgb, var(--warn) 35%, var(--surface)) 5px 7px);
+  border-color: var(--warn);
+}
+.mRowOn {
+  box-shadow: 0 0 0 2px var(--accent);
+}
+.mLab {
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+  color: var(--ink-3);
+  text-align: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.mLabRow {
+  text-align: right;
+  padding-right: 0.3rem;
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+  color: var(--ink-3);
+}
+.mLabRowOn {
+  color: var(--ink);
+  font-weight: 700;
+}

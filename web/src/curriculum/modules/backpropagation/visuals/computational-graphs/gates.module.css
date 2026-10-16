@@ -1,0 +1,94 @@
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(270px, 100%), 1fr));
+  gap: 0.75rem;
+  width: 100%;
+}
+
+.card {
+  border: 1px solid var(--rule);
+  border-radius: var(--radius-m);
+  background: var(--surface-2);
+  padding: 0.55rem 0.7rem 0.6rem;
+  min-width: 0;
+}
+
+.head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.2rem 0.5rem;
+  margin-bottom: 0.15rem;
+}
+
+.name {
+  font-weight: 800;
+  color: var(--ink);
+}
+
+.motto {
+  font-size: var(--step--1);
+  font-weight: 700;
+  color: color-mix(in srgb, var(--viz-2) 70%, var(--ink));
+}
+
+.note {
+  font-size: 0.82rem;
+  line-height: 1.4;
+  color: var(--ink-2);
+}
+
+.eq {
+  font-size: 0.9rem;
+  line-height: 1.75;
+  color: var(--ink-2);
+  overflow-x: auto;
+  overflow-y: hidden;
+}
+
+.legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem 1rem;
+  font-size: var(--step--1);
+  color: var(--ink-2);
+  width: 100%;
+}
+
+.swatch {
+  display: inline-block;
+  width: 0.9em;
+  height: 0.9em;
+  border-radius: 3px;
+  margin-right: 0.35em;
+  vertical-align: -0.1em;
+}
+
+/* hide the kit's own label on a DraggablePoint (we draw one in a better place) */
+.noLabel :global(.plot-label) {
+  display: none;
+}
+
+/* the sixth grid cell: a one-line summary of every gate rule */
+.summary {
+  font-size: 0.9rem;
+  line-height: 1.5;
+  color: var(--ink-2);
+}
+
+.summary ul {
+  margin: 0.35rem 0 0;
+  padding-left: 1.1rem;
+  display: grid;
+  gap: 0.3rem;
+}
+
+/* keyboard focus ring for tappable SVG groups (mouse clicks do not show it) */
+.focusable:focus {
+  outline: none;
+}
+
+.focusable:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+}

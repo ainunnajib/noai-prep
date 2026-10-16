@@ -1,0 +1,275 @@
+import FewShotBuilder from './visuals/prompt-engineering/FewShotBuilder'
+import PromptAnatomy from './visuals/prompt-engineering/PromptAnatomy'
+import ChainOfThought from './visuals/prompt-engineering/ChainOfThought'
+
+export const twoShotPrompt = `Classify the sentiment of the review.
+
+Review: The chicken rice was fragrant and the uncle was so friendly.
+Sentiment: positive
+
+Review: Wah, so efficient, waited one hour for my kopi.
+Sentiment: negative
+
+Review: Wah, waited 45 minutes for cold noodles. Best lunch ever.
+Sentiment:`
+
+export const promptCode = `import json
+
+def build_prompt(instruction, examples, new_input):
+    lines = [instruction, ""]
+    # one block per example (shot)
+    for text, label in examples:
+        lines.append(f"Review: {text}")
+        lines.append(f"Sentiment: {label}")
+        lines.append("")
+    # the new case, left unfinished
+    lines.append(f"Review: {new_input}")
+    lines.append("Sentiment:")
+    return "\\n".join(lines)
+
+examples = [
+    ("The chicken rice was fragrant and the uncle "
+     "was so friendly.", "positive"),
+    ("Wah, so efficient, waited one hour for my kopi.",
+     "negative"),
+]
+new_review = ("Wah, waited 45 minutes for cold noodles. "
+              "Best lunch ever.")
+instruction = "Classify the sentiment of the review."
+prompt = build_prompt(instruction, examples, new_review)
+print(prompt)
+print("shots:", len(examples))
+
+# Structured output: suppose we asked for JSON
+# and the model replied like this
+reply = '{"sentiment": "negative", "sarcastic": true}'
+# json.loads turns the text into a Python dict
+data = json.loads(reply)
+print(data["sentiment"], data["sarcastic"])
+
+chatty = "Sure! The sentiment is negative."
+try:
+    json.loads(chatty)
+except json.JSONDecodeError:
+    print("Not valid JSON: retry with a stricter prompt")`
+
+Ask a chatbot "help me study" and you get a generic list of tips. Give it your exam date, your weak topic, your timetable and the shape of answer you want, and you get a plan you can actually use. Same model, same weights: the only thing that changed is the text you typed. **Prompt engineering** is the skill of writing that text well, and it is the cheapest way there is to make a language model more useful.
+
+## What a prompt really is
+
+As you saw in [How LLMs are built](#/learn/large-language-models/how-llms-are-built), a <Term def="Large language model: a neural network trained on huge amounts of text to predict the next token. GPT-4, Gemini, Claude and Llama are LLMs (ChatGPT is a chatbot built on GPT models).">large language model</Term> (LLM) does one thing over and over: given some text, it predicts the next <Term def="A small piece of text, often a word or part of a word, that a language model reads and writes one at a time.">token</Term>, adds it to the text, and repeats. The <Term def="The text you give a language model to continue: instructions, examples, documents and your question.">prompt</Term> is the text you give it to continue.
+
+So everything the model can use while answering comes from exactly two places:
+
+- its **weights**, the billions of numbers it learned during training, and
+- the **prompt**, which sits in its <Term def="The maximum number of tokens a model can take into account at once, prompt and reply together.">context window</Term> while it writes.
+
+Here is that idea as a formula, which we will reuse all through this module:
+
+$$
+P_\theta(\text{next token} \mid \text{prompt})
+$$
+
+- $P$ is a probability: how likely each possible next token is.
+- $\theta$ (the Greek letter theta) stands for all of the model's weights. They were fixed when training ended.
+- The bar $\mid$ means "given". The probabilities are worked out *given* everything in the prompt.
+
+Training changes $\theta$. Prompting changes only what comes after the bar.
+
+<KeyIdea>
+
+Prompting changes the **input**, never the **model**. A better prompt gives the same frozen model better information to work from.
+
+</KeyIdea>
+
+<PastPaperQuestion paper="prelim2026" n={231} />
+
+## Zero-shot, one-shot and few-shot
+
+<Analogy title="Two plates for the new canteen helper">
+
+A new helper joins the school canteen stall. You could just say "make the set lunch" and hope. Or you could put two finished plates on the counter: rice here, two vegetables there, egg on top, sauce on the side. The helper copies the pattern straight away, without any formal training, and forgets it the day the plates are taken away.
+
+</Analogy>
+
+In prompting, a solved example is called a **shot**. How many shots you include gives the three standard names:
+
+| Name | What the prompt contains |
+|---|---|
+| **zero-shot** | an instruction only, no solved examples of the task |
+| **one-shot** | an instruction plus one solved example |
+| **few-shot** | an instruction plus a few solved examples (typically 2 to 10) |
+
+Here is a two-shot (so few-shot) prompt for classifying hawker-food reviews. The prompt ends with `Sentiment:` and leaves it unfinished, so the most natural continuation is a single label.
+
+<CodeBlock code={twoShotPrompt} language="text" title="prompt" showLineNumbers={false} />
+
+The new review is sarcastic, which is the hard part. Build the prompt yourself below.
+
+<FewShotBuilder />
+
+What the builder shows:
+
+- **Examples teach the format**, often more reliably than a description. With zero shots the model often chats; with three it answers in one word.
+- **Relevant examples teach the hard part.** The two sarcasm examples move the label the most, because they look like the new review.
+- **Bad examples do real damage.** One mislabelled example close to the new review can flip the answer. Order matters too: many models show a <Term def="The tendency of a language model to be swayed most by the examples nearest the end of the prompt.">recency bias</Term>, so the same examples in a different order can change the answer.
+- **Nothing is kept.** Clear the examples and you are back to zero-shot behaviour.
+
+<PastPaperQuestion paper="prelim2026" n={233} />
+
+## In-context learning: learning without changing the weights
+
+The model picked up the task from examples **inside its context**. This is called <Term def="A large language model's ability to pick up a task from instructions and examples in its prompt, with no change to its weights.">in-context learning</Term>. It became famous in 2020, when the GPT-3 paper was titled "Language Models are Few-Shot Learners".
+
+In the formula, a few-shot prompt just puts the examples after the bar:
+
+$$
+P_\theta(y \mid I,\ x_1, y_1,\ \dots,\ x_k, y_k,\ x)
+$$
+
+- $I$ is the instruction, for example "Classify the sentiment of the review."
+- $x_1, \dots, x_k$ are the example inputs and $y_1, \dots, y_k$ their answers, so $k$ is the number of shots.
+- $x$ is the new input and $y$ the answer we want.
+- $\theta$ is unchanged. There is no loss, no gradient and no update. The "learning" lasts only as long as the examples stay in the prompt.
+
+That is the big difference from <Term def="Continuing to train a pretrained model on task-specific data, which updates its weights.">fine-tuning</Term> (see [Fine-tuning and LoRA](#/learn/large-language-models/fine-tuning-and-lora)), which really does change $\theta$ by further training. You will compare the two in [the next lesson](#/learn/prompting-and-rag/rag-pipeline).
+
+<QuickCheck
+  q="You give a model 5 labelled examples and it classifies new reviews well. Then you open a new chat and send only a new review, with no examples. What happens?"
+  options={['It is back to zero-shot: the examples were never stored in the weights', 'It still uses the 5 examples, because it was trained on them during the first chat', 'It does better than before, because each chat fine-tunes the model a little', 'It refuses to answer until you give it the 5 examples again']}
+  answer={0}
+  explain="In-context learning only lasts while the examples are in the prompt. The first chat ran no gradient descent, so $\theta$ is exactly the same as before and the new chat is a plain zero-shot prompt."
+/>
+
+<Mistake title="Two classic traps">
+
+**"Few-shot prompting trains the model."** No. No weights change; open a new chat and the effect is gone.
+
+**"Zero-shot means no training at all."** No. The model was trained on trillions of tokens before you ever met it. Zero-shot means no **task-specific** examples: you only describe the task.
+
+</Mistake>
+
+<PastPaperQuestion paper="prelim2026" n={232} />
+
+<Tip title="Choosing good examples">
+
+Cover every label, roughly equally (models also copy whichever label is most common). Make the examples look like the real inputs, including the hard cases. Keep the format identical in every example. And check every label: a wrong example teaches the wrong thing.
+
+</Tip>
+
+## Anatomy of a good prompt
+
+<Analogy title="A brief for the CCA committee">
+
+Asking a friend in your CCA to "do the poster" gets you something, but probably not what you need. A good brief says who they are doing it as, what exactly to make, what they need to know (date, venue), the limits (A3, school colours), and what the final poster must look like.
+
+</Analogy>
+
+A model can only follow what you actually wrote. Reliable prompts tend to contain the same six parts.
+
+| Part | What it tells the model | Example |
+|---|---|---|
+| **Role** | who to act as: expertise, audience, tone | "You are a patient maths tutor for Sec 3 students." |
+| **Task** | exactly what to produce, with a clear verb | "Write three practice questions on the mean." |
+| **Context** | facts it cannot know: your data, dates, documents | "We have only covered mean and median so far." |
+| **Constraints** | limits to respect, and what to do if unsure | "Under 100 words. Use whole numbers only." |
+| **Format** | the exact shape of the answer | "A numbered list, answers at the end." |
+| **Reasoning** | think before the final answer | "Check each question has one correct answer before writing it." |
+
+The role often goes in the <Term def="Instructions placed before the conversation, usually by the app developer, that set the model's role and rules for every reply.">system prompt</Term>, a block of instructions the app sends before your message. Now take a prompt apart and put it back together.
+
+<PromptAnatomy />
+
+<KeyIdea>
+
+Most prompt quality comes from being **specific about the task and the format**. Context fills knowledge gaps: without it the model can only guess, and a confident guess that sounds right but is false is called a <Term def="When a language model states something fluent and confident that is false or not supported by its sources.">hallucination</Term> (see [Limits, risks and responsible use of AI](#/learn/large-language-models/limits-and-responsible-ai)).
+
+</KeyIdea>
+
+<Steps title="Worked example: from a vague prompt to one a program can use">
+  <Step title="Start vague">
+    "Read this email and tell me about the student." The model replies with a friendly paragraph. Fine for a human, useless for filling in a spreadsheet of CCA sign-ups.
+  </Step>
+  <Step title="Name the exact task">
+    "Extract the student's name, class and chosen CCA from the email below." Now the model knows which three facts matter.
+  </Step>
+  <Step title="Mark where the data is">
+    Put the email between <Term def="Characters such as triple quotes or ### that clearly mark where a block of data starts and ends inside a prompt.">delimiters</Term>, for example `"""` before and after it. The model can tell your instructions apart from the email's text, which also makes it harder for text inside the email to act as instructions.
+  </Step>
+  <Step title="Fix the format">
+    "Reply with JSON only, using exactly the keys name, class and cca." Every reply now has the same shape.
+  </Step>
+  <Step title="Say what to do when information is missing">
+    "If a field is not in the email, use null. Do not guess." Without this line the model tends to invent a plausible class like 3E.
+  </Step>
+</Steps>
+
+## Structured output: answers your code can read
+
+When a program reads the model's answer (a marking script, a spreadsheet, a grader), you need **structured output**: text in a fixed, machine-readable format. The most common is <Term def='JavaScript Object Notation: a text format for data made of keys and values, like {"name": "Mei", "class": "3E"}. Python reads it with json.loads.'>JSON</Term>, which Python turns into a dictionary with `json.loads`. Prompts are just strings, so you can also build them with code. Run this, then add a third example or change the reply.
+
+<PyRunner code={promptCode} />
+
+The output ends with:
+
+```text
+shots: 2
+negative True
+Not valid JSON: retry with a stricter prompt
+```
+
+<Mistake title="Asking is not the same as getting">
+
+Even a clear format instruction is followed most of the time, not every time. Code that reads model output should check it (as the `try`/`except` does) and retry or fall back. Many LLM services also offer a setting that forces valid JSON.
+
+</Mistake>
+
+## Chain-of-thought: give the model room to think
+
+<Term def="Prompting a model to write out intermediate reasoning steps before its final answer.">Chain-of-thought</Term> (CoT) prompting asks the model to write its reasoning **before** the final answer. There are two common versions:
+
+- **Zero-shot CoT**: add a phrase such as "Let's think step by step." to the prompt.
+- **Few-shot CoT**: give examples whose answers include the full worked solution, so the model copies the habit of showing working.
+
+Why should writing more help? Each token the model writes gets one pass through a fixed number of layers, so only a limited amount of computation is available per token. If the first token must already be the answer, every step of a multi-step problem has to happen inside that single pass. Written-out steps store each intermediate result **in the context**, where the next step can read it. The working is the model's scratch paper.
+
+<ChainOfThought />
+
+Chain-of-thought helps most on multi-step problems: arithmetic word problems, logic puzzles, planning. For a simple lookup or a one-word classification it adds little, and the extra tokens cost time and money. A stronger variant, **self-consistency**, samples several different reasoning chains and takes a majority vote on their final answers.
+
+<Mistake title="Shown working is not proof">
+
+The steps a model writes can still contain a slip, and they are not guaranteed to be how the model really reached its answer. Check the working, especially the arithmetic, just as you would check a classmate's.
+
+</Mistake>
+
+<QuickCheck
+  q="A model often gets multi-step word problems wrong but simple one-step sums right. Which change to the prompt is most likely to help?"
+  options={['Ask it to write out each step before giving the final answer', 'Ask it to reply with the final number only, to avoid confusion', 'Raise the sampling temperature so it explores more answers', 'Remove the numbers from the question so the prompt is shorter']}
+  answer={0}
+  explain="That is chain-of-thought prompting: each written step stores an intermediate result in the context for the next step to use. Asking for the final number only does the opposite, forcing all the steps into one token, and a higher temperature only makes the output more random."
+/>
+
+<ExamTip>
+
+Prelim questions on this topic are mostly quick definitions, so match the keyword to the name:
+
+- "no task-specific examples" → **zero-shot**; "one example" → **one-shot**; "a small number of examples in the prompt" → **few-shot**
+- "learns from examples in the prompt, no weight updates" → **in-context learning**
+- "updating the model's weights on task data" → **fine-tuning**, not prompting
+- "write intermediate reasoning steps" → **chain-of-thought**
+- "designing the input text to guide the output" → **prompt engineering**
+
+The favourite trap is an option that says prompting "trains" or "updates" the model. It never does.
+
+</ExamTip>
+
+<Takeaways>
+
+- A prompt is the text the model continues. The model computes $P_\theta(\text{next token} \mid \text{prompt})$: prompting changes what follows the bar, never the weights $\theta$.
+- Zero-shot = instruction only, one-shot = one solved example, few-shot = a few. The model picks up the pattern by **in-context learning**, which disappears when the examples are removed.
+- Good examples are representative, balanced, correctly labelled and identically formatted. Their order can matter too (models often favour the last examples).
+- Strong prompts state the role, task, context, constraints and **exact output format**. Ask for JSON when code must read the answer, and still check it.
+- **Chain-of-thought** prompting ("think step by step") gives the model scratch paper, which helps on multi-step problems.
+
+</Takeaways>

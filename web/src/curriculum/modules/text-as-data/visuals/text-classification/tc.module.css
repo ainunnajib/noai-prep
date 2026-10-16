@@ -1,0 +1,526 @@
+/* Shared styles for the text-classification visuals. Colours come from theme tokens only. */
+
+.wrap {
+  width: 100%;
+  display: grid;
+  gap: 0.85rem;
+  min-width: 0;
+}
+
+/* ---------- text input + preset sentences ---------- */
+.inputRow {
+  display: grid;
+  gap: 0.45rem;
+}
+.inputLabel {
+  font-size: var(--step--1);
+  font-weight: 700;
+  color: var(--ink-2);
+}
+.input {
+  width: 100%;
+  min-width: 0;
+  font-size: 1rem !important;
+}
+.input:focus-visible,
+.preset:focus-visible,
+.shuffle:focus-visible {
+  outline: 3px solid var(--accent);
+  outline-offset: 2px;
+}
+.presets {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+.preset {
+  font: inherit;
+  font-size: 0.8rem;
+  line-height: 1.25;
+  padding: 0.25rem 0.6rem;
+  border-radius: 999px;
+  border: 1.5px solid var(--rule);
+  background: var(--surface);
+  color: var(--ink-2);
+  cursor: pointer;
+  text-align: left;
+  max-width: 100%;
+}
+.preset:hover {
+  border-color: var(--accent-line);
+}
+.preset[aria-pressed='true'] {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+  color: var(--ink);
+}
+
+/* ---------- live result next to the input ---------- */
+.resultRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.3rem 0.6rem;
+  margin: -0.2rem 0 0;
+}
+.resultChip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.25rem 0.75rem;
+  border-radius: 999px;
+  border: 1.5px solid var(--rule);
+  font-size: var(--step--1);
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+}
+.resultPos {
+  background: color-mix(in srgb, var(--viz-pos) 16%, var(--surface));
+  border-color: var(--viz-pos);
+}
+.resultNeg {
+  background: color-mix(in srgb, var(--viz-neg) 14%, var(--surface));
+  border-color: var(--viz-neg);
+}
+.resultMode {
+  font-size: 0.8rem;
+  color: var(--ink-2);
+}
+.stack {
+  display: grid;
+  gap: 0.85rem;
+  min-width: 0;
+}
+.sideBySide {
+  display: grid;
+  grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr);
+  gap: 0.75rem;
+  align-items: start;
+  min-width: 0;
+}
+
+/* ---------- pipeline stages ---------- */
+.stage {
+  display: grid;
+  gap: 0.5rem;
+  padding: 0.65rem 0.75rem 0.75rem;
+  border: 1.5px solid var(--rule);
+  border-radius: var(--radius-m);
+  background: var(--surface-2);
+  min-width: 0;
+}
+.stageHead {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  font-weight: 750;
+  color: var(--ink);
+  font-size: var(--step-0);
+}
+.stageNum {
+  display: inline-grid;
+  place-items: center;
+  width: 1.55rem;
+  height: 1.55rem;
+  border-radius: 50%;
+  background: var(--accent);
+  color: var(--accent-ink);
+  font-size: 0.85rem;
+  font-weight: 800;
+  flex: none;
+}
+.stageNote {
+  font-size: var(--step--1);
+  color: var(--ink-2);
+  line-height: 1.45;
+  margin: 0;
+}
+.arrowDown {
+  justify-self: center;
+  color: var(--ink-3);
+  font-size: 1.1rem;
+  line-height: 1;
+  margin: -0.35rem 0;
+}
+
+/* ---------- tokens ---------- */
+.tokens {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+  min-height: 1.9rem;
+}
+.tok {
+  font-family: var(--font-mono);
+  font-size: 0.82rem;
+  padding: 0.12rem 0.45rem;
+  border-radius: 6px;
+  border: 1.5px solid var(--rule);
+  background: var(--surface);
+  color: var(--ink);
+  white-space: nowrap;
+}
+.tokKnown {
+  border-color: var(--accent-line);
+  font-weight: 700;
+}
+.tokStop {
+  color: var(--ink-3);
+  text-decoration: line-through;
+  background: transparent;
+}
+.tokUnknown {
+  border-style: dashed;
+  color: var(--ink-3);
+  background: transparent;
+}
+.legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem 0.9rem;
+  font-size: 0.78rem;
+  color: var(--ink-2);
+}
+.legend span {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+.empty {
+  font-size: var(--step--1);
+  color: var(--ink-3);
+  font-style: italic;
+}
+
+/* ---------- TF-IDF vector strip ---------- */
+.strip {
+  display: grid;
+  gap: 1px;
+  height: 26px;
+  width: 100%;
+  border-radius: 4px;
+  overflow: hidden;
+  background: var(--rule);
+  border: 1px solid var(--rule);
+}
+.stripCell {
+  min-width: 0;
+}
+.entries {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+}
+.entry {
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  padding: 0.1rem 0.45rem;
+  border-radius: 6px;
+  color: var(--ink);
+  border: 1px solid var(--accent-line);
+}
+
+/* ---------- diverging contribution bars ---------- */
+.dbars {
+  display: grid;
+  grid-template-columns: minmax(3.5rem, max-content) minmax(0, 1fr) max-content;
+  align-items: center;
+  gap: 0.3rem 0.55rem;
+  font-size: var(--step--1);
+  width: 100%;
+}
+.dLabel {
+  font-family: var(--font-mono);
+  font-size: 0.82rem;
+  color: var(--ink);
+  overflow-wrap: anywhere;
+}
+.dTrack {
+  position: relative;
+  height: 0.95rem;
+  background: var(--surface);
+  border-radius: 3px;
+}
+.dTrack::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: -3px;
+  bottom: -3px;
+  width: 1.5px;
+  background: var(--viz-axis);
+}
+.dFill {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  border-radius: 3px;
+  transition: width 0.25s ease, left 0.25s ease;
+}
+.dValue {
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  text-align: right;
+  color: var(--ink);
+  min-width: 5ch;
+}
+.dAxis {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.74rem;
+  color: var(--ink-3);
+  grid-column: 2;
+}
+
+/* ---------- score line + probability bar ---------- */
+.sum {
+  font-family: var(--font-mono);
+  font-size: 0.85rem;
+  color: var(--ink);
+  line-height: 1.6;
+  overflow-wrap: anywhere;
+  margin: 0;
+}
+.prob {
+  display: grid;
+  gap: 0.3rem;
+}
+.probLabels {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.5rem;
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--ink-2);
+}
+.probLabels span:first-child {
+  color: var(--viz-pos);
+}
+.probLabels span:last-child {
+  color: var(--viz-neg);
+}
+.probBar {
+  display: flex;
+  height: 1.1rem;
+  border-radius: 6px;
+  overflow: hidden;
+  border: 1px solid var(--rule);
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+.probPos,
+.probNeg {
+  display: flex;
+  align-items: center;
+  overflow: hidden;
+  white-space: nowrap;
+  transition: width 0.25s ease;
+  color: var(--ink);
+}
+.probPos {
+  background: color-mix(in srgb, var(--viz-pos) 55%, var(--surface));
+  justify-content: flex-start;
+  padding-left: 0.45rem;
+}
+.probNeg {
+  background: color-mix(in srgb, var(--viz-neg) 45%, var(--surface));
+  justify-content: flex-end;
+  padding-right: 0.45rem;
+}
+.verdict {
+  font-size: var(--step--1);
+  color: var(--ink-2);
+  margin: 0;
+}
+.verdict strong {
+  color: var(--ink);
+}
+.ok {
+  color: var(--ok);
+  font-weight: 800;
+}
+.bad {
+  color: var(--bad);
+  font-weight: 800;
+}
+
+/* ---------- word weights ---------- */
+.twoCols {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(230px, 100%), 1fr));
+  gap: 0.9rem 1.4rem;
+  width: 100%;
+}
+.colTitle {
+  margin: 0 0 0.4rem;
+  font-size: var(--step--1);
+  font-weight: 750;
+  color: var(--ink-2);
+}
+.sentence {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  align-items: flex-start;
+}
+.wordChip {
+  display: grid;
+  justify-items: center;
+  gap: 0.05rem;
+  padding: 0.2rem 0.45rem 0.15rem;
+  border-radius: 7px;
+  border: 1.5px solid var(--rule);
+  min-width: 2.4rem;
+}
+.wordChip b {
+  font-family: var(--font-mono);
+  font-size: 0.9rem;
+  color: var(--ink);
+}
+.wordChip small {
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  color: var(--ink-2);
+}
+.wordFaint b {
+  color: var(--ink-3);
+  font-weight: 500;
+}
+.shuffle {
+  font: inherit;
+  font-size: var(--step--1);
+}
+.row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 1rem;
+  align-items: center;
+}
+
+/* ---------- confusion matrix ---------- */
+.cm {
+  display: grid;
+  gap: 3px;
+  font-size: 0.82rem;
+  width: max-content;
+  max-width: 100%;
+}
+.cmHead {
+  font-weight: 700;
+  color: var(--ink-2);
+  font-size: 0.74rem;
+  line-height: 1.15;
+  display: grid;
+  place-items: end center;
+  text-align: center;
+  padding: 0 2px 2px;
+}
+.cmRowHead {
+  font-weight: 700;
+  color: var(--ink-2);
+  font-size: 0.74rem;
+  line-height: 1.15;
+  display: grid;
+  align-items: center;
+  justify-items: end;
+  text-align: right;
+  padding-right: 4px;
+}
+.cmCell {
+  display: grid;
+  place-items: center;
+  height: 2.4rem;
+  min-width: 3.1rem;
+  border-radius: 5px;
+  font-family: var(--font-mono);
+  font-weight: 700;
+  color: var(--ink);
+  border: 1.5px solid transparent;
+}
+.cmDiag {
+  border-color: var(--viz-pos);
+}
+.cmAxis {
+  font-size: 0.74rem;
+  color: var(--ink-3);
+  text-align: center;
+}
+.metrics {
+  display: grid;
+  grid-template-columns: max-content repeat(3, minmax(3.2rem, max-content));
+  gap: 0.25rem 0.9rem;
+  font-size: var(--step--1);
+  align-items: center;
+}
+.metrics span {
+  font-family: var(--font-mono);
+  text-align: right;
+  color: var(--ink);
+}
+.metrics .mHead {
+  font-family: inherit;
+  font-weight: 700;
+  color: var(--ink-2);
+  text-align: right;
+}
+.metrics .mName {
+  font-family: inherit;
+  text-align: left;
+  font-weight: 700;
+  color: var(--ink-2);
+}
+.metrics .mZero {
+  color: var(--bad);
+  font-weight: 800;
+}
+.big {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+  width: 100%;
+}
+.bigItem {
+  flex: 1 1 140px;
+  display: grid;
+  gap: 0.25rem;
+  padding: 0.5rem 0.7rem;
+  border-radius: var(--radius-m);
+  border: 1.5px solid var(--rule);
+  background: var(--surface-2);
+}
+.bigItem small {
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--ink-2);
+}
+.bigItem strong {
+  font-family: var(--font-mono);
+  font-size: 1.35rem;
+  color: var(--ink);
+}
+.meter {
+  height: 0.5rem;
+  border-radius: 999px;
+  background: var(--surface-3);
+  overflow: hidden;
+}
+.meter > span {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  transition: width 0.25s ease;
+}
+.panels {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(250px, 100%), 1fr));
+  gap: 1rem 1.5rem;
+  width: 100%;
+  align-items: start;
+}
+.panelTitle {
+  margin: 0 0 0.45rem;
+  font-size: var(--step--1);
+  font-weight: 750;
+  color: var(--ink-2);
+}

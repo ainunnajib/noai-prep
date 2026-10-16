@@ -1,0 +1,156 @@
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  width: 100%;
+}
+
+.chip {
+  font: inherit;
+  font-size: 0.85rem;
+  font-weight: 650;
+  line-height: 1.25;
+  padding: 0.38rem 0.75rem;
+  border-radius: 999px;
+  border: 1.5px solid var(--rule);
+  background: var(--surface);
+  color: var(--ink);
+  cursor: pointer;
+  text-align: left;
+  transition: background 0.12s ease, border-color 0.12s ease, transform 0.08s ease;
+}
+
+.chip:hover:not(:disabled) {
+  background: var(--surface-2);
+}
+
+.chip:active:not(:disabled) {
+  transform: translateY(1px);
+}
+
+.chip:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.chip:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.chip.selected {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+
+.chip.good {
+  border-color: var(--ok);
+  background: var(--ok-soft);
+}
+
+.chip.bad {
+  border-color: var(--bad);
+  background: var(--bad-soft);
+}
+
+.chip.muted {
+  color: var(--ink-3);
+}
+
+.stepLabel {
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+  margin-bottom: 0.3rem;
+}
+
+.section {
+  width: 100%;
+  display: grid;
+  gap: 0.15rem;
+}
+
+.codeLine {
+  display: block;
+  width: 100%;
+  text-align: left;
+  font: inherit;
+  border: none;
+  background: transparent;
+  padding: 0.06rem 0.75rem 0.06rem 0.6rem;
+  line-height: 1.55;
+  min-height: 1.55em;
+  color: var(--ink);
+  border-left: 3px solid transparent;
+}
+
+button.codeLine {
+  cursor: pointer;
+}
+
+button.codeLine:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--accent) 9%, var(--surface-2));
+}
+
+button.codeLine:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+}
+
+button.codeLine:disabled {
+  cursor: default;
+}
+
+.lineNo {
+  display: inline-block;
+  width: 1.7em;
+  margin-right: 0.45rem;
+  color: var(--ink-3);
+  text-align: right;
+  font-size: 0.85em;
+  user-select: none;
+}
+
+.shake {
+  animation: shake 0.35s ease;
+}
+
+@keyframes shake {
+  0%,
+  100% {
+    translate: 0 0;
+  }
+  25% {
+    translate: -4px 0;
+  }
+  50% {
+    translate: 4px 0;
+  }
+  75% {
+    translate: -2px 0;
+  }
+}
+
+.pop {
+  animation: pop 0.35s ease;
+}
+
+@keyframes pop {
+  0% {
+    transform: scale(0.97);
+    opacity: 0.4;
+  }
+  100% {
+    transform: none;
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .shake,
+  .pop {
+    animation: none;
+  }
+}

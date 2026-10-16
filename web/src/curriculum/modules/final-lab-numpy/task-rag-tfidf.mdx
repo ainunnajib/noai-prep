@@ -1,0 +1,363 @@
+import { FINAL } from '../../../data/facts'
+import TFIDFTableBuilder from './visuals/task-rag-tfidf/TFIDFTableBuilder'
+import RetrievalScoreboard from './visuals/task-rag-tfidf/RetrievalScoreboard'
+import RAGRunner from './visuals/task-rag-tfidf/RAGRunner'
+
+export const ragCode = `import re
+import numpy as np
+
+documents = [
+    "Artificial intelligence is transforming industries.",
+    "Machine learning is a subset of artificial intelligence.",
+    "Deep learning allows machines to solve complex problems.",
+    "Data science involves statistics and machine learning.",
+    "Neural networks are inspired by the human brain."
+]
+query = "How does machine learning work?"
+
+# ---------- your code here ----------
+STOP_WORDS = {"a", "an", "the", "is", "are", "of", "and", "to", "by", "how", "does",
+              "do", "what", "why", "in", "on", "for", "it", "this", "that", "with", "as"}
+
+def tokenise(text):
+    # lower-case, keep runs of letters ("learning." -> "learning"), drop stop words
+    return [w for w in re.findall(r"[a-z]+", text.lower()) if w not in STOP_WORDS]
+
+# 1. vocabulary: every distinct document token gets a column number
+doc_tokens = [tokenise(d) for d in documents]
+vocab = sorted({w for toks in doc_tokens for w in toks})
+word_to_index = {w: j for j, w in enumerate(vocab)}
+N, V = len(documents), len(vocab)
+
+# 2. term frequency: raw counts, shape (N, V)
+tf = np.zeros((N, V))
+for i, toks in enumerate(doc_tokens):
+    for w in toks:
+        tf[i, word_to_index[w]] += 1
+
+# 3. smoothed IDF, shape (V,)
+df = (tf > 0).sum(axis=0)              # documents containing each word
+idf = np.log((1 + N) / (1 + df)) + 1
+doc_vectors = tf * idf                 # TF-IDF, shape (N, V)
+
+# 4. the query in the SAME space (same vocabulary, same idf)
+def vectorise(text):
+    v = np.zeros(V)
+    for w in tokenise(text):
+        if w in word_to_index:         # words in no document are ignored
+            v[word_to_index[w]] += 1
+    return v * idf
+
+q = vectorise(query)
+
+# 5. cosine similarity with every document, then the top k
+scores = doc_vectors @ q / (np.linalg.norm(doc_vectors, axis=1) * np.linalg.norm(q) + 1e-10)
+k = 2
+order = np.argsort(-scores, kind="stable")     # best first; ties keep document order
+top_indices = [i for i in order[:k] if scores[i] > 0]
+top_documents = [documents[i] for i in top_indices]
+
+# 6. generate: an extractive template (no LLM allowed in the exam)
+def generate(docs):
+    if not docs:
+        return "I don't know based on the given documents."
+    return "According to the documents: " + " ".join(docs)
+
+response = generate(top_documents)
+print("scores:", np.round(scores, 4))
+
+# ---------- the protected print cell ----------
+print("Query:", query)
+print("\\nRetrieved Documents:")
+for doc in top_documents:
+    print("-", doc)
+print("\\nGenerated Response:")
+print(response)`
+
+Question 3 of the 2025 Final was worth **40 of the 80 programming marks**, and it was the only task with no function to fill in: five sentences, one question and a print cell waiting for two variables. In this lesson you rebuild it from an empty cell with only NumPy and the standard library, check your printout against the notebook's expected output, and write the "thought process" answer the notebook asks for.
+
+<Note title="Before you start">
+
+You have already built this exact retriever twice: in [Bag of words, TF-IDF and cosine retrieval](#/learn/text-as-data/bag-of-words-and-tfidf) and, with edge cases and the written explanation, in [Building a RAG retriever from scratch](#/learn/prompting-and-rag/rag-from-scratch). This lesson is the timed exam version: the print-cell contract, a hand check of the official scoring, and a complete answer including the thought-process cell.
+
+</Note>
+
+<Analogy title="The index at the back of your textbook">
+
+Before an open-book exam you would want a good index at the back of the textbook. It lists every useful word and the pages where it appears, and it leaves out words like "the" and "is" that appear on every page. Building TF-IDF vectors is building that index. Answering the question is the open-book part: look up the question's words, open the two pages that match best, and write your answer from what they say.
+
+</Analogy>
+
+## What the notebook gives you
+
+The task tells a classroom story. Ms Sally wants a "smart assistant" that answers **"How does machine learning work?"** using only these five documents, in two steps: **retrieve, then generate**. This is a tiny <Term def="Retrieval-augmented generation: first retrieve the documents most relevant to a question, then generate an answer that uses them as its source.">RAG</Term> system.
+
+```python
+# DO NOT MAKE CHANGES TO THIS CELL
+documents = [
+    "Artificial intelligence is transforming industries.",
+    "Machine learning is a subset of artificial intelligence.",
+    "Deep learning allows machines to solve complex problems.",
+    "Data science involves statistics and machine learning.",
+    "Neural networks are inspired by the human brain."
+]
+query = "How does machine learning work?"
+```
+
+Then comes an empty cell (`# your code here`), and then a second protected cell:
+
+```python
+# DO NOT MAKE CHANGES TO THIS CELL
+print("Query:", query)
+print("\nRetrieved Documents:")
+for doc in top_documents:
+    print("-", doc)
+print("\nGenerated Response:")
+print(response)
+```
+
+Read that print cell as a **contract**. Your code must create exactly two names: `top_documents`, a list of document strings with the best match first, and `response`, a string. If either name is missing, the protected cell stops with a `NameError` and prints no answer at all, however good your code above it was. The story tells you which documents to expect ("the second and fourth ones"). Under "Expected output", the notebook also shows a sample answer, *"Machine learning is a subset of artificial intelligence that enables systems to learn from data. It involves techniques like statistics and algorithms, often used in data science."* A final cell asks you to **share your thought process**. The only allowed tools were the Python 3.9 standard library and NumPy: no scikit-learn and no language model.
+
+## The plan in six steps
+
+1. **Tokenise** every document and the query.
+2. Build the **vocabulary** from the documents.
+3. Count words to get **term frequencies** (TF).
+4. Weight them by **inverse document frequency** (IDF) to get TF-IDF vectors, and vectorise the query **the same way**.
+5. Score every document with **cosine similarity** and keep the **top k**.
+6. **Generate** `response` from the retrieved documents.
+
+Steps 1 to 4 turn text into numbers, step 5 is the "retrieve", and step 6 is the "generate".
+
+## Steps 1 to 4: turn the text into vectors
+
+To <Term def="Split a text into tokens, the units a program counts. Here: lower-case words with punctuation removed.">tokenise</Term> a sentence, lower-case it and keep only runs of letters with `re.findall(r"[a-z]+", text.lower())`. That way "intelligence." and "intelligence" become the same token. Then drop <Term def="Very common words such as the, is, a, of, how and does. They appear almost everywhere, so they say nothing about what a document is about.">stop words</Term>. The **vocabulary** is the sorted list of every distinct token in the documents. Each word gets a fixed column number, so every text becomes a vector with one entry per vocabulary word.
+
+<TFIDFTableBuilder />
+
+Here is what the table computes, symbol by symbol. For a word (term) $t$ and a document $d$, with $N$ documents in total:
+
+$$
+\begin{aligned}
+\mathrm{tf}(t, d) &= \text{number of times } t \text{ occurs in } d \\
+\mathrm{idf}(t) &= \ln\frac{1 + N}{1 + \mathrm{df}(t)} + 1 \\
+w_{t,d} &= \mathrm{tf}(t, d) \times \mathrm{idf}(t)
+\end{aligned}
+$$
+
+- $\mathrm{tf}(t, d)$, the <Term def="How often a word occurs in one document. We use the raw count.">term frequency</Term>, says how much document $d$ uses word $t$.
+- $\mathrm{df}(t)$, the <Term def="The number of documents that contain the word at least once.">document frequency</Term>, counts the **documents** that contain $t$ at least once, not the total number of occurrences.
+- $\frac{1+N}{1+\mathrm{df}}$ is big for a rare word and equals 1 for a word found in every document. The $+1$ inside acts as if one extra document contained every word, so we never divide by zero. The $\ln$ squashes the ratio, and the final $+1$ means even the most common word keeps a small weight. This is scikit-learn's default, called the <Term def="An IDF formula with +1 added to N and to df (as if one extra document contained every word) and +1 added at the end, so it never divides by zero and is never 0.">smoothed IDF</Term>.
+- $w_{t,d}$ is the TF-IDF weight: **how much this document uses the word × how rare the word is**.
+
+This is not the plain $\mathrm{idf} = \log(N/\mathrm{df})$ from the [TF-IDF lesson](#/learn/text-as-data/bag-of-words-and-tfidf), where documents 2 and 4 of this task scored 0.453 and 0.310 (here they score 0.5685 and 0.4643). The +1s change the numbers but not which two documents win, and they stop a word found in every document from vanishing.
+
+With $N = 5$: "learning" is in 3 documents, so $\mathrm{idf} = \ln\frac{6}{4} + 1 \approx 1.41$. "machine" is in 2, so $\ln\frac{6}{3} + 1 \approx 1.69$. A word found in just one document, such as "data", gets $\ln\frac{6}{2} + 1 \approx 2.10$.
+
+<KeyIdea>
+
+The query must live in the **same vector space** as the documents: same tokeniser, same vocabulary (same column numbers) and the same IDF values. Query words that appear in no document, such as "work", have no column and are simply ignored.
+
+</KeyIdea>
+
+<QuickCheck
+  q="With the smoothed IDF $\ln\frac{1+N}{1+\mathrm{df}} + 1$ and $N = 5$ documents, what weight does a word that appears in all five documents get?"
+  options={['1', '0', '$\\ln 6$', '6']}
+  answer={0}
+  explain="$\mathrm{df} = 5$, so $\ln\frac{1+5}{1+5} + 1 = \ln 1 + 1 = 0 + 1 = 1$. The plain formula $\ln(N/\mathrm{df})$ would give 0 and wipe the word out completely; the smoothed one keeps the smallest possible weight instead."
+/>
+
+## Step 5: score the documents and keep the top k
+
+Two vectors point the same way when they use the same words in the same proportions. <Term def="The cosine of the angle between two vectors: their dot product divided by the product of their lengths.">Cosine similarity</Term> measures exactly that:
+
+$$
+\cos(\mathbf{q}, \mathbf{d}) = \frac{\mathbf{q} \cdot \mathbf{d}}{\lVert \mathbf{q} \rVert \, \lVert \mathbf{d} \rVert} = \frac{\sum_j q_j d_j}{\sqrt{\sum_j q_j^2}\,\sqrt{\sum_j d_j^2}}
+$$
+
+- $\mathbf{q}$ is the query vector and $\mathbf{d}$ a document vector; $q_j$ and $d_j$ are their weights for vocabulary word number $j$.
+- The top line, the <Term def="Multiply two vectors entry by entry and add up the products.">dot product</Term>, only collects points from words that **both** vectors contain.
+- The bottom line divides by both lengths, so a long document cannot win just by containing many words. Only the **direction**, its mix of words, counts.
+
+TF-IDF weights are never negative, so here the score runs from 0 (no shared words) to 1 (the same mix). The notebook says cosine ranges "from 0 (completely different) to 1". That is true for these vectors, but cosine in general can be as low as $-1$.
+
+<PastPaperQuestion paper="prelim2026" n={6} />
+
+How much does the cleaning matter? Start from the official solution's choices and switch the clean-up steps on one at a time.
+
+<RetrievalScoreboard />
+
+Let's work through the official settings by hand. They are whitespace tokens, stop words kept and plain counts. Every count is 1, so each squared length is just the number of tokens.
+
+<Steps title="Official settings: why document 4 only just beats document 3">
+  <Step title="The query vector">
+    Of "how", "does", "machine", "learning", "work?", only **machine** and **learning** appear in any document. So $\mathbf{q}$ has two 1s and $\lVert \mathbf{q} \rVert = \sqrt{1 + 1} = \sqrt{2}$.
+  </Step>
+  <Step title="Document 2 (8 tokens)">
+    It contains machine and learning, so $\mathbf{q} \cdot \mathbf{d}_2 = 1 + 1 = 2$ and $\lVert \mathbf{d}_2 \rVert = \sqrt{8}$. That gives $\cos = \frac{2}{\sqrt{2}\sqrt{8}} = \frac{2}{\sqrt{16}} = \frac{2}{4} = 0.5$.
+  </Step>
+  <Step title="Document 3 (8 tokens)">
+    It shares only "learning" ("machines" is a different token from "machine"): $\cos = \frac{1}{\sqrt{2}\sqrt{8}} = \frac{1}{4} = 0.25$.
+  </Step>
+  <Step title="Document 4 (7 tokens)">
+    Its last token is `learning.` with the full stop, which does not match "learning". It shares only "machine": $\cos = \frac{1}{\sqrt{2}\sqrt{7}} = \frac{1}{\sqrt{14}} \approx 0.267$.
+  </Step>
+  <Step title="The ranking">
+    Documents 1 and 5 share nothing and score 0. The top two are d2 (0.5) and d4 (0.267), but d4 beats d3 only because it is **one word shorter**. That is right for the wrong reason.
+  </Step>
+</Steps>
+
+The official code also put the query's own words ("how", "does", "work?") into the vocabulary. That makes $\lVert \mathbf{q} \rVert = \sqrt{5}$ instead of $\sqrt{2}$ and multiplies every score by the same factor $\sqrt{2/5} \approx 0.63$. So you would see 0.316, 0.158 and 0.169 printed, but the order does not change.
+
+Now the clean pipeline. Rounded to 3 decimal places, the IDFs are 1.693 for machine, 1.405 for learning and 2.099 for a word found in only one document. Their squares are about 2.867, 1.975 and 4.404.
+
+<Steps title="Clean TF-IDF: the same two winners, with a clear lead">
+  <Step title="The query">
+    $\mathbf{q}$ = machine 1.693, learning 1.405. Its squared length is $2.867 + 1.975 = 4.842$, so $\lVert \mathbf{q} \rVert \approx 2.20$.
+  </Step>
+  <Step title="Documents 2 and 4 have the same dot product">
+    Each contains machine and learning once, so both dot products are $2.867 + 1.975 = 4.842$.
+  </Step>
+  <Step title="But different lengths">
+    d2 also has subset (one document) plus artificial and intelligence (two documents each, like machine): $\lVert \mathbf{d}_2 \rVert = \sqrt{4.842 + 4.404 + 2.867 + 2.867} = \sqrt{14.980} \approx 3.87$. d4 also has four one-document words (data, science, involves, statistics): $\lVert \mathbf{d}_4 \rVert = \sqrt{4.842 + 4 \times 4.404} = \sqrt{22.458} \approx 4.74$.
+  </Step>
+  <Step title="Scores">
+    $\cos(\mathbf{q}, \mathbf{d}_2) \approx \frac{4.842}{2.20 \times 3.87} \approx 0.57$ and $\cos(\mathbf{q}, \mathbf{d}_4) \approx \frac{4.842}{2.20 \times 4.74} \approx 0.46$. d3 shares only "learning" and has six one-document words, so it scores about 0.17. The lead of d4 over d3 grows from 0.017 to about 0.30.
+  </Step>
+</Steps>
+
+To keep the top $k$, sort the scores from best to worst. `np.argsort` sorts **ascending** (smallest first), so either sort the negated scores, `np.argsort(-scores)[:k]`, or reverse, `np.argsort(scores)[::-1][:k]`. Python counts from 0, so index 1 is document 2. The [RAG retriever lesson](#/learn/prompting-and-rag/rag-from-scratch) covers the sort direction and ties in full.
+
+<QuickCheck
+  q="The official solution picks its documents with `similarities.flatten().argsort()[-2:][::-1]`. If the scores are `[0.0, 0.32, 0.16, 0.17, 0.0]`, what does that expression return?"
+  options={['`[1 3]`', '`[3 1]`', '`[0 4]`', '`[2 4]`']}
+  answer={0}
+  explain="Ascending `argsort()` gives `[0 4 2 3 1]`; `[-2:]` keeps the two best, worst first, `[3 1]`, and `[::-1]` turns them into `[1 3]`: documents 2 and 4. `[0 4]` would be the two worst."
+/>
+
+## Step 6: generate the response
+
+In a real RAG system, the "G" is a language model. It receives an **augmented prompt**, something like *"Using only these documents: ... answer the question: How does machine learning work?"*, and writes a fluent answer. The exam allowed only NumPy, so your generator has to be a rule or a template. Two honest choices:
+
+- **Extractive template.** Join the retrieved sentences: *"According to the documents: Machine learning is a subset of artificial intelligence. Data science involves statistics and machine learning."* It works for any query, and it never states anything the documents do not say.
+- **The official solution's keyword rule.** If the retrieved words include "machine" and "science", return the sample sentence; otherwise return "I don't know.". It matches the expected output word for word, but only for this one question.
+
+The sample answer's "learn from data" and "algorithms" appear in no document: a language model added them from memory, the start of <Term def="When a language model states something that is not supported by its sources or is simply false, as if it were fact.">hallucination</Term>, as the [RAG retriever lesson](#/learn/prompting-and-rag/rag-from-scratch) showed.
+
+<RAGRunner />
+
+<KeyIdea>
+
+Retrieval does the heavy lifting. Once the right documents are in `top_documents`, a simple, honest generator is enough, and the thought-process cell is where you say which generator you chose and why.
+
+</KeyIdea>
+
+## The complete solution
+
+This is everything that goes in the empty cell, about 40 lines. It uses only `re` from the standard library and NumPy. Run it, then change `query` or `k`.
+
+<PyRunner packages={['numpy']} rows={22} code={ragCode} />
+
+It prints:
+
+```text
+scores: [0.     0.5685 0.1684 0.4643 0.    ]
+Query: How does machine learning work?
+
+Retrieved Documents:
+- Machine learning is a subset of artificial intelligence.
+- Data science involves statistics and machine learning.
+
+Generated Response:
+According to the documents: Machine learning is a subset of artificial intelligence. Data science involves statistics and machine learning.
+```
+
+Four details are worth copying:
+
+- The `+ 1e-10` stops a division by zero when no query word is in the vocabulary.
+- `if scores[i] > 0` stops the code from "retrieving" documents that share nothing with the query.
+- `kind="stable"` makes ties go to the earlier document every time.
+- scikit-learn's `TfidfVectorizer`, given the same tokeniser, produces the same five scores. That is a good way to check your own code at home, since the exam does not allow it.
+
+<Reveal label="Show the official 2025 solution and how it differs">
+
+The official solution (published in the NOAI-2025 GitHub repository) is shorter and simpler:
+
+```python
+unique_words = list(set(" ".join(documents + [query]).lower().split()))
+word_to_index = {word: idx for idx, word in enumerate(unique_words)}
+
+def compute_tf(text):
+    tf_vector = np.zeros(len(unique_words))
+    words = text.lower().split()
+    for word in words:
+        if word in word_to_index:
+            tf_vector[word_to_index[word]] += 1
+    return tf_vector / (len(words) + 1e-10)
+
+doc_embeddings = np.array([compute_tf(doc) for doc in documents])
+query_embedding = compute_tf(query).reshape(1, -1)
+# cosine_similarity(...) as in the formula above
+top_indices = similarities.flatten().argsort()[-2:][::-1]
+top_documents = [documents[i] for i in top_indices]
+response = infer_response(top_documents)   # keyword rule: "machine" and "science" -> sample sentence
+```
+
+Here is how it differs from ours:
+
+- **No IDF.** It uses TF only, which is allowed, because the task says "such as" TF-IDF.
+- **Whitespace tokens.** Splitting on spaces leaves the punctuation attached.
+- **The query's words are in the vocabulary.** This scales the scores but does not change the order.
+- **It always returns two documents**, even when a score is 0.
+- **A hard-coded generator.** It is right for the exam query and wrong for most others. Try *What does data science involve?* in the runner above.
+
+Dividing by the number of words changes no cosine score, because cosine ignores length. It still gets documents 2 and 4. The lesson is that **several designs reach the expected documents**, so say which one you chose and why.
+
+</Reveal>
+
+## The thought-process cell
+
+The notebook's last cell asks you to *"share your thought process on how you derive at your solution"*. No marking scheme was published. The cell is part of a 40-mark question, though, so treat it as marks you can earn. Be specific: name each step, each choice and one limitation. For example:
+
+<CodeBlock language="text" title="thought-process cell (your answer)" code={`1. Tokenised with re.findall(r"[a-z]+") on lower-case text so "learning." matches
+   "learning"; removed common stop words (how, does, is, a, ...).
+2. Built the vocabulary from the 5 documents only, then TF = raw counts and
+   smoothed IDF = ln((1+N)/(1+df)) + 1, so rare words like "data" weigh more
+   than "learning" (in 3 of 5 documents).
+3. Vectorised the query with the SAME vocabulary and IDF; "work" is in no
+   document, so it is ignored.
+4. Ranked documents by cosine similarity (scores 0, 0.57, 0.17, 0.46, 0) and kept
+   the top k = 2 with score > 0: documents 2 and 4, as expected.
+5. Generation: no LLM is allowed, so I used an extractive template that only
+   repeats retrieved sentences. It cannot invent facts. The sample answer adds
+   "learn from data" and "algorithms", which no document contains; an LLM
+   would add such phrases, which is how hallucinations start.
+6. Limitations: bag of words ignores word order, treats word forms as
+   different words ("machines" is not "machine") and misses synonyms;
+   embeddings from a neural model would handle these better.`} />
+
+<Mistake title="Five ways to lose marks on this task">
+
+1. **Punctuation stays attached.** With `.split()`, `"learning."` never matches `"learning"`. Use `re.findall(r"[a-z]+", text.lower())`.
+2. **A separate vocabulary or IDF for the query.** If you build the query's vector from its own word list, column 5 of the query no longer means the same word as column 5 of a document, and the dot product multiplies unrelated words.
+3. **Ascending sort.** `np.argsort(scores)[:2]` returns the two **worst** documents. Reverse it or sort `-scores`.
+4. **Indices instead of text.** `top_documents` must hold the sentences (`documents[i]`), not the numbers 1 and 3, or the print cell shows `- 1` and `- 3`.
+5. **Missing names.** Call the variables exactly `top_documents` and `response`, define them in your cell, and make sure the cell has run before the protected print cell.
+
+</Mistake>
+
+<ExamTip>
+
+This kind of open task rewards a plan. In 2025 the paper was 2.5 hours and Q3 was 40 of the 80 programming marks, so budget about 50 to 55 minutes. Get a working end-to-end version first (even TF only), then improve the tokeniser, add IDF and write the thought-process cell. Print intermediate results as you go (`vocab`, `idf`, `scores`). Before you finish, use **Kernel → Restart & Run All** so that the protected print cell really sees your variables. The {FINAL.dateLabel} Final will again have 3 Python tasks, and an open retrieval task like this one could return in a new form, for example with a different scoring rule or with embeddings instead of TF-IDF.
+
+</ExamTip>
+
+<Takeaways>
+
+- The task is a contract: create `top_documents` (sentences, best first) and `response` (a string) for the protected print cell, using NumPy and the standard library only.
+- TF-IDF weight $=$ count $\times$ IDF, with smoothed $\mathrm{idf} = \ln\frac{1+N}{1+\mathrm{df}} + 1$. df counts documents, not occurrences.
+- Vectorise the query with the **same** tokeniser, vocabulary and IDF; words outside the vocabulary are ignored.
+- Rank by cosine similarity, take the top $k$ with `np.argsort(-scores)[:k]`, and skip documents that score 0.
+- Generation can be a simple extractive template; explain your choices, and the sample answer's extra facts, in the thought-process cell.
+
+</Takeaways>

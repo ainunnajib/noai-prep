@@ -1,0 +1,301 @@
+{
+  "slug": "convolutional-networks",
+  "order": 24,
+  "part": "vision",
+  "domain": "ai_ml_dl",
+  "title": "Convolutional neural networks",
+  "tagline": "Seeing with sliding filters",
+  "summary": "Images as tensors, the convolution operation, padding, stride and the output-size formula, multi-channel convolutions and parameter counts, pooling and receptive fields, and CNN architectures from LeNet and VGG to ResNet's residual blocks.",
+  "prerequisites": [
+    "training-deep-networks"
+  ],
+  "syllabus": [
+    "IOAI 3A1 Convolutional Layers",
+    "IOAI 2B3 Pooling Techniques (Max, Average)",
+    "IOAI 3A2 Image Classification",
+    "Output size ⌊(n + 2p − k)/s⌋ + 1, parameter counts, 1×1 and depthwise separable convolutions",
+    "Receptive field, 3×3 stacks (VGG)",
+    "IOAI 3A5 Pre-trained Vision Encoders (ResNet): residual blocks and the degradation problem"
+  ],
+  "paper_subtopics": [
+    "cnn-vision",
+    "neural-networks"
+  ],
+  "lessons": [
+    {
+      "slug": "images-as-tensors",
+      "title": "Images as tensors",
+      "summary": "Pixels, channels and the (C, H, W) layout, normalisation, and why plain MLPs are a poor fit for images.",
+      "minutes": 20,
+      "objectives": [
+        "You can describe a colour image as a C×H×W tensor",
+        "You can count the values in an image and in a batch",
+        "You can explain why flattening an image into an MLP wastes parameters and spatial structure",
+        "You can explain why zero-centred, dataset-wide normalisation beats min-max and per-image scaling"
+      ],
+      "concepts": [
+        {
+          "name": "Pixels, channels and shapes",
+          "explain": "A greyscale image is a grid of brightness numbers; a colour image stacks three grids (red, green, blue), giving shape (3, H, W) in PyTorch. A 224×224 colour image already holds 150,528 numbers, usually scaled from 0-255 to 0-1 and then normalised per channel.",
+          "analogy": "A mosaic mural at an MRT station: zoom in and it is just tiles, each tile mixing three paint colours.",
+          "visual": {
+            "component": "PixelZoom",
+            "kind": "interactive",
+            "shows": "A procedurally drawn colourful image (e.g. a simple Merlion-like silhouette and sky gradient) with a zoom window revealing the pixel grid and its numbers, and three channel views.",
+            "interaction": "Drag the zoom window; toggle R, G, B channels; switch value display between 0-255 and normalised.",
+            "aha": "To a computer an image is just a stack of number grids."
+          }
+        },
+        {
+          "name": "Why not just flatten?",
+          "explain": "Feeding a flattened 224×224×3 image into a dense layer of 1000 neurons needs about 150 million weights, and the layer has no idea which pixels are neighbours; shifting the object by one pixel looks like a completely new input. Convolutions fix both problems with small shared filters.",
+          "analogy": "Reading a comic by cutting it into single pixels and shuffling them into a line: the information is there, but the structure is gone.",
+          "visual": {
+            "component": "FlattenShuffle",
+            "kind": "interactive",
+            "shows": "An image, its flattened vector, and a version with pixels shuffled by a fixed permutation that looks like noise to us but is identical information to an MLP; a parameter counter for a dense first layer.",
+            "interaction": "Toggle shuffling; slide image size and first-layer width to see the parameter count explode.",
+            "aha": "Dense layers ignore spatial structure and need enormous numbers of weights."
+          }
+        },
+        {
+          "name": "Normalising image inputs",
+          "explain": "Networks train best when inputs are centred on zero with unit spread. Min-max scaling to [0, 1] keeps every input positive, so all of a first-layer neuron's weight gradients share one sign and its updates zig-zag; z-scoring with one dataset-wide mean and standard deviation centres the inputs on zero and trains faster and better. The usual recipe divides by 255, then subtracts per-channel means and divides by per-channel standard deviations from the training set (or the published ImageNet values for ImageNet-pretrained models). Both of these apply one fixed transform to every image, so brightness differences between images survive. Per-image standardisation removes each image's own brightness and contrast, which can erase real signal: in X-rays tissue density is diagnostic, which is also why brightness jitter is risky for them. A video simply adds a time axis, (T, C, H, W), and its frames are normalised the same way.",
+          "analogy": "Marking every exam script with the same mark scheme (dataset-wide) versus rescaling each script so its average is always 50 (per-image): the second hides which students really did better.",
+          "visual": {
+            "component": "ImageNormaliser",
+            "kind": "interactive",
+            "shows": "Three greyscale X-ray-like images of different overall density with their pixel histograms, transformed by min-max scaling, dataset-wide z-scoring and per-image z-scoring, with a density readout for each image and a panel showing the signs of one first-layer neuron's weight gradients.",
+            "interaction": "Switch the normalisation method; watch the histograms shift, the density differences survive or vanish, and the gradient signs change from all the same (min-max) to mixed (z-score).",
+            "aha": "Centre on zero with training-set statistics: zero-centring helps optimisation, and fixed statistics keep the intensity information that per-image scaling throws away."
+          }
+        }
+      ],
+      "code": "runnable",
+      "checkpoint_focus": [
+        "RGB channels and pixel ranges",
+        "(N, C, H, W) shapes",
+        "Parameter explosion in dense layers on images",
+        "Pixel normalisation",
+        "Zero-centring versus min-max; dataset-wide versus per-image statistics"
+      ]
+    },
+    {
+      "slug": "convolution",
+      "title": "The convolution operation",
+      "summary": "Sliding a small filter over an image, computing a dot product at each position, and building feature maps.",
+      "minutes": 20,
+      "objectives": [
+        "You can compute one output value of a convolution by hand",
+        "You can explain what edge, blur and sharpen filters do",
+        "You can explain weight sharing and why it gives translation equivariance"
+      ],
+      "concepts": [
+        {
+          "name": "Sliding a filter",
+          "explain": "A convolution slides a small grid of weights (a kernel, e.g. 3×3) across the image. At each position it multiplies the overlapping pixels by the weights and sums them, giving one output number; all positions together form a feature map. The same kernel is used everywhere (weight sharing).",
+          "analogy": "Running a magnifying glass over a newspaper looking for one particular pattern, writing down how strongly it matches at every spot.",
+          "visual": {
+            "component": "ConvolutionExplorer",
+            "kind": "interactive",
+            "shows": "An input grid (small digit image), the 3×3 kernel overlaid at the current position with the element-wise products shown, and the output feature map filling in.",
+            "interaction": "Drag the kernel position or press play to sweep; pick presets (vertical edge, horizontal edge, blur, sharpen) or edit kernel weights.",
+            "aha": "Each output number is just a dot product between the kernel and a patch, and the kernel detects one pattern everywhere."
+          }
+        },
+        {
+          "name": "Feature maps from many filters",
+          "explain": "A conv layer has many kernels, each producing its own feature map; stacking them gives the layer's output channels. In a trained CNN, early filters detect edges and colours, later layers combine them into textures, parts and objects.",
+          "analogy": "A team of spotters, each assigned one kind of thing to look for (red things, vertical lines, circles).",
+          "visual": {
+            "component": "FeatureMapGallery",
+            "kind": "interactive",
+            "shows": "One input image and a gallery of feature maps from 6 different hand-made filters, each shown as a heat map.",
+            "interaction": "Click a feature map to see its kernel; edit a kernel and watch its map change; shift the input image and see the maps shift with it.",
+            "aha": "Shifting the input shifts the feature maps (translation equivariance), because every position uses the same filter."
+          }
+        }
+      ],
+      "code": "runnable",
+      "checkpoint_focus": [
+        "Element-wise multiply and sum",
+        "Feature maps",
+        "Weight sharing",
+        "Learned vs hand-designed filters"
+      ]
+    },
+    {
+      "slug": "padding-stride-shapes",
+      "title": "Padding, stride, channels and parameter counts",
+      "summary": "The output-size formula, 'same' padding, stride for downsampling, multi-channel kernels, and counting parameters including 1×1 and depthwise separable convolutions.",
+      "minutes": 22,
+      "objectives": [
+        "You can compute output size with ⌊(n + 2p − k)/s⌋ + 1",
+        "You can choose padding for 'same' output size",
+        "You can count parameters of a conv layer",
+        "You can compare standard and depthwise separable convolution costs"
+      ],
+      "concepts": [
+        {
+          "name": "The output-size formula",
+          "explain": "For input size n, kernel k, padding p and stride s, the output size is ⌊(n + 2p − k)/s⌋ + 1. Padding adds a border of zeros so edges get processed and size can be preserved; stride 2 skips every other position and roughly halves the size. A 32×32 input with k = 3, p = 1, s = 1 stays 32×32; with s = 2 it becomes 16×16.",
+          "analogy": "Counting how many positions a 3-seat bench can occupy along a row of chairs, possibly with extra chairs added at each end and jumping 2 seats at a time.",
+          "visual": {
+            "component": "ConvShapeCalculator",
+            "kind": "interactive",
+            "shows": "An input grid with a padded border, the kernel stepping across positions with stride arrows, and the output grid, with the formula evaluated live.",
+            "interaction": "Slide n, k, p and s; play the sweep; a challenge mode asks for the output size before revealing it.",
+            "aha": "The formula just counts how many places the kernel fits, which you can verify by counting."
+          }
+        },
+        {
+          "name": "Multi-channel kernels",
+          "explain": "For an RGB input, each kernel is actually 3×3×3: it spans all input channels and sums over them to produce one output channel. A layer with C_out kernels therefore has (k × k × C_in + 1) × C_out parameters; 3×3 from 64 to 128 channels has (9 × 64 + 1) × 128 = 73,856.",
+          "analogy": "A chef tasting all three sauces in one spoonful and giving one combined score.",
+          "visual": {
+            "component": "MultiChannelConv",
+            "kind": "stepper",
+            "shows": "A 3-channel input as stacked grids, a 3-channel kernel aligned with them, per-channel products, and their sum into one output cell; a parameter counter beside it.",
+            "interaction": "Step through channels; change C_in and C_out; read the parameter count.",
+            "aha": "Each kernel spans every input channel, so parameters scale with C_in × C_out."
+          }
+        },
+        {
+          "name": "1×1 and depthwise separable convolutions",
+          "explain": "A 1×1 convolution mixes channels at each pixel without looking at neighbours, a cheap way to change the number of channels. A depthwise separable convolution splits a standard one into a per-channel spatial filter (depthwise) followed by a 1×1 channel mixer (pointwise), cutting parameters from k²·C_in·C_out to k²·C_in + C_in·C_out, which is why MobileNet is efficient.",
+          "analogy": "Instead of one chef doing everything, one cook handles each ingredient separately and another combines them, much faster.",
+          "visual": {
+            "component": "ConvParamCompare",
+            "kind": "interactive",
+            "shows": "Bar comparison of parameters and multiply-adds for standard, 1×1 and depthwise separable layers, with diagrams of each operation's kernel shapes.",
+            "interaction": "Slide k, C_in and C_out; read the savings ratio.",
+            "aha": "Splitting spatial and channel mixing saves roughly a factor of k² for wide layers."
+          }
+        }
+      ],
+      "code": "torch-shown",
+      "checkpoint_focus": [
+        "Output-size formula",
+        "same padding p = (k − 1)/2 for stride 1",
+        "Params = (k·k·C_in + 1)·C_out",
+        "1×1 conv mixes channels",
+        "Depthwise separable savings"
+      ]
+    },
+    {
+      "slug": "pooling-and-receptive-field",
+      "title": "Pooling and receptive fields",
+      "summary": "Downsampling with max and average pooling, small-shift robustness, how the receptive field grows with depth, and why stacks of 3×3 convolutions are popular.",
+      "minutes": 18,
+      "objectives": [
+        "You can compute max and average pooling outputs",
+        "You can explain how pooling adds tolerance to small shifts",
+        "You can compute the receptive field of stacked layers",
+        "You can explain why two 3×3 convs beat one 5×5"
+      ],
+      "concepts": [
+        {
+          "name": "Pooling summarises neighbourhoods",
+          "explain": "Max pooling keeps the largest value in each window (e.g. 2×2 with stride 2), average pooling keeps the mean; both halve the height and width and have no learnable parameters. Because the max of a small window barely changes when the input shifts by a pixel, pooling adds robustness to small translations. This is called approximate translation invariance; convolution itself is translation equivariant (a shifted input gives a shifted feature map).",
+          "analogy": "Summarising each 2×2 block of a class seating plan by its tallest student.",
+          "visual": {
+            "component": "PoolingExplorer",
+            "kind": "interactive",
+            "shows": "A feature map, the pooling windows outlined, and the pooled output; a shift button moves the input by one pixel and highlights which outputs changed.",
+            "interaction": "Toggle max or average; change window and stride; press shift.",
+            "aha": "Pooling shrinks maps cheaply and makes features less sensitive to exact position."
+          }
+        },
+        {
+          "name": "The receptive field grows with depth",
+          "explain": "The receptive field of a neuron is the patch of the original image that can affect it. One 3×3 conv sees 3×3; two stacked see 5×5; three see 7×7. Two 3×3 layers cover the same area as one 5×5 with fewer parameters (18C² vs 25C²) and an extra non-linearity, which is why VGG and most modern CNNs use 3×3 stacks.",
+          "analogy": "A rumour reaching more people with each retelling: each layer extends how far information has travelled.",
+          "visual": {
+            "component": "ReceptiveFieldTower",
+            "kind": "interactive",
+            "shows": "A side view of stacked layers above an input grid; clicking one output neuron highlights the cone of neurons and input pixels it depends on.",
+            "interaction": "Add or remove layers; change kernel size, stride or pooling; click neurons at different depths.",
+            "aha": "Depth lets small filters see large areas, and strides or pooling grow the view faster."
+          }
+        }
+      ],
+      "code": "runnable",
+      "checkpoint_focus": [
+        "Max vs average pooling",
+        "Pooling has no parameters",
+        "Receptive field of stacked 3×3 = 5×5, 7×7",
+        "Global average pooling"
+      ]
+    },
+    {
+      "slug": "cnn-architectures-and-resnets",
+      "title": "CNN architectures and ResNets",
+      "summary": "How classic CNNs stack convolutions into feature hierarchies, why plain deep networks degrade, and how residual blocks fix it.",
+      "minutes": 24,
+      "objectives": [
+        "You can trace tensor shapes through a small CNN",
+        "You can describe the feature hierarchy from edges to objects",
+        "You can name landmark architectures (LeNet, AlexNet, VGG, ResNet) and their key idea",
+        "You can explain the degradation problem and how a residual block (F(x) + x) fixes it"
+      ],
+      "concepts": [
+        {
+          "name": "CNN Explainer tour",
+          "explain": "A typical CNN repeats conv → ReLU → pool, growing the number of channels while shrinking height and width, then flattens (or global-average-pools) into dense layers that output class scores. Tracing shapes through each layer is the key skill, because the first dense layer's input size depends on all of them.",
+          "analogy": "A factory line that keeps compressing a big raw block into smaller, denser, more refined pieces until a label pops out.",
+          "visual": {
+            "component": "CNNPipeline",
+            "kind": "interactive",
+            "shows": "A horizontal pipeline of a small CNN (e.g. for 32×32 colour images): each layer card shows its (C, H, W) shape and a few miniature feature maps; the final softmax bars show class probabilities.",
+            "interaction": "Click a layer to expand its maps and parameters; edit kernel, padding, stride or channels and see all downstream shapes update, including a mismatch warning at the dense layer.",
+            "aha": "Every CNN is a shape journey; get the shapes right and the architecture makes sense."
+          }
+        },
+        {
+          "name": "From edges to objects",
+          "explain": "Early layers respond to edges and colour blobs, middle layers to textures and simple parts (eyes, wheels), and late layers to whole objects. This hierarchy emerges from training, not from hand design, and it is why pretrained early layers transfer well to new tasks.",
+          "analogy": "Reading: letters form words, words form sentences, sentences form meaning.",
+          "visual": {
+            "component": "FeatureHierarchy",
+            "kind": "diagram",
+            "shows": "Three tiers of example feature visualisations (synthetic patterns for edges, textures, part-like shapes) linked to layer depth, with arrows showing composition.",
+            "interaction": "Hover a late-layer unit to highlight the mid- and early-level features that combine into it.",
+            "aha": "Deep networks build complex detectors from simple ones, layer by layer."
+          }
+        },
+        {
+          "name": "Deeper is not automatically better",
+          "explain": "Stacking more plain layers should never hurt in principle (extra layers could just copy their input), yet in practice very deep plain networks reached higher training error than shallower ones. This degradation is an optimisation problem, not overfitting.",
+          "analogy": "Adding more relay runners should not slow a team down, but if handovers are clumsy, each one loses time.",
+          "visual": {
+            "component": "DegradationCurves",
+            "kind": "interactive",
+            "shows": "Training error curves for plain networks of 20 and 56 layers and residual networks of the same depths (illustrative curves based on the ResNet paper's pattern).",
+            "interaction": "Toggle depth and residual connections; compare training and test error.",
+            "aha": "The deeper plain net is worse even on training data, which shows the problem is training, not overfitting."
+          }
+        },
+        {
+          "name": "The residual block",
+          "explain": "A residual block computes y = F(x) + x: the layers only need to learn a correction F to the identity. If the best thing is to do nothing, F can simply be zero. When F changes the number of channels or the size, the shortcut uses a 1×1 convolution with stride so shapes still match for the addition.",
+          "analogy": "Editing a draft essay with tracked changes instead of rewriting it from scratch each time.",
+          "visual": {
+            "component": "ResidualBlockFlow",
+            "kind": "interactive",
+            "shows": "A block diagram (conv-BN-ReLU-conv-BN plus shortcut, then add and ReLU) with tensor shapes on every edge; a mismatch shows an error until a projection shortcut is enabled.",
+            "interaction": "Toggle the shortcut; change stride or output channels; enable the 1×1 projection.",
+            "aha": "Learning a residual is easier than learning a whole mapping, and the add only works when shapes match."
+          }
+        }
+      ],
+      "code": "torch-shown",
+      "checkpoint_focus": [
+        "Shape tracing (C, H, W) through conv and pool",
+        "Flatten size for the first dense layer",
+        "Feature hierarchy",
+        "Global average pooling vs flatten",
+        "ResNet skip connections ease gradient flow and let blocks learn the identity"
+      ]
+    }
+  ]
+}

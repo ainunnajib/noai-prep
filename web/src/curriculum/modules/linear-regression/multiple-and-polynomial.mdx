@@ -1,0 +1,283 @@
+import PredictionsAsXw from './visuals/multiple-and-polynomial/PredictionsAsXw'
+import NormalEquationShapes from './visuals/multiple-and-polynomial/NormalEquationShapes'
+import PolyBasisMixer from './visuals/multiple-and-polynomial/PolyBasisMixer'
+import DegreeSweep from './visuals/multiple-and-polynomial/DegreeSweep'
+
+A flat's price depends on more than its size: age, storey and distance to the MRT all matter. So far our line used one input. This lesson lets it use as many as you like, writes the whole model as **one matrix product**, solves it in **one formula** (no gradient descent needed), and then uses the very same maths to fit **curves**.
+
+<Analogy title="A taxi fare is a multiple regression">
+
+A taxi fare is roughly *base fare + (rate per km) × distance + (rate per minute) × time*. Each input has its own rate, and there is a fixed starting amount. If nobody told you the rates, you could work them out from a pile of old receipts. That is exactly what multiple regression does: it learns one weight per input, plus a bias, from examples.
+
+</Analogy>
+
+## From one feature to many
+
+With one input, the model was $\hat{y} = wx + b$. With $d$ inputs (features) $x_1, x_2, \dots, x_d$ it becomes
+
+$$
+\hat{y} = w_1 x_1 + w_2 x_2 + \dots + w_d x_d + b
+$$
+
+- $\hat{y}$ ("y-hat") is the prediction, for example the fare.
+- $x_j$ is feature number $j$ of one example, for example $x_1$ = distance in km, $x_2$ = time in minutes.
+- $w_j$ is the <Term def="A number the model learns that says how strongly one feature pushes the prediction up or down.">weight</Term> of feature $j$: its "rate".
+- $b$ is the <Term def="A constant added to every prediction, also called the intercept. It is the prediction when every feature is 0.">bias</Term> (intercept): the base fare.
+
+**How to read a weight:** $w_j$ is how much $\hat{y}$ changes when $x_j$ goes up by 1 *while every other feature stays the same*. If $w_1 = 0.85$, one extra kilometre adds about 85 cents for a trip of the same duration.
+
+With two features the model is a flat, tilted **plane** floating above the $(x_1, x_2)$ floor; with more it is a "hyperplane" you cannot draw, but the maths does not care.
+
+## Matrix form: every prediction in one line
+
+Writing $w_1x_1 + w_2x_2 + \dots$ for every example gets tiring. Instead, stack the data in a table:
+
+- The <Term def="A table of numbers with rows and columns. A matrix with n rows and d columns has shape n×d.">matrix</Term> $X$ has **one row per example** and **one column per feature**.
+- **Fold the bias in:** give $X$ an extra first column of 1s and give $w$ a matching first entry $w_0 = b$. Then $w_0 \times 1 = b$ is added to every prediction automatically, and the separate $+\,b$ disappears.
+
+For five taxi rides with features $[1, \text{km}, \text{min}]$:
+
+$$
+X = \begin{bmatrix} 1 & 2 & 10 \\ 1 & 5 & 15 \\ 1 & 8 & 30 \\ 1 & 3 & 20 \\ 1 & 10 & 25 \end{bmatrix}, \qquad
+w = \begin{bmatrix} w_0 \\ w_1 \\ w_2 \end{bmatrix}
+$$
+
+and the model is simply $\hat{y} = Xw$. Multiplying a matrix by a column means: for each row, multiply it entry by entry with the column and add up (a <Term def="Multiply two lists entry by entry and add the results: [1, 2]·[3, 4] = 1×3 + 2×4 = 11.">dot product</Term>). Row 1 gives $\hat{y}_1 = 1\cdot w_0 + 2\cdot w_1 + 10\cdot w_2$, which is exactly the fare formula for ride 1. One product, all five predictions.
+
+<PredictionsAsXw />
+
+From here on, to keep the notation short, **$d$ counts every column of $X$, including the column of 1s**. Shapes then follow one rule:
+
+$$
+\underbrace{X}_{n \times d}\;\underbrace{w}_{d \times 1} = \underbrace{\hat{y}}_{n \times 1}
+$$
+
+A product $(a \times k)(k \times c)$ only exists when the **inner** sizes match (both $k$), and the answer has the **outer** sizes $a \times c$. Here the inner size $d$ says "one weight per column of $X$", and the answer has one prediction per row.
+
+<KeyIdea>
+
+Put each example in a row of $X$ (with a column of 1s for the bias). Then **all** predictions are $\hat{y} = Xw$, with shapes $(n \times d)(d \times 1) = (n \times 1)$.
+
+</KeyIdea>
+
+<QuickCheck
+  q="A dataset has 100 examples. $X$ has shape $(100, 4)$, including the column of 1s. What is the shape of $w$, and of $\hat{y} = Xw$?"
+  options={['$w$: $(4, 1)$; $\\hat{y}$: $(100, 1)$', '$w$: $(100, 1)$; $\\hat{y}$: $(4, 1)$', '$w$: $(3, 1)$; $\\hat{y}$: $(100, 1)$', '$w$: $(4, 100)$; $\\hat{y}$: $(100, 100)$']}
+  answer={0}
+  explain="The inner sizes must match, so $w$ needs one entry per column of $X$: 4 (the column of 1s already gives $w_0 = b$ its place, so 3 is one short). The result keeps the outer size, one prediction per example: $(100 \times 4)(4 \times 1) = (100 \times 1)$."
+/>
+
+## The normal equation: jump straight to the bottom
+
+In [Linear regression and least squares](#/learn/linear-regression/least-squares) you met the loss as a bowl, and then you walked down it with gradient descent. For linear regression we can do better and **solve for the bottom directly**. The loss is the mean squared error
+
+$$
+L(w) = \frac{1}{n}\sum_{i=1}^{n} (y_i - \hat{y}_i)^2 = \frac{1}{n}\lVert y - Xw \rVert^2 ,
+$$
+
+where $\lVert \cdot \rVert^2$ means "square every entry and add them up". Its gradient, which you met in [Regression by gradient descent](#/learn/linear-regression/regression-by-gradient-descent), is
+
+$$
+\nabla L = \frac{2}{n} X^T (Xw - y).
+$$
+
+Here $Xw - y$ is the column of errors, and $X^T$ is the <Term def="The matrix flipped over its diagonal: row i becomes column i. An n×d matrix becomes d×n.">transpose</Term> of $X$. At the bottom of the bowl the gradient is zero, so
+
+$$
+\begin{aligned}
+X^T X\, w &= X^T y \\
+\Longrightarrow\quad w &= (X^T X)^{-1} X^T y .
+\end{aligned}
+$$
+
+This is the <Hl>normal equation</Hl>. Symbol by symbol:
+
+- $X^T X$ is a small $d \times d$ square: entry $(j, k)$ adds up feature $j$ × feature $k$ over all examples.
+- $X^T y$ is a $d \times 1$ column: entry $j$ adds up feature $j$ × target.
+- $(X^T X)^{-1}$ is the <Term def="For a square matrix A, the matrix A⁻¹ with A⁻¹A = I (the identity). Multiplying by it undoes multiplying by A, like dividing by a number. It only exists when det(A) ≠ 0.">inverse</Term> of $X^T X$: multiplying by it undoes multiplying by $X^T X$, just as dividing by 3 undoes multiplying by 3.
+
+Why "normal"? Setting the gradient to zero says $X^T(y - Xw) = 0$: the errors are at right angles (*normal*) to every feature column, so no feature can explain any of the leftover error.
+
+<NormalEquationShapes />
+
+<Steps title="Normal equation by hand: points (0, 1), (1, 2), (2, 6)">
+  <Step title="Build $X$ and $y$">
+    One feature plus the column of 1s: $X = \begin{bmatrix} 1 & 0 \\ 1 & 1 \\ 1 & 2 \end{bmatrix}$ and $y = \begin{bmatrix} 1 \\ 2 \\ 6 \end{bmatrix}$. Shapes: $X$ is $3 \times 2$, so $w$ will be $2 \times 1$ (bias, slope).
+  </Step>
+  <Step title="Compute $X^T X$">
+    Each entry is a column of $X$ dotted with a column of $X$. Ones with ones: $1+1+1 = 3$. Ones with $x$: $0+1+2 = 3$. $x$ with $x$: $0+1+4 = 5$. So $X^T X = \begin{bmatrix} 3 & 3 \\ 3 & 5 \end{bmatrix}$.
+  </Step>
+  <Step title="Compute $X^T y$">
+    Ones with $y$: $1+2+6 = 9$. $x$ with $y$: $0\cdot1 + 1\cdot2 + 2\cdot6 = 14$. So $X^T y = \begin{bmatrix} 9 \\ 14 \end{bmatrix}$.
+  </Step>
+  <Step title="Invert the 2×2 matrix">
+    For $\begin{bmatrix} a & b \\ c & d \end{bmatrix}$ the inverse is $\frac{1}{ad - bc}\begin{bmatrix} d & -b \\ -c & a \end{bmatrix}$, where $ad - bc$ is the <Term def="A single number computed from a square matrix. For a 2×2 matrix [[a, b], [c, d]] it is ad − bc. The matrix has an inverse exactly when its determinant is not 0.">determinant</Term>. Here $ad - bc = 3\cdot5 - 3\cdot3 = 6$, so $(X^T X)^{-1} = \frac{1}{6}\begin{bmatrix} 5 & -3 \\ -3 & 3 \end{bmatrix}$.
+  </Step>
+  <Step title="Multiply to get $w$">
+    $w = \frac{1}{6}\begin{bmatrix} 5\cdot9 - 3\cdot14 \\ -3\cdot9 + 3\cdot14 \end{bmatrix} = \frac{1}{6}\begin{bmatrix} 3 \\ 15 \end{bmatrix} = \begin{bmatrix} 0.5 \\ 2.5 \end{bmatrix}$. The best line is $\hat{y} = 0.5 + 2.5x$.
+  </Step>
+  <Step title="Check">
+    Predictions $0.5, 3, 5.5$; residuals $y - \hat{y} = 0.5, -1, 0.5$. They add up to $0$, and $x$ times error adds up to $0\cdot0.5 + 1\cdot(-1) + 2\cdot0.5 = 0$. That is $X^T(y - Xw) = 0$, the "normal" condition.
+  </Step>
+</Steps>
+
+<QuickCheck
+  q="$X$ has shape $(500, 3)$. What is the shape of $X^T X$?"
+  options={['$3 \\times 3$', '$500 \\times 500$', '$500 \\times 3$', '$3 \\times 500$']}
+  answer={0}
+  explain="$X^T$ is $3 \times 500$ and $X$ is $500 \times 3$. The inner 500s match and disappear, leaving $3 \times 3$. $500 \times 500$ is $XX^T$, the product in the other order."
+/>
+
+## When the formula breaks
+
+$(X^T X)^{-1}$ only exists when $\det(X^T X) \neq 0$. A square matrix with determinant 0 is called <Term def="A square matrix whose determinant is 0. It has no inverse, because it squashes some directions flat and that cannot be undone.">singular</Term>, and $X^T X$ is singular exactly when some column of $X$ can be built from the other columns. Two common causes:
+
+- **Redundant features.** Height in cm *and* height in m; temperature in °C *and* °F (since $F = 1.8C + 32$ is built from the °C column and the column of 1s); a feature copied twice.
+- **More columns than examples** ($d > n$). Three points cannot pin down five weights.
+
+In floating point an exactly or nearly redundant column (two features that are almost copies, called <Term def="Two or more features that are (almost) linear combinations of each other, such as area in m² and area in ft². It makes XᵀX singular or nearly singular.">multicollinearity</Term>) often gives **no error at all**, just huge, unstable weights. Check with `np.linalg.matrix_rank(X)`, which counts how many columns are truly independent (its *rank*, covered properly in [Span, linear independence and rank](#/learn/linear-algebra-deeper/span-rank-independence)): fewer than the number of columns means redundant. Or use `np.linalg.cond(X.T @ X)`: an enormous value, like $10^{15}$ or more, means trouble.
+
+When columns are redundant, infinitely many $w$ fit the data equally well. If columns 1 and 2 are identical, only $w_1 + w_2$ matters: $(1, 1)$, $(2, 0)$ and $(5, -3)$ all give the same predictions, so there is no single answer to "invert" towards.
+
+Three ways out:
+
+1. **Remove the redundant column.** Usually the best fix.
+2. **Use the <Term def="A generalised inverse X⁺ that exists for every matrix. When X has independent columns it equals (XᵀX)⁻¹Xᵀ; otherwise X⁺y is the best-fitting w with the smallest length.">pseudoinverse</Term>** $X^+$, written `np.linalg.pinv(X)`. When no column of $X$ can be built from the others (it has *full column rank*), $X^+ = (X^T X)^{-1}X^T$ and $w = X^+y$ is just the normal equation. When some can, $X^+y$ still exists: among all the best-fitting $w$ it picks the **shortest** one. For two identical columns that means splitting the weight equally, $(1, 1)$ rather than $(2, 0)$.
+3. **Add a small penalty on the weights** (ridge regression, coming next in [L1 and L2 regularisation](#/learn/linear-regression/regularisation)), which makes the matrix invertible again.
+
+<PastPaperQuestion paper="prelim2026" n={23} />
+
+**Normal equation or gradient descent?** Both reach the same $w$ (the visual above counts the gradient descent steps). The normal equation needs no learning rate and no iterations, but inverting a $d \times d$ matrix costs roughly $d^3$ operations: fine for $d = 100$, hopeless for a million features. Gradient descent takes many cheap steps, scales to huge $d$ and $n$, and also works for models that have no formula at all (logistic regression, neural networks).
+
+<PyRunner packages={['numpy']} rows={20} code={`import numpy as np
+
+# taxi rides: [1, km, minutes] and fares
+X = np.array([[1, 2, 10],
+              [1, 5, 15],
+              [1, 8, 30],
+              [1, 3, 20],
+              [1, 10, 25]], dtype=float)
+y = np.array([6.3, 9.4, 15.0, 8.6, 15.6])
+
+# the normal equation, literally
+w = np.linalg.inv(X.T @ X) @ X.T @ y
+print("w     =", w.round(3))
+# better: solve the system, no explicit inverse
+w_solve = np.linalg.solve(X.T @ X, X.T @ y)
+print("solve =", w_solve.round(3))
+w_lstsq = np.linalg.lstsq(X, y, rcond=None)[0]
+print("lstsq =", w_lstsq.round(3))
+print("pinv  =", (np.linalg.pinv(X) @ y).round(3))
+print("predictions:", (X @ w).round(2))`} />
+
+All four ways of finding `w` print `[2.559 0.849 0.183]`: a base fare of about 2.56 dollars, 85 cents per km and 18 cents per minute. In real code prefer `np.linalg.lstsq` or `np.linalg.solve`; computing an inverse explicitly is slower and less accurate.
+
+<Mistake title="Element-wise * is not matrix multiplication">
+
+In NumPy, `X * w` multiplies entry by entry (and broadcasts), which is **not** $Xw$. Use `X @ w` (or `np.dot(X, w)`). And if you fold the bias into $X$, do not forget the column of 1s: without it every prediction is forced through 0 when all features are 0.
+
+</Mistake>
+
+## Curves from straight-line maths
+
+What if the data bends? Keep the model, change the features. From one input $x$, **make new columns** $x^2$, $x^3$, … and run the same regression:
+
+$$
+\hat{y} = w_0 + w_1 x + w_2 x^2 + w_3 x^3
+$$
+
+$$
+X = \begin{bmatrix} 1 & x_1 & x_1^2 & x_1^3 \\ 1 & x_2 & x_2^2 & x_2^3 \\ \vdots & \vdots & \vdots & \vdots \\ 1 & x_n & x_n^2 & x_n^3 \end{bmatrix}
+$$
+
+Each row is one example: the input $x_i$ and its powers.
+
+This is <Term def="Linear regression on the features 1, x, x², …, x^k made from a single input x. The fitted curve is a polynomial of degree k.">polynomial regression</Term>, and the highest power is its **degree**. The curve is not straight in $x$, but look at the weights: each $w_k$ simply multiplies a fixed column of numbers, and the prediction is their sum. The model is **linear in the weights**, so $\hat{y} = Xw$, the normal equation and gradient descent all work unchanged.
+
+<Analogy title="Lego arches">
+
+Every Lego brick is straight, yet enough of them, placed well, build a curved arch. Polynomial regression builds a curve out of fixed pieces ($1$, $x$, $x^2$, $x^3$), and the only thing it learns is how much of each piece to use.
+
+</Analogy>
+
+<PolyBasisMixer />
+
+<KeyIdea>
+
+"Linear" regression means **linear in the weights**, not "fits a straight line". Any model of the form $\hat{y} = w_0 + w_1 f_1(x) + w_2 f_2(x) + \dots$, with fixed functions $f_j$, is linear regression on new features.
+
+</KeyIdea>
+
+For example, with features $[1, x, x^2, x^3]$ and weights $w = [1, -1, 0.5, 0.25]$, the input $x = 2$ becomes the row $[1, 2, 4, 8]$, and the prediction is $1 - 2 + 0.5\cdot4 + 0.25\cdot8 = 1 - 2 + 2 + 2 = 3$.
+
+<QuickCheck
+  q="Which model can NOT be fitted with linear regression (the normal equation)?"
+  options={['$\\hat{y} = w_0 + e^{w_1 x}$', '$\\hat{y} = w_0 + w_1 x + w_2 x^2$', '$\\hat{y} = w_0 + w_1 \\log x$', '$\\hat{y} = w_0 + w_1 x_1 x_2$']}
+  answer={0}
+  explain="In the other three, each weight multiplies a fixed feature ($x^2$, $\log x$ or $x_1x_2$ can all be computed before training), so they are linear in the weights. In $e^{w_1 x}$ the weight sits inside the exponential, so the prediction is not a weighted sum of fixed columns."
+/>
+
+<PyRunner packages={['numpy', 'scikit-learn']} rows={19} code={`import numpy as np
+from sklearn.preprocessing import PolynomialFeatures
+from sklearn.linear_model import LinearRegression
+
+x = np.array([-2, -1.5, -1, -0.5, 0, 0.5, 1, 1.5, 2])
+y = np.array([0.8, 1.36, 1.85, 1.14, 0.85,
+              -0.04, 0.4, 1.59, 3.65])
+
+# features 1, x, x², x³
+X = np.column_stack([x**0, x, x**2, x**3])
+w = np.linalg.lstsq(X, y, rcond=None)[0]
+print("NumPy weights  :", w.round(3))
+
+# PolynomialFeatures makes the columns x, x², x³
+poly = PolynomialFeatures(degree=3, include_bias=False)
+Xp = poly.fit_transform(x.reshape(-1, 1))
+model = LinearRegression().fit(Xp, y)
+b, w_rest = model.intercept_, model.coef_
+print("sklearn weights:", round(b, 3), w_rest.round(3))`} />
+
+Both give $w \approx [0.628, -1.079, 0.396, 0.456]$, the same weights the **Fit** button found above. scikit-learn's `PolynomialFeatures` just builds the extra columns for you.
+
+<Tip title="Scale before you power up">
+
+Powers blow up quickly: $x = 100$ gives $x^3 = 1{,}000{,}000$. Columns of wildly different sizes make gradient descent crawl and the normal equation inaccurate. Rescale $x$ to a small range (for example standardise it) **before** making powers.
+
+</Tip>
+
+## How many powers? Too few and too many
+
+More powers always let the curve bend more, so the error on the training data can only go down (or stay the same). But the point of a model is to predict **new** data. That is why we hold back a **validation set** and watch its error too.
+
+<DegreeSweep />
+
+- Degree 0 to 2: the curve is too stiff and misses the pattern even on the training points. This is **underfitting**.
+- Degree 3 to 7: both errors are low. Degree 3 has the lowest validation error.
+- Degree 8 and 9: the curve swings wildly between the points. At degree 9 its 10 weights can thread all 10 training points exactly (just as 2 points fix a line), so the training error drops to 0 while the validation error explodes. This is **overfitting**, and notice the giant weights it needs.
+
+These are the two failure modes from [Generalisation and overfitting](#/learn/ml-fundamentals/generalisation-and-overfitting): high **bias** (too simple) and high **variance** (too flexible). Raising the degree lowers the bias but raises the variance: that is the **bias-variance trade-off**, and the best model sits in between. (This "bias" is a kind of error, not the bias term $b$.)
+
+You can pick the degree with the lowest validation error, or keep a flexible model and **punish large weights** so it cannot swing wildly. That second idea is the next lesson, [L1 and L2 regularisation](#/learn/linear-regression/regularisation).
+
+<PastPaperQuestion paper="prelim2026" n={147} />
+
+<ExamTip>
+
+Prelim questions on this topic are fast recall, so have these ready:
+- **Shapes:** $(a \times k)(k \times c) = a \times c$. $X$ is $n \times d$, $w$ is $d \times 1$, $X^T X$ is $d \times d$.
+- **Normal equation:** $w = (X^T X)^{-1}X^T y.$ It fails when $X^T X$ is singular (duplicate or perfectly related features, or $d > n$); then use the pseudoinverse, drop a feature, or regularise.
+- **$(X^T X)^{-1}X^T$ is the pseudoinverse** only when $X$ has full column rank.
+- **Polynomial regression is still linear regression**: linear in the weights.
+- **Closed form vs gradient descent:** closed form costs about $d^3$; gradient descent scales to huge $d$.
+
+</ExamTip>
+
+<Takeaways>
+
+- Stack examples as rows of $X$ with a column of 1s: all predictions are $\hat{y} = Xw$, shapes ${(n \times d)(d \times 1)}$.
+- Setting the MSE gradient to zero gives the normal equation $w = (X^T X)^{-1}X^T y$: the exact least-squares answer in one step.
+- It needs $X^T X$ to be invertible. Redundant columns or $d > n$ make it singular; the pseudoinverse `np.linalg.pinv` still returns the shortest best-fitting $w$.
+- Polynomial features $x, x^2, x^3, \dots$ fit curves with the same maths, because the model stays linear in $w$.
+- Too high a degree overfits: training error falls to 0 while validation error explodes.
+
+</Takeaways>

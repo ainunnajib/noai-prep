@@ -1,0 +1,345 @@
+{
+  "slug": "final-lab-pytorch",
+  "order": 38,
+  "part": "exam",
+  "domain": "exam",
+  "title": "Final lab II: deep-learning tasks in PyTorch",
+  "tagline": "Rebuild the U-Net and attention tasks",
+  "summary": "Shape-first PyTorch habits for the Final, the 2026 U-Net debugging task (centre crop) and mean IoU with absent classes, the 2026 attention task (scaled dot-product and multi-head attention, positional-encoding bug, classifier head and causal mask), and a self-checking practice set of likely 2027 tasks.",
+  "prerequisites": [
+    "final-lab-numpy",
+    "vision-tasks",
+    "attention-and-transformers",
+    "debugging-and-diagnosis"
+  ],
+  "syllabus": [
+    "2026 Task 2 (20 marks): U-Net debugging with centre crop, and mean IoU without sklearn or torchmetrics",
+    "2026 Task 3 (35 marks incl. 5 bonus): scaled dot-product attention, multi-head attention, positional encoding fix, classifier head, causal mask",
+    "Likely 2027 task types: from-scratch classical ML in NumPy and debugging or implementing a PyTorch component"
+  ],
+  "paper_subtopics": [
+    "pytorch",
+    "cnn-vision",
+    "nlp-transformers",
+    "code-debugging",
+    "model-evaluation"
+  ],
+  "lessons": [
+    {
+      "slug": "torch-exam-patterns",
+      "title": "PyTorch patterns for the Final",
+      "summary": "Shape-first coding, NumPy-to-torch translation and test-cell habits.",
+      "minutes": 15,
+      "objectives": [
+        "You can annotate shapes on every line of tensor code",
+        "You can translate common NumPy operations to PyTorch",
+        "You can run small shape tests before the full test cell"
+      ],
+      "concepts": [
+        {
+          "name": "Shape-first coding",
+          "explain": "Write the expected shape as a comment on each line ((B, h, T, T) after QK^T) and check with print(x.shape) or asserts. Most PyTorch task bugs are shape bugs.",
+          "analogy": "Like labelling every box when you move house.",
+          "visual": {
+            "component": "ShapeCommentTrace",
+            "kind": "stepper",
+            "shows": "A function where each line gains a shape comment as you step, with mismatches flagged.",
+            "interaction": "Step through; introduce a wrong transpose and see the flag.",
+            "aha": "If every line's shape is right, the function is usually right."
+          }
+        },
+        {
+          "name": "NumPy to PyTorch",
+          "explain": "np.sum(x, axis=1) is x.sum(dim=1); np.concatenate is torch.cat; np.where is torch.where; arr.astype(float) is t.float(); arr.T is t.T or t.transpose(-2, -1); boolean masks and & | work the same. .item() turns a scalar tensor into a float.",
+          "analogy": "Like switching between British and American spelling: same words, small differences.",
+          "visual": {
+            "component": "TranslationTable",
+            "kind": "interactive",
+            "shows": "A searchable two-column table of NumPy and PyTorch equivalents.",
+            "interaction": "Search an operation; click to copy an example.",
+            "aha": "Your NumPy skills transfer almost directly."
+          }
+        }
+      ],
+      "code": "torch-shown",
+      "checkpoint_focus": [
+        "Tensor shape tracking",
+        "torch equivalents"
+      ]
+    },
+    {
+      "slug": "task-unet-center-crop",
+      "title": "2026 Task 2 Part 1: Fixing U-Net with center crop",
+      "summary": "Implement center_crop to align encoder and decoder feature maps.",
+      "minutes": 24,
+      "objectives": [
+        "You can explain the valid-padding shrinkage",
+        "You can implement center_crop(layer, target_shape) with correct offsets",
+        "You can write a two-to-three sentence trade-off answer for crop versus pad versus interpolate"
+      ],
+      "concepts": [
+        {
+          "name": "Why sizes mismatch",
+          "explain": "With padding=0, each 3x3 conv shrinks height and width by 2, and pooling halves them, so by the time the decoder upsamples, its maps (e.g. 114 x 114) are smaller than the encoder skip maps (e.g. 122 x 122). torch.cat along channels needs equal H and W.",
+          "analogy": "Like trying to staple two pages of different sizes together edge to edge.",
+          "visual": {
+            "component": "ShapeShrinkTable",
+            "kind": "interactive",
+            "shows": "A table of feature-map sizes through each encoder and decoder layer for a 256 x 256 input with valid convs.",
+            "interaction": "Toggle padding between 0 and 1; the table updates and mismatches are flagged.",
+            "aha": "Valid convolutions shrink maps predictably."
+          }
+        },
+        {
+          "name": "Implementing center_crop",
+          "explain": "Read the layer's H and W and the target's H and W; compute dy = (H - h) // 2 and dx = (W - w) // 2; return layer[:, :, dy:dy + h, dx:dx + w]. Then concatenate along dim=1 and check channels match the next conv's in_channels. Never hard-code the offsets (the 128 × 128 doctest fails), avoid layer[:, :, d:-d, d:-d] (it breaks when the size difference is odd and returns an empty tensor when d = 0), crop only dims 2 and 3, and pass d1.shape rather than d1.",
+          "analogy": "Like cutting an equal border off a large photo so it fits a smaller frame.",
+          "visual": {
+            "component": "CenterCropVisual",
+            "kind": "interactive",
+            "shows": "The encoder map with the crop window and the slicing code, plus the PyTorch output of the self-check cell.",
+            "interaction": "Change sizes; the crop window, offsets and code update.",
+            "aha": "Four lines fix the architecture."
+          }
+        },
+        {
+          "name": "Crop, pad or interpolate? (Q2.1b)",
+          "explain": "Q2.1b asks for two or three sentences on the trade-offs. Cropping throws away the outer ring of each skip map, so the output (110 × 110 for a 256 × 256 input) has no predictions near the edges and large images must be processed as overlapping tiles. 'Same' padding (padding=1 for 3 × 3 convolutions) keeps every map aligned and the output the same size as the input, at a small compute cost and with less reliable zero-padded borders. Interpolating or padding the decoder map also matches the shapes but stretches or invents values. The notebook claims the original U-Net used padding=1; in fact the 2015 paper used unpadded convolutions with cropping, and padding=1 is the modern variant, which a strong answer can point out.",
+          "analogy": "Fitting a large poster into a smaller frame: trim the edges (crop), buy a bigger frame (pad) or shrink the poster (interpolate). Each choice loses something different.",
+          "visual": {
+            "component": "SkipAlignOptions",
+            "kind": "interactive",
+            "shows": "An encoder skip map and a smaller decoder map with three tabs (crop, pad, interpolate) that show the aligned result, the output size for a 256 × 256 input, which pixels are discarded or invented, and a three-sentence model answer.",
+            "interaction": "Switch tabs; change the input size; type your own answer before revealing the model answer.",
+            "aha": "There is no free alignment: cropping loses borders, padding adds artificial borders and interpolation invents values."
+          }
+        }
+      ],
+      "code": "torch-shown",
+      "checkpoint_focus": [
+        "Center crop offsets",
+        "Concatenation channels",
+        "Q2.1b written trade-offs"
+      ]
+    },
+    {
+      "slug": "task-mean-iou",
+      "title": "2026 Task 2 Part 2: Mean IoU from scratch",
+      "summary": "Implement mIoU without sklearn or torchmetrics, including the missing-class edge case.",
+      "minutes": 22,
+      "objectives": [
+        "You can implement per-class IoU with boolean masks",
+        "You can handle union == 0 and empty lists correctly"
+      ],
+      "concepts": [
+        {
+          "name": "Implementation walkthrough",
+          "explain": "Flatten pred and target; for each class make boolean masks; intersection = (p & t).sum(); union = (p | t).sum(); skip the class if union == 0; else append intersection / union; return the mean (0 or nan if the list is empty, as specified). The self-check: 2x2 example gives (0.5 + 0.667)/2 = 0.5833. Loop over classes only, never over pixels or batch items; check union == 0 before dividing; return a Python float (use .item()); sklearn and torchmetrics are not allowed.",
+          "analogy": "Like grading each colour separately, skipping colours nobody used.",
+          "visual": {
+            "component": "MeanIoUCalculator",
+            "kind": "interactive",
+            "shows": "Small prediction and target grids with per-class masks, intersection and union, and the running mean.",
+            "interaction": "Paint pixels; remove a class; check the self-check value.",
+            "aha": "Masks plus sums implement any overlap metric."
+          }
+        },
+        {
+          "name": "Runnable NumPy twin",
+          "explain": "The same function in NumPy runs in the browser, so you can test edge cases before writing the PyTorch version; the logic is identical.",
+          "analogy": "Like rehearsing a speech in Mandarin before giving it in English: the content is the same.",
+          "visual": {
+            "component": "MIoURunner",
+            "kind": "interactive",
+            "shows": "A runnable NumPy implementation with the task's test cases.",
+            "interaction": "Edit and run; then view the equivalent PyTorch code and its shown output.",
+            "aha": "Test the logic in NumPy, then translate."
+          }
+        },
+        {
+          "name": "When a self-check disagrees with the specification",
+          "explain": "The notebook's extra check uses pred = [[0, 0], [0, 1]] with an all-zero target and expects 0.75. Following the written rule (skip a class only when its union is 0): class 0 has IoU 3/4 = 0.75; class 1 is predicted once, so its union is 1 and its IoU is 0; the mean is 0.375. Even the official solution fails this check, because 0.75 comes from a different convention (average only the classes present in the ground truth). In the exam, implement the written specification, check the example by hand in 30 seconds, and move on.",
+          "analogy": "If the answer key at the back of the book disagrees with your careful working, check once by hand: answer keys have typos too.",
+          "visual": {
+            "component": "SelfCheckAudit",
+            "kind": "interactive",
+            "shows": "The 2 × 2 prediction and target grids, a per-class table of intersection, union and IoU, and the mean IoU under three conventions (skip when union = 0, ground-truth classes only, count absent classes as 0), with the notebook's expected 0.75 flagged.",
+            "interaction": "Edit pixels; switch conventions; see which convention reproduces the notebook's number and which matches the written rule.",
+            "aha": "Tests can be wrong: the written specification decides, and a quick hand calculation tells you which to trust."
+          }
+        }
+      ],
+      "code": "runnable",
+      "checkpoint_focus": [
+        "mIoU computation",
+        "Union == 0 classes are skipped, not scored 0 or 1",
+        "Self-check expects 0.75 but the specification gives 0.375"
+      ]
+    },
+    {
+      "slug": "task-attention",
+      "title": "2026 Task 3 Parts 1-2: Attention and multi-head attention",
+      "summary": "Implement scaled dot-product attention and a multi-head attention module, and explain the sqrt(d_k) scaling.",
+      "minutes": 25,
+      "objectives": [
+        "You can implement scaled_dot_product_attention with mask and dropout",
+        "You can implement MultiHeadAttention with split and merge of heads",
+        "You can write a 2-4 sentence explanation of sqrt(d_k) scaling"
+      ],
+      "concepts": [
+        {
+          "name": "Scaled dot-product attention",
+          "explain": "scores = Q @ K.transpose(-2, -1) / math.sqrt(d_k); if mask is not None: scores = scores.masked_fill(mask == 0, float('-inf')); weights = softmax(scores, dim=-1); optionally dropout; output = weights @ V; return output and weights. Mask with mask == 0 (1 means keep). On a fully masked row −inf gives NaN after softmax, while −1e9 gives a harmless uniform row and still makes masked weights exactly 0 in float32; softmax must run over dim=-1.",
+          "analogy": "Like the attention-matrix stepper from the attention module (scores, scale, mask, softmax, mix), now typed out as code.",
+          "visual": {
+            "component": "AttentionCodeStepper",
+            "kind": "stepper",
+            "shows": "Each TODO step with its line of code, the intermediate MatrixGrid and the shape.",
+            "interaction": "Step through; toggle the mask; compare with the shown PyTorch test output.",
+            "aha": "Six short lines implement attention."
+          }
+        },
+        {
+          "name": "Multi-head attention module",
+          "explain": "In __init__: assert d_model % num_heads == 0; d_k = d_model // num_heads; four nn.Linear(d_model, d_model) layers. In forward: project, view to (B, T, h, d_k), transpose to (B, h, T, d_k), call attention, transpose back, .contiguous().view(B, T, d_model), apply W_o. Skipping transpose(1, 2) gives the right shape but the wrong numbers (tokens mix across heads), which only hidden value tests catch; .view after .transpose needs .contiguous() first, or use .reshape.",
+          "analogy": "Like splitting into discussion groups and regrouping, written as code.",
+          "visual": {
+            "component": "MHAModuleShapes",
+            "kind": "animation",
+            "shows": "Shapes flowing through the module with each code line highlighted.",
+            "interaction": "Play; change d_model and h; see shapes update.",
+            "aha": "Get the view and transpose order right and the rest follows."
+          }
+        },
+        {
+          "name": "Explaining sqrt(d_k)",
+          "explain": "A good written answer: dot products of d_k-dimensional vectors grow in magnitude with d_k (variance about d_k); large scores push softmax into saturation where one position gets almost all the weight; saturated softmax has tiny gradients, so learning stalls; dividing by sqrt(d_k) keeps the score variance near 1.",
+          "analogy": "Like a model answer for a 2-mark explain question.",
+          "visual": {
+            "component": "AnswerTemplateBuilder",
+            "kind": "interactive",
+            "shows": "A sentence-by-sentence template with the three required points to tick off.",
+            "interaction": "Write your answer; the checker highlights which points you covered.",
+            "aha": "Short explanations earn marks when they hit each required point."
+          }
+        }
+      ],
+      "code": "torch-shown",
+      "checkpoint_focus": [
+        "Scaled dot-product attention",
+        "MHA shapes",
+        "Why scale by √d_k"
+      ]
+    },
+    {
+      "slug": "task-pe-classifier-mask",
+      "title": "2026 Task 3 Parts 3-5: Positional encoding, classifier head and causal mask",
+      "summary": "Fix the div_term bug, build the classification head with masked mean pooling, and create a causal mask.",
+      "minutes": 20,
+      "objectives": [
+        "You can fix the positional encoding div_term to exp(arange(0, d, 2) * -(ln 10000 / d))",
+        "You can implement a classifier head with mean pooling over the sequence",
+        "You can build a causal mask with torch.tril"
+      ],
+      "concepts": [
+        {
+          "name": "Fixing positional encoding",
+          "explain": "The frequencies must be 1/10000^(2i/d_model) for even indices 2i: div_term = torch.exp(torch.arange(0, d_model, 2) * -(math.log(10000.0) / d_model)), then pe[:, 0::2] = sin(position * div_term) and pe[:, 1::2] = cos(position * div_term). The intended bug in 2026 was a missing log, * (-10000.0 / d_model): almost every frequency underflows to 0 (253 of 256 for d_model = 512), so those columns are sin 0 = 0 and cos 0 = 1 at every position and word order is lost. In the released student notebook the line was already correct, so check it against the formula and leave a correct line alone. Store the table with self.register_buffer('pe', pe) so it moves to the GPU with the model and is saved, but is never trained; a plain attribute stays on the CPU and fails the notebook's GPU-transfer test.",
+          "analogy": "Like retuning a set of tuning forks so each one has its correct pitch.",
+          "visual": {
+            "component": "PEBugFixHeatmap",
+            "kind": "interactive",
+            "shows": "Heat maps and per-dimension curves for buggy and fixed div_term.",
+            "interaction": "Toggle bug/fix; slide d_model.",
+            "aha": "One missing log flattens almost every positional wave, so the model can no longer tell word order apart."
+          }
+        },
+        {
+          "name": "Classifier head and mask conversion",
+          "explain": "Embed tokens and scale by sqrt(d_model), add positional encoding, convert the (B, T) attention mask into a broadcastable (B, 1, 1, T) mask, run the encoder layers, mean-pool over dim=1 (ideally only over real tokens), then LayerNorm, Linear, ReLU, Dropout, Linear to num_classes. Handle attention_mask=None too, because the tests also call model(input_ids). Plain mean pooling (as in the official solution) also averages padding tokens; masked mean pooling, (x * m).sum(1) / m.sum(1), does not.",
+          "analogy": "Like summarising a whole class discussion into one verdict.",
+          "visual": {
+            "component": "ClassifierHeadFlow",
+            "kind": "stepper",
+            "shows": "Shapes from input_ids (B, T) to logits (B, num_classes) through each step.",
+            "interaction": "Step through; toggle padding to see masked mean pooling differ from plain mean.",
+            "aha": "Pooling turns a sequence into one vector for classification."
+          }
+        },
+        {
+          "name": "Causal mask bonus",
+          "explain": "create_causal_mask(T) returns torch.tril(torch.ones(T, T)) (1 = may attend). Position i sees positions 0 to i. In attention, masked_fill(mask == 0, -inf) blocks the future. triu(diagonal=1) gives the complement, which must then be inverted.",
+          "analogy": "Like the test booklet with later pages stapled shut.",
+          "visual": {
+            "component": "CausalMaskBuilder",
+            "kind": "interactive",
+            "shows": "The mask grid for T tokens with the 'The cat sat' example.",
+            "interaction": "Switch between tril, triu and inverted versions; see which allow the right positions.",
+            "aha": "tril with 1 = attend is the standard causal mask."
+          }
+        }
+      ],
+      "code": "torch-shown",
+      "checkpoint_focus": [
+        "PE div_term fix",
+        "Mean pooling classification head",
+        "Causal mask construction"
+      ]
+    },
+    {
+      "slug": "practice-set",
+      "title": "Practice set: likely 2027 tasks",
+      "summary": "New from-scratch tasks in the Final's style, from logistic regression and PCA in NumPy to a conv2d, normalisation layer or loss in PyTorch, with self-checking tests.",
+      "minutes": 25,
+      "objectives": [
+        "You can predict the kinds of task the 2027 Final is likely to set",
+        "You can work test-first: tiny example, assert, then implement",
+        "You can turn a correct loop implementation into a vectorised one"
+      ],
+      "concepts": [
+        {
+          "name": "Likely task list",
+          "explain": "Past Finals follow a clear pattern: classic ML algorithms implemented from scratch in NumPy, plus deep-learning components in PyTorch with a debugging part. Likely candidates include logistic regression with L2 regularisation, k-nearest neighbours, softmax with cross-entropy, PCA via covariance eigenvectors, a decision stump with Gini, precision/recall/F1 from scratch, a conv2d forward pass, BatchNorm or LayerNorm, Dice or focal loss, and fixing a CNN's shape bug.",
+          "analogy": "Like practising every type of question in the syllabus rather than only last year's.",
+          "visual": {
+            "component": "PredictionMatrix",
+            "kind": "interactive",
+            "shows": "A matrix of about ten candidate tasks (rows) against the evidence for each (columns: tested in a past Prelim, IOAI syllabus item, similar to a past Final task, fits a one-hour slot), with ticks rather than invented probabilities and a link from each row to its practice notebook.",
+            "interaction": "Sort rows by the number of ticks; click a row to open that practice task; filter to NumPy-only or PyTorch tasks.",
+            "aha": "Practise the patterns, not just the past tasks."
+          }
+        },
+        {
+          "name": "Test-driven practice",
+          "explain": "Each practice task gives a function signature, a description and a few visible tests, plus hidden tests revealed after submission. Writing a tiny example by hand first and asserting the expected output catches most bugs before the hidden tests do.",
+          "analogy": "Checking a few answers against the back of the textbook before handing in the whole worksheet.",
+          "visual": {
+            "component": "TestDrivenLoop",
+            "kind": "interactive",
+            "shows": "An in-browser Python editor (Pyodide) with the task, visible tests, a run button and a results panel, plus a hidden-test reveal after passing.",
+            "interaction": "Write code, run tests, read failures, and fix; switch between tasks.",
+            "aha": "Tests turn 'I think it works' into 'I know it works'."
+          }
+        },
+        {
+          "name": "From loops to vectors",
+          "explain": "A first draft with explicit loops is fine for correctness; then replace the inner loops with array operations. For a 2D convolution, the loop over output positions can be replaced by extracting all patches into a matrix and doing one matrix multiplication.",
+          "analogy": "First walk the route to learn it, then take the express train.",
+          "visual": {
+            "component": "Conv2dLoopVisual",
+            "kind": "stepper",
+            "shows": "A naive four-loop conv2d with a position highlight on the image, then the patch-extraction (im2col) version where all patches become rows of a matrix multiplied by the flattened kernel, with timing comparisons.",
+            "interaction": "Step through both versions; change image and kernel sizes; compare outputs and timings.",
+            "aha": "Vectorising is restructuring the same arithmetic so the library does the loops."
+          }
+        }
+      ],
+      "code": "runnable",
+      "checkpoint_focus": [
+        "Likely tasks: logistic regression, k-NN, PCA, softmax cross-entropy, metrics, conv2d, BatchNorm/LayerNorm, Dice or focal loss",
+        "Visible vs hidden tests",
+        "Loops → vectors (im2col)"
+      ]
+    }
+  ]
+}

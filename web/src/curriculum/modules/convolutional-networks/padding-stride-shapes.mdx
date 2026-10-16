@@ -1,0 +1,278 @@
+import ConvShapeCalculator from './visuals/padding-stride-shapes/ConvShapeCalculator'
+import MultiChannelConv from './visuals/padding-stride-shapes/MultiChannelConv'
+import ConvParamCompare from './visuals/padding-stride-shapes/ConvParamCompare'
+
+export const shapeCode = `def conv_out(n, k, p=0, s=1):
+    """Output size along one side:
+    floor((n + 2p - k) / s) + 1."""
+    return (n + 2 * p - k) // s + 1
+
+def conv_params(k, c_in, c_out):
+    """Weights and biases of a k x k conv layer."""
+    return (k * k * c_in + 1) * c_out
+
+print(conv_out(32, 3, p=1, s=1))   # 'same' keeps 32
+print(conv_out(32, 3, p=1, s=2))   # stride 2 halves it
+print(conv_out(224, 7, p=3, s=2))  # ResNet's first layer
+print(conv_params(3, 64, 128))
+
+# trace a small CNN on a 32 x 32 colour image
+# each layer is (k, p, s, c_out)
+layers = [(3, 1, 1, 16), (3, 1, 2, 32), (3, 1, 2, 64)]
+c, n = 3, 32
+for k, p, s, c_out in layers:
+    params = conv_params(k, c, c_out)
+    c, n = c_out, conv_out(n, k, p, s)
+    print(f"-> ({c}, {n}, {n})  params {params}")`
+
+In the last lesson, [The convolution operation](#/learn/convolutional-networks/convolution), an $8 \times 8$ image came out of a $3 \times 3$ convolution as a $6 \times 6$ feature map. Real networks need control over that: sometimes you want to keep the size, sometimes you want to halve it on purpose. They also stack layers with dozens or hundreds of channels, and the exam loves two questions about them: **what shape comes out**, and **how many parameters** does the layer have? This lesson gives you the two formulas that answer both, and shows exactly where each part comes from.
+
+<Analogy title="A bench along a row of chairs">
+
+A row has 7 chairs, and a bench 3 seats wide can be put down over any 3 neighbouring chairs. It fits in 5 places: starting at chair 1, 2, 3, 4 or 5. Add a spare chair at each end of the row (that is **padding**) and it fits in 7 places. Insist on moving the bench 2 chairs at a time (that is **stride**) and it fits in fewer. Every output-size question is just this counting problem.
+
+</Analogy>
+
+## Counting positions
+
+Take one side of the image: $n$ pixels across, numbered $0, 1, \dots, n - 1$ (counting from 0, as in Python and the convolution lesson). A kernel $k$ pixels wide can start at pixel 0, 1, 2, …, up to the last start where it still fits, pixel $n - k$. That is $n - k + 1$ starting positions, so with no padding and steps of 1:
+
+$$
+\text{output size} = n - k + 1
+$$
+
+That is why $8 \times 8$ became $6 \times 6$: $8 - 3 + 1 = 6$. Height and width are counted separately in exactly the same way.
+
+## Padding: a border of zeros
+
+<Term def="Extra pixels, usually zeros, added around the border of the input before a convolution. With padding p, an n-pixel side becomes n + 2p.">Padding</Term> adds $p$ rings of zeros around the input, so each side grows from $n$ to $n + 2p$ (that's $p$ on the left **and** $p$ on the right). It does two useful things:
+
+- **It controls the output size.** Without padding, every layer shrinks the image, and a deep network would shrink it to nothing.
+- **It lets the border pixels count.** Without padding, a $3 \times 3$ kernel covers a corner pixel at only one position, but a central pixel at nine.
+
+Two names you will meet:
+
+- **"Valid"** convolution: no padding, $p = 0$. The output shrinks by $k - 1$.
+- **"Same"** convolution: just enough padding that the output is the **same** size as the input (with stride 1). Setting $n + 2p - k + 1 = n$ gives
+
+$$
+p = \frac{k - 1}{2}
+$$
+
+so $p = 1$ for a $3 \times 3$ kernel, $p = 2$ for $5 \times 5$ and $p = 3$ for $7 \times 7$. This is one reason kernels almost always have **odd** sizes: then $(k - 1)/2$ is a whole number and the kernel has a centre pixel.
+
+## Stride: jumping more than one pixel
+
+The <Term def="How many pixels the kernel moves between one position and the next. Stride 2 skips every other position and roughly halves the output size.">stride</Term> $s$ is how far the kernel jumps between positions. With $s = 2$ it visits every other position, which roughly **halves** the output: a cheap, learnable way to downsample. Putting padding and stride together gives the formula you must know by heart:
+
+$$
+\text{output size} = \left\lfloor \frac{n + 2p - k}{s} \right\rfloor + 1
+$$
+
+- $n$: input size (height or width), $k$: kernel size, $p$: padding on each side, $s$: stride.
+- $n + 2p - k$ is how far the kernel can travel from its first position to its last.
+- Dividing by $s$ counts the jumps that fit; $\lfloor \; \rfloor$ ("floor") means **round down**, because a jump that would push the kernel past the edge is simply not taken.
+- $+1$ counts the starting position itself (with zero jumps you still have one output).
+
+Check it on the bench: $n = 7$, $k = 3$, $p = 0$, $s = 1$ gives $\lfloor 4/1 \rfloor + 1 = 5$. Now count it yourself in the visual (the dots above the grid mark where the window can start along a row, $s$ apart):
+
+<ConvShapeCalculator />
+
+<Steps title="Four output sizes, no calculator">
+  <Step title="'Same' padding, stride 1">
+    $n = 32$, $k = 3$, $p = 1$, $s = 1$: $\lfloor (32 + 2 - 3)/1 \rfloor + 1 = 31 + 1 = 32$. The size is kept.
+  </Step>
+  <Step title="'Same' padding, stride 2">
+    Same layer with $s = 2$: $\lfloor 31/2 \rfloor + 1 = \lfloor 15.5 \rfloor + 1 = 15 + 1 = 16$. Halved.
+  </Step>
+  <Step title="ResNet's first layer">
+    <Term def="A family of very deep CNNs (2015) built from residual blocks, covered in the architectures lesson. Its first layer is a 7 × 7 convolution with stride 2.">ResNet</Term> on a $224 \times 224$ photo, $n = 224$, $k = 7$, $p = 3$, $s = 2$: $\lfloor (224 + 6 - 7)/2 \rfloor + 1 = \lfloor 223/2 \rfloor + 1 = 111 + 1 = 112$.
+  </Step>
+  <Step title="Valid, stride 2">
+    $n = 7$, $k = 3$, $p = 0$, $s = 2$: $\lfloor 4/2 \rfloor + 1 = 3$. The kernel starts at columns 0, 2 and 4 (counting from 0), and the last window covers columns 4 to 6.
+  </Step>
+</Steps>
+
+<KeyIdea>
+
+$\text{output} = \lfloor (n + 2p - k)/s \rfloor + 1$, applied separately to height and width. It just counts how many places the kernel fits.
+
+</KeyIdea>
+
+<ExamTip>
+
+Three shortcuts cover most questions in seconds. Stride 1 with "same" padding: the size is unchanged. Stride 2 with "same" padding on an even size: exactly half. No padding, stride 1: $n - k + 1$. For anything else, use the formula, and remember the trap options: forgetting the $+1$, writing $p$ instead of $2p$, and rounding up instead of down.
+
+</ExamTip>
+
+<QuickCheck
+  q="A 64 × 64 feature map goes through a 3 × 3 convolution with padding 1 and stride 2. What is the output's height and width?"
+  options={['32 × 32', '31 × 31', '33 × 33', '64 × 64']}
+  answer={0}
+  id="convolutional-networks.padding-stride-shapes.qc1"
+  explain="$\lfloor (64 + 2 - 3)/2 \rfloor + 1 = \lfloor 63/2 \rfloor + 1 = 31 + 1 = 32$. Forgetting the $+1$ gives 31; rounding 31.5 up instead of down gives 33. 'Same' padding keeps 64 only when the stride is 1."
+/>
+
+<PastPaperQuestion paper="prelim2026" n={190} />
+
+<PastPaperQuestion paper="prelim2026" n={191} />
+
+## Channels: every kernel is a 3-D block
+
+So far each kernel was a flat $3 \times 3$ grid. But an RGB image has 3 channels, and deeper feature maps have 64, 128 or more. A kernel for an input with $C_\text{in}$ channels is a **block** of shape $C_\text{in} \times k \times k$: one $k \times k$ slice for each input channel. At each position it multiplies and adds over **all** $k \times k \times C_\text{in}$ numbers, adds its one bias, and produces **one** number. So one kernel always makes one output channel, however many input channels there are.
+
+It is like a chef tasting all three sauces in one spoonful and giving a single score: three inputs go in, one judgement comes out.
+
+<MultiChannelConv />
+
+A layer with $C_\text{out}$ kernels produces $C_\text{out}$ output channels, so the output shape is $(C_\text{out}, H_\text{out}, W_\text{out})$. In PyTorch all the kernels of a layer sit in one weight tensor of shape $(C_\text{out}, C_\text{in}, k, k)$, plus a bias vector of length $C_\text{out}$. Counting them gives the parameter formula:
+
+$$
+\text{parameters} = (k \times k \times C_\text{in} + 1) \times C_\text{out}
+$$
+
+- $k \times k \times C_\text{in}$: the weights in **one** kernel;
+- $+1$: that kernel's bias;
+- $\times\, C_\text{out}$: one kernel per output channel.
+
+<Steps title="Counting parameters">
+  <Step title="An RGB first layer">
+    $3 \times 3$ kernels, $C_\text{in} = 3$, $C_\text{out} = 64$: each kernel has $3 \times 3 \times 3 = 27$ weights, plus 1 bias is 28, times 64 kernels is $1{,}792$.
+  </Step>
+  <Step title="A deeper layer">
+    $3 \times 3$ from 64 to 128 channels: $9 \times 64 = 576$ weights per kernel, $+1 = 577$, $\times 128 = 73{,}856$.
+  </Step>
+  <Step title="Compare with a dense layer">
+    The 64-channel input above might be $32 \times 32$: a dense layer from $64 \times 32 \times 32 = 65{,}536$ inputs to just 128 outputs would need over 8 million weights. The conv layer needs 73,856, and the same number for any image size.
+  </Step>
+</Steps>
+
+Parameters are not the same as **computation**. Every weight is used once at every output position, so the number of <Term def="Multiplications that are each followed by an addition, as in w·x + …; the usual measure of how much computation a layer needs.">multiply-adds</Term> a conv layer needs is
+
+$$
+\text{multiply-adds} = k \times k \times C_\text{in} \times C_\text{out} \times H_\text{out} \times W_\text{out}
+$$
+
+For the deeper layer above with a $32 \times 32$ output: $9 \times 64 \times 128 \times 1{,}024 = 75{,}497{,}472$, about 75 million. (Papers often quote <Term def="Floating-point operations: arithmetic steps on decimal numbers. A multiply-add counts as 2 FLOPs, one multiply plus one add.">FLOPs</Term> instead, counting the multiply and the add separately: about $2 \times$ the multiply-adds, so about 151 million FLOPs here.) With stride 2 the output is $16 \times 16$, a quarter as many positions, so about 19 million, while the parameter count stays 73,856.
+
+<Mistake title="Three classic counting traps">
+
+1. Forgetting $C_\text{in}$: a "$3 \times 3$ kernel" on a 64-channel input has $9 \times 64 = 576$ weights, not 9.
+2. Forgetting the biases: one per **output** channel, so $+ C_\text{out}$ in total.
+3. Thinking image size, padding or stride change the count. They change the output **shape** and the amount of computation, never the number of parameters.
+
+</Mistake>
+
+<QuickCheck
+  q="A convolutional layer maps 16 input channels to 32 output channels with 3 × 3 kernels and biases. How many parameters does it have?"
+  options={['4,640', '4,608', '320', '4,624']}
+  answer={0}
+  id="convolutional-networks.padding-stride-shapes.qc2"
+  explain="Each kernel has $3 \times 3 \times 16 = 144$ weights plus 1 bias: 145. Times 32 kernels: $145 \times 32 = 4{,}640$. Without biases it would be 4,608. 320 forgets the input channels: $(9 + 1) \times 32$."
+/>
+
+Here are both formulas in plain Python. Run it, then change the layers and predict the printout before you press Run:
+
+<PyRunner code={shapeCode} />
+
+And the same facts straight from PyTorch:
+
+```python
+import torch
+import torch.nn as nn
+
+conv = nn.Conv2d(in_channels=64, out_channels=128, kernel_size=3, padding=1)
+print(conv.weight.shape, conv.bias.shape)
+print(sum(p.numel() for p in conv.parameters()))
+
+x = torch.rand(8, 64, 32, 32)                  # (N, C, H, W)
+print(conv(x).shape)                           # 'same' padding keeps 32 x 32
+down = nn.Conv2d(64, 128, kernel_size=3, padding=1, stride=2)
+print(down(x).shape)                           # stride 2 halves it
+```
+
+```text
+torch.Size([128, 64, 3, 3]) torch.Size([128])
+73856
+torch.Size([8, 128, 32, 32])
+torch.Size([8, 128, 16, 16])
+```
+
+## 1 × 1 convolutions: mixing channels
+
+A $1 \times 1$ kernel ($k = 1$) looks at a **single pixel**, but through all its channels. Each output value is a weighted sum of the $C_\text{in}$ numbers stored at that pixel, plus a bias: exactly a small dense layer, applied to every pixel separately with the same weights. It does not look at neighbours at all; it **mixes channels**.
+
+Its main use is changing the number of channels cheaply. Shrinking 256 channels to 64 with a $1 \times 1$ convolution costs $(1 \times 1 \times 256 + 1) \times 64 = 16{,}448$ parameters, against $(3 \times 3 \times 256 + 1) \times 64 = 147{,}520$ for a $3 \times 3$ layer. Many architectures (GoogLeNet, also called Inception, and ResNet-50's "bottleneck" blocks, both mentioned in [the architectures lesson](#/learn/convolutional-networks/cnn-architectures-and-resnets)) use $1 \times 1$ layers this way, to squeeze channels before an expensive $3 \times 3$ layer.
+
+## Depthwise separable convolutions
+
+A standard convolution does two jobs at once: it filters **spatially** (looks at a $k \times k$ neighbourhood) and it **mixes channels** (every kernel spans all $C_\text{in}$ channels). A <Term def="A convolution split into two cheaper steps: a depthwise convolution (one k × k filter per input channel, no channel mixing) followed by a pointwise 1 × 1 convolution that mixes channels. Used by MobileNet.">depthwise separable convolution</Term> does the two jobs one after the other:
+
+1. **Depthwise:** one $k \times k$ filter for each input channel, applied to that channel only. Spatial filtering, no mixing: $k^2 \cdot C_\text{in}$ weights.
+2. **Pointwise:** a $1 \times 1$ convolution from $C_\text{in}$ to $C_\text{out}$ channels. Mixing, no spatial filtering: $C_\text{in} \cdot C_\text{out}$ weights.
+
+Back to the chefs. In a standard layer each of 128 chefs tastes all 128 sauces, each over a small $3 \times 3$ patch of the pan: $9 \times 128 \times 128$ tastes. In a separable layer one helper per sauce tastes just that sauce over the $3 \times 3$ patch ($9 \times 128$ tastes in all), and each chef only blends the 128 helpers' reports ($128 \times 128$). Ignoring biases:
+
+$$
+\underbrace{k^2 \cdot C_\text{in} \cdot C_\text{out}}_{\text{standard}} \quad \text{versus} \quad \underbrace{k^2 \cdot C_\text{in} + C_\text{in} \cdot C_\text{out}}_{\text{depthwise separable}}
+$$
+
+<ConvParamCompare />
+
+<Steps title="The saving for a typical layer">
+  <Step title="Standard">
+    $k = 3$, $C_\text{in} = C_\text{out} = 128$: $9 \times 128 \times 128 = 147{,}456$ weights.
+  </Step>
+  <Step title="Depthwise separable">
+    Depthwise $9 \times 128 = 1{,}152$, pointwise $128 \times 128 = 16{,}384$; total $17{,}536$.
+  </Step>
+  <Step title="Ratio">
+    $147{,}456 / 17{,}536 \approx 8.4$ times fewer. In general the separable layer costs a fraction $\frac{1}{C_\text{out}} + \frac{1}{k^2}$ of the standard one, which is close to $\frac{1}{9}$ for a wide $3 \times 3$ layer.
+  </Step>
+</Steps>
+
+The number of multiply-adds shrinks by the same factor, because each weight is used once at every output position. That is why <Term def="A family of small, fast CNNs (2017 onwards) designed for phones, built mostly from depthwise separable convolutions."><b>MobileNet</b></Term>, designed to run on phones, is built from depthwise separable layers. The price: the separable layer must filter first and mix afterwards, so it is slightly less flexible, and accuracy is usually a little lower for the same depth.
+
+In PyTorch the depthwise step is an ordinary `Conv2d` with `groups` equal to the number of input channels:
+
+```python
+import torch
+import torch.nn as nn
+
+depthwise = nn.Conv2d(128, 128, kernel_size=3, padding=1, groups=128, bias=False)
+pointwise = nn.Conv2d(128, 128, kernel_size=1, bias=False)
+standard = nn.Conv2d(128, 128, kernel_size=3, padding=1, bias=False)
+count = lambda m: sum(p.numel() for p in m.parameters())
+print(depthwise.weight.shape, count(depthwise))
+print(pointwise.weight.shape, count(pointwise))
+print("standard:", count(standard))
+print("separable:", count(depthwise) + count(pointwise))
+y = torch.rand(1, 128, 16, 16)
+print(pointwise(depthwise(y)).shape, standard(y).shape)
+```
+
+```text
+torch.Size([128, 1, 3, 3]) 1152
+torch.Size([128, 128, 1, 1]) 16384
+standard: 147456
+separable: 17536
+torch.Size([1, 128, 16, 16]) torch.Size([1, 128, 16, 16])
+```
+
+Both produce the same output shape; the separable pair just gets there with about an eighth of the weights.
+
+<ExamTip>
+
+Spot the type of question. "How big is the output?" uses the size formula and never the channel count of the input. "How many parameters?" uses $(k^2 C_\text{in} + 1) C_\text{out}$ and never the image size, padding or stride. "Why $1 \times 1$?" means channel mixing or changing the channel count cheaply. "Why depthwise separable?" means fewer parameters and less computation (MobileNet). "How many multiplications?" is $k^2 C_\text{in} C_\text{out}$ times the number of output positions.
+
+</ExamTip>
+
+<Takeaways>
+
+- Output size along each side: $\lfloor (n + 2p - k)/s \rfloor + 1$. It counts how many places the kernel fits.
+- "Same" padding for stride 1 is $p = (k - 1)/2$ (so $p = 1$ for $3 \times 3$); stride 2 roughly halves the size.
+- A kernel spans all input channels ($C_\text{in} \times k \times k$) and gives one output channel; weights have shape $(C_\text{out}, C_\text{in}, k, k)$.
+- Parameters $= (k \cdot k \cdot C_\text{in} + 1) \cdot C_\text{out}$, independent of image size, padding and stride.
+- A $1 \times 1$ convolution mixes channels at each pixel; a depthwise separable convolution (depthwise $k \times k$ per channel, then $1 \times 1$) needs $k^2 C_\text{in} + C_\text{in} C_\text{out}$ weights instead of $k^2 C_\text{in} C_\text{out}$, roughly $k^2$ times fewer.
+
+</Takeaways>

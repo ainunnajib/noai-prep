@@ -1,0 +1,347 @@
+{
+  "slug": "prelim-speed-toolkit",
+  "order": 35,
+  "part": "exam",
+  "domain": "exam",
+  "title": "Prelim strategy and speed drills",
+  "tagline": "150 questions, 90 minutes, no calculator",
+  "summary": "A pacing and elimination method for 36-second MCQs, timed no-calculator drills for linear algebra, calculus, probability, metrics, conv arithmetic and parameter counts, speed code reading and keyword triggers, and full mock Prelims with an error log.",
+  "prerequisites": [
+    "ml-systems-and-tradeoffs",
+    "multimodal-ai"
+  ],
+  "syllabus": [
+    "NOAI 2027 Preliminary Round: 150 MCQs, 90 minutes, five domains, no calculator, no penalty",
+    "Two-pass pacing, triage and elimination",
+    "No-calculator arithmetic: shapes, dot products, norms, 2×2 determinants, derivatives, probabilities, metrics",
+    "Conv output sizes, parameter counts, Big-O",
+    "Mock exams and error logs"
+  ],
+  "paper_subtopics": [
+    "linear-algebra",
+    "calculus",
+    "probability-statistics",
+    "optimisation",
+    "python",
+    "numpy",
+    "pytorch",
+    "model-evaluation",
+    "cnn-vision",
+    "neural-networks",
+    "nlp-transformers",
+    "algorithms-complexity",
+    "ml-debugging-diagnosis"
+  ],
+  "lessons": [
+    {
+      "slug": "pacing-and-elimination",
+      "title": "Pacing, triage and elimination",
+      "summary": "A two-pass plan for 150 questions, where the questions come from, and the elimination heuristics that work on NOAI options.",
+      "minutes": 16,
+      "objectives": [
+        "You can run a two-pass pacing plan with checkpoints",
+        "You can eliminate distractors using reliable heuristics",
+        "You can describe how the 2026 Prelim questions were spread across domains"
+      ],
+      "concepts": [
+        {
+          "name": "Pacing checkpoints",
+          "explain": "At 36 seconds each, you should finish about 25 questions every 15 minutes: Q25 at 15 min, Q50 at 30, Q75 at 45, Q100 at 60, Q125 at 75, and Q150 at 90. Checking against these marks tells you early whether to speed up. Answer every question you skip with your best guess and flag it, because time may run out.",
+          "analogy": "Like checking your watch at each MRT station on the way to an exam: if you are behind at Bishan, you know to walk faster at the other end.",
+          "visual": {
+            "component": "PaceCheckpoints",
+            "kind": "animation",
+            "shows": "A 90-minute timeline with checkpoint flags, a simulated student's progress line, and a 'behind/ahead' indicator at each checkpoint.",
+            "interaction": "Play a simulated exam with adjustable average time per question and number of hard questions; pause at checkpoints to decide whether to speed up.",
+            "aha": "Checkpoints turn a vague sense of time into an early warning system."
+          }
+        },
+        {
+          "name": "Elimination heuristics",
+          "explain": "Remove options with absolute claims ('always', 'never', 'only works for'), options that answer a different question, and options that swap terms (eigenvector vs eigenvalue). The correct option usually gives the standard definition or a reason tied to the scenario's numbers.",
+          "analogy": "Like spotting a scam message: overclaims and mismatched details give it away.",
+          "visual": {
+            "component": "EliminationTrainer",
+            "kind": "interactive",
+            "shows": "Real 2026 Prelim questions; you strike out options and get feedback on each strike.",
+            "interaction": "Click to eliminate options before answering; see which heuristics applied.",
+            "aha": "Even partial knowledge plus elimination turns into marks."
+          }
+        },
+        {
+          "name": "Where the questions come from",
+          "explain": "The 2026 Prelim tested five roughly equal domains. Within them, the most frequent subtopics were CNNs and vision, training and regularisation, linear algebra, PyTorch, optimisation, probability and NLP/Transformers. Later questions shifted from definitions towards scenario diagnosis and system design.",
+          "analogy": "Knowing which topics come out every year in the O-level Physics paper helps you plan revision.",
+          "visual": {
+            "component": "PrelimHeatmap",
+            "kind": "interactive",
+            "shows": "A heat map of question counts by domain and subtopic from the tagged 2026 Prelim, with the question-number position in the paper as a second view.",
+            "interaction": "Click a cell to list sample questions and the course lessons that teach them; toggle between counts and paper position.",
+            "aha": "A few subtopics carry a large share of marks, and the paper's style shifts from recall to reasoning as it goes on."
+          }
+        }
+      ],
+      "code": "none",
+      "checkpoint_focus": [
+        "36 s per question on average",
+        "Checkpoints at Q50 and Q100",
+        "Absolute words and swapped terms in distractors"
+      ]
+    },
+    {
+      "slug": "drill-linear-algebra",
+      "title": "Speed drills: shapes, dot products, norms and determinants",
+      "summary": "Mental shortcuts for the most common linear-algebra computations.",
+      "minutes": 15,
+      "objectives": [
+        "You can chain matrix shapes instantly",
+        "You can compute dot products and norms using Pythagorean triples",
+        "You can compute 2x2 determinants, traces and inverses mentally"
+      ],
+      "concepts": [
+        {
+          "name": "Shape chains",
+          "explain": "Write shapes as dominoes and cancel matching inner numbers: (3 x 2)(2 x 4)(4 x 1) = 3 x 1. Transpose swaps. Any mismatch means 'cannot multiply'. Most shape questions take under 10 seconds this way.",
+          "analogy": "Like linking train carriages: the couplers must match, and only the ends matter.",
+          "visual": {
+            "component": "ShapeChainDrill",
+            "kind": "interactive",
+            "shows": "Random chains of 2 to 4 shapes with a 10-second timer and instant feedback.",
+            "interaction": "Type the result shape or 'invalid'; your streak and average time are tracked.",
+            "aha": "Shape questions are pattern recognition, not arithmetic."
+          }
+        },
+        {
+          "name": "Dot products, norms and triples",
+          "explain": "Multiply-and-add left to right, keeping a running total. Recognise Pythagorean triples (3-4-5, 5-12-13, 8-15-17, 6-8-10) for norms. For cosine, check whether the dot product is 0 (orthogonal) before computing anything.",
+          "analogy": "Like adding up a hawker bill line by line rather than all at once.",
+          "visual": {
+            "component": "DotNormDrill",
+            "kind": "interactive",
+            "shows": "Generated 3- and 4-component integer vectors built so that norms land on Pythagorean triples (for example [3, 4, 12] has length 13), asking in turn for a dot product, an L1 norm, an L2 norm or a cosine similarity, with a 60-second timer.",
+            "interaction": "Choose a question type and difficulty; answer as many as you can in 60 seconds; a miss shows the running-total working and the triple that was hidden in it.",
+            "aha": "Speed comes from known patterns and running totals."
+          }
+        },
+        {
+          "name": "2x2 shortcuts",
+          "explain": "det [[a, b], [c, d]] = ad - bc; trace = a + d; inverse = (1/det)[[d, -b], [-c, a]]; eigenvalues satisfy sum = trace and product = det, so for small integer matrices you can often guess them.",
+          "analogy": "Like the quick sums you can do at the checkout without a calculator.",
+          "visual": {
+            "component": "TwoByTwoDrill",
+            "kind": "interactive",
+            "shows": "Random 2x2 matrices asking for det, trace, inverse entries or eigenvalues.",
+            "interaction": "Answer with a timer; misses show the shortcut used.",
+            "aha": "trace and det pin down a 2x2 matrix's eigenvalues."
+          }
+        }
+      ],
+      "code": "none",
+      "checkpoint_focus": [
+        "Matrix shapes",
+        "Dot products",
+        "L2 norm",
+        "Determinant",
+        "Trace",
+        "Eigenvalues from trace/det"
+      ]
+    },
+    {
+      "slug": "drill-calculus-probability",
+      "title": "Speed drills: derivatives, probabilities, metrics and anchor values",
+      "summary": "Instant recall of derivative facts, quick probabilities, z-scores and classification metrics, and a dozen anchor values that replace a calculator.",
+      "minutes": 18,
+      "objectives": [
+        "You can state derivatives of common functions in under 5 seconds",
+        "You can compute dice, complement and Bayes probabilities mentally",
+        "You can compute precision, recall, F1 and accuracy from counts quickly",
+        "You can estimate logs, exponentials and square roots from memorised anchor values"
+      ],
+      "concepts": [
+        {
+          "name": "Derivative flashcards",
+          "explain": "Drill the fixed set: x^n, e^x, ln x, sigmoid (s(1 - s)), tanh (1 - tanh^2), ReLU (0 or 1), ||x||^2 (2x), (wx - y)^2 with respect to w (2(wx - y)x), plus partial derivatives of simple products.",
+          "analogy": "Like times-table drills: speed comes from repetition.",
+          "visual": {
+            "component": "FlashcardDrill",
+            "kind": "interactive",
+            "shows": "Flashcards with a function on the front and the derivative on the back, with spaced repetition.",
+            "interaction": "Flip and self-grade; missed cards come back sooner.",
+            "aha": "A short fixed list covers almost every calculus recall question."
+          }
+        },
+        {
+          "name": "Quick probability and metrics",
+          "explain": "Use complements, count outcomes for dice and coins, use a 100-person grid for Bayes, compute z = (x - mean)/std, and for metrics write TP, FP, FN, TN first, then precision TP/(TP+FP), recall TP/(TP+FN) and F1 = 2PR/(P+R).",
+          "analogy": "Like a checklist pilots run before take-off: the same steps every time, no thinking needed.",
+          "visual": {
+            "component": "MetricsFromCounts",
+            "kind": "interactive",
+            "shows": "Random confusion matrices with a timer asking for one metric at a time.",
+            "interaction": "Answer; the relevant cells highlight in feedback.",
+            "aha": "Write the four counts first, then every metric is one fraction."
+          }
+        },
+        {
+          "name": "The anchor values",
+          "explain": "A small table of anchors covers most exam arithmetic: ln 2 ≈ 0.69, ln 10 ≈ 2.30 (so −ln 0.1 ≈ 2.30), log₂ 1024 = 10, e ≈ 2.72, e² ≈ 7.39, √2 ≈ 1.41, σ(0) = 0.5 and σ(±2) ≈ 0.88/0.12. Combining anchors (ln 4 = 2 ln 2 ≈ 1.39) gives most values without a calculator.",
+          "analogy": "Knowing the MRT travel times between a few major interchanges lets you estimate any journey.",
+          "visual": {
+            "component": "AnchorSlideRule",
+            "kind": "interactive",
+            "shows": "A slide-rule style pair of scales for x and ln x (and x and eˣ) with the anchor values marked, and a target value to estimate.",
+            "interaction": "Drag the cursor to read values; play a challenge mode that asks for estimates and scores closeness and speed.",
+            "aha": "A dozen memorised anchors replace a calculator for nearly every Prelim computation."
+          }
+        }
+      ],
+      "code": "none",
+      "checkpoint_focus": [
+        "Derivatives",
+        "Probability",
+        "z-scores",
+        "Precision/recall/F1 from counts",
+        "Anchors: ln 2 ≈ 0.69, ln 10 ≈ 2.30, e ≈ 2.72, √2 ≈ 1.41, σ(0) = 0.5"
+      ]
+    },
+    {
+      "slug": "drill-conv-and-params",
+      "title": "Speed drills: conv sizes and parameter counts",
+      "summary": "Deep-learning arithmetic done in seconds: conv output sizes, parameter counts and the cost of common operations, without a calculator.",
+      "minutes": 25,
+      "objectives": [
+        "You can compute conv output sizes in under 20 seconds and explain them as counting window positions",
+        "You can count the parameters of conv, linear, embedding and attention layers",
+        "You can match common operations to their cost, such as O(n²d) for attention"
+      ],
+      "concepts": [
+        {
+          "name": "Conv arithmetic drill",
+          "explain": "Output = floor((W - K + 2P)/S) + 1; parameters = (K K C_in + 1) C_out; pooling halves sizes; 'same' padding for K = 3 is P = 1. Practise until these are automatic.",
+          "analogy": "Like knowing bus fares between your usual stops by heart.",
+          "visual": {
+            "component": "ConvDrill",
+            "kind": "interactive",
+            "shows": "Random conv layer specs asking for output size or parameter count, with a timer.",
+            "interaction": "Answer and get step-by-step feedback on misses.",
+            "aha": "Two formulas cover nearly all CNN arithmetic questions."
+          }
+        },
+        {
+          "name": "Parameter and complexity drill",
+          "explain": "Parameter counts: Linear in x out + out, Embedding vocab x dim, multi-head attention 4d^2 + 4d, LoRA r(d + k). Costs: attention O(n^2 d), matrix product O(nmp), Hessian inversion O(p^3). Cosine schedule: (base + min)/2 at the midpoint and min at the end.",
+          "analogy": "Like a cheat sheet you have memorised so well you no longer need it.",
+          "visual": {
+            "component": "ParamComplexityDrill",
+            "kind": "interactive",
+            "shows": "Mixed random questions on parameter counts, Big-O and schedule values.",
+            "interaction": "Answer as many as possible in 90 seconds; review misses.",
+            "aha": "A dozen formulas cover most deep-learning computation questions."
+          }
+        }
+      ],
+      "code": "snippet",
+      "checkpoint_focus": [
+        "floor((W − K + 2P)/S) + 1",
+        "Linear: in×out + out; conv: (K·K·C_in + 1)·C_out; MHA: 4d² + 4d"
+      ]
+    },
+    {
+      "slug": "drill-shapes-and-code",
+      "title": "Speed drills: shapes and code traps",
+      "summary": "Reading Python, NumPy and PyTorch code at speed: writing the shape on every line and spotting the dozen traps that recur in past papers.",
+      "minutes": 25,
+      "objectives": [
+        "You can annotate tensor shapes line by line",
+        "You can predict the output of short code snippets",
+        "You can name the trap a code question is built around"
+      ],
+      "concepts": [
+        {
+          "name": "Shape annotation",
+          "explain": "For any NumPy or PyTorch snippet, write the shape next to each line: (32, 3, 28, 28) → conv → (32, 16, 26, 26) → flatten → (32, 10816). Most code questions on tensors are answered by the shapes alone.",
+          "analogy": "Writing the platform number next to each leg of a journey so you never get lost at an interchange.",
+          "visual": {
+            "component": "ShapeAnnotator",
+            "kind": "interactive",
+            "shows": "Code snippets with an empty shape column; you fill each shape and the tool checks it, highlighting the first mismatch.",
+            "interaction": "Fill in shapes; reveal answers; switch among NumPy, PyTorch and pandas snippets.",
+            "aha": "Tracking shapes line by line turns tensor questions into bookkeeping."
+          }
+        },
+        {
+          "name": "The trap catalogue",
+          "explain": "The same traps recur: range and slices excluding the end, // versus /, mutable defaults and aliasing, * versus @, broadcasting surprises, loc versus iloc, missing zero_grad, forgetting model.eval(), softmax before CrossEntropyLoss, and integer tensors from torch.tensor. Recognising the trap is usually the whole question.",
+          "analogy": "A driving instructor's list of the junctions where learners most often fail.",
+          "visual": {
+            "component": "CodePredictDrill",
+            "kind": "interactive",
+            "shows": "Timed code-output cards, each built around one trap, with the trap named and explained after answering.",
+            "interaction": "Answer cards against a timer; filter by trap type; review a personal trap-frequency chart.",
+            "aha": "There are only about a dozen common traps, and learning them pays off across many questions."
+          }
+        }
+      ],
+      "code": "snippet",
+      "checkpoint_focus": [
+        "Shape annotation",
+        "Mutable defaults, integer division, view vs copy, broadcasting traps"
+      ]
+    },
+    {
+      "slug": "mock-prelim-and-review",
+      "title": "Mock Prelims and the review loop",
+      "summary": "Sit a timed 150-question mock, then turn every miss into a targeted fix and track your projected score.",
+      "minutes": 25,
+      "objectives": [
+        "You can sit a full mock under exam conditions",
+        "You can classify mistakes and plan targeted review",
+        "You can track progress across mocks"
+      ],
+      "concepts": [
+        {
+          "name": "Timed mock conditions",
+          "explain": "Sit 150 questions in 90 minutes with no calculator, notes or interruptions, using the two-pass strategy. The mock draws evenly from the five domains and mixes recall, computation and scenario questions.",
+          "analogy": "Like a full dress rehearsal before National Day: same time, same conditions.",
+          "visual": {
+            "component": "MockExamTimer",
+            "kind": "interactive",
+            "shows": "A full-screen exam interface with question navigator, flag button, timer and checkpoint alerts.",
+            "interaction": "Answer, flag and navigate; submit to see the breakdown.",
+            "aha": "Exam conditions reveal pacing problems that untimed practice hides."
+          }
+        },
+        {
+          "name": "The error log",
+          "explain": "After each mock, record every wrong or guessed question and classify it: knowledge gap (study the lesson), misread (slow down on stems), calculation slip (drill), or time pressure (pacing). Patterns in the log tell you what to fix next.",
+          "analogy": "A badminton player reviewing match footage to see whether points were lost to footwork, technique or fatigue.",
+          "visual": {
+            "component": "ErrorLogSorter",
+            "kind": "interactive",
+            "shows": "A list of mock-exam mistakes to drag into four bins, with a summary chart by domain and error type and suggested lessons.",
+            "interaction": "Sort sample mistakes (or your own from the site's mock exam); view the recommended plan.",
+            "aha": "Different mistakes need different fixes; more practice alone does not fix misreading."
+          }
+        },
+        {
+          "name": "Score projection",
+          "explain": "Your mock score, the number of questions reached and your guessing rate project to a likely Prelim score range. Tracking it week by week shows whether your plan is working with enough time to adjust.",
+          "analogy": "Tracking your 2.4 km run timings weekly before NAPFA.",
+          "visual": {
+            "component": "ScoreProjector",
+            "kind": "interactive",
+            "shows": "A line of weekly mock scores with a projected range on 19 Feb 2027, and a breakdown by domain.",
+            "interaction": "Enter or simulate weekly scores; adjust planned study hours and see the projection change.",
+            "aha": "Regular, honest measurement turns preparation into a plan you can steer."
+          }
+        }
+      ],
+      "code": "none",
+      "checkpoint_focus": [
+        "Exam-condition rules",
+        "Error types: did not know, careless, ran out of time",
+        "Domain and subtopic weak spots"
+      ]
+    }
+  ]
+}

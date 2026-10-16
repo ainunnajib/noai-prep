@@ -1,0 +1,237 @@
+{
+  "slug": "algorithms-and-complexity",
+  "order": 5,
+  "part": "code",
+  "domain": "problem_solving",
+  "title": "Algorithms and complexity",
+  "tagline": "Thinking about cost before coding",
+  "summary": "Big-O notation and counting steps in code, binary search, sorting, hashing and heaps, then recursion, memoisation, dynamic programming and graph search, the algorithm-design toolkit behind the Problem Solving domain.",
+  "prerequisites": [
+    "python-toolkit"
+  ],
+  "syllabus": [
+    "NOAI Problem Solving: Algorithm Design",
+    "Big-O time and space complexity",
+    "Binary search, sorting, hashing, heaps for top-k",
+    "Recursion, memoisation, dynamic programming, BFS/DFS"
+  ],
+  "paper_subtopics": [
+    "algorithms-complexity",
+    "python"
+  ],
+  "lessons": [
+    {
+      "slug": "big-o",
+      "title": "Big-O: how cost grows",
+      "summary": "Counting steps as input grows, the common complexity classes, and reading complexity off code.",
+      "minutes": 18,
+      "objectives": [
+        "You can rank O(1), O(log n), O(n), O(n log n), O(n²), O(2ⁿ)",
+        "You can derive the complexity of loops and nested loops",
+        "You can distinguish time and space complexity"
+      ],
+      "concepts": [
+        {
+          "name": "The growth race",
+          "explain": "Big-O describes how the number of steps grows with input size n, ignoring constants and smaller terms. Doubling n doubles O(n) work, quadruples O(n²) work and adds only one step to O(log n). For large n, the class matters far more than the constant factor.",
+          "analogy": "Finding a friend at an NDP crowd by checking everyone (O(n)) versus everyone shaking hands with everyone (O(n²)).",
+          "visual": {
+            "component": "BigORace",
+            "kind": "interactive",
+            "shows": "Bars or curves of step counts for each complexity class at the chosen n, with a toggle for a log-scale axis and a 'time at 1 microsecond per step' readout.",
+            "interaction": "Slide n from 10 to 1,000,000; toggle the log scale; hide or show classes.",
+            "aha": "Exponential and quadratic costs explode while logarithmic ones barely move."
+          }
+        },
+        {
+          "name": "Reading complexity from code",
+          "explain": "A loop over n items is O(n); a loop inside a loop over n items is O(n²); a loop that halves its range each time is O(log n); sequential blocks add, nested blocks multiply. Python operations hide costs too: x in list is O(n) but x in set is O(1) on average.",
+          "analogy": "Counting how many times the canteen auntie must walk to the kitchen for a given order list.",
+          "visual": {
+            "component": "LoopCounter",
+            "kind": "interactive",
+            "shows": "Code snippets with a live step counter as n varies, and a fitted complexity label (O(n), O(n²), O(log n)).",
+            "interaction": "Choose a snippet (single loop, nested loop, halving loop, list membership in a loop); slide n; see the count and growth ratio when n doubles.",
+            "aha": "The doubling test (how much does work grow when n doubles?) reveals complexity instantly."
+          }
+        }
+      ],
+      "code": "runnable",
+      "checkpoint_focus": [
+        "Dominant term and dropping constants",
+        "Nested loops multiply",
+        "Halving gives log n",
+        "Space vs time"
+      ]
+    },
+    {
+      "slug": "searching-and-sorting",
+      "title": "Searching and sorting",
+      "summary": "Linear versus binary search and why halving gives O(log n), then sorting from O(n²) bubble and insertion sort to O(n log n) merge sort, and when quicksort slows to O(n²).",
+      "minutes": 20,
+      "objectives": [
+        "You can trace binary search on a sorted list and work out its worst-case number of comparisons, about log₂ n",
+        "You can merge two sorted lists by hand and explain why merge sort is O(n log n) while bubble sort can need O(n²)",
+        "You can explain why quicksort is O(n log n) on average but O(n²) when every pivot is the smallest item, as on sorted data"
+      ],
+      "concepts": [
+        {
+          "name": "Binary search halves the problem",
+          "explain": "In a sorted list, compare the target with the middle item and discard the half that cannot contain it; repeat. A million items need at most about 20 comparisons, because 2²⁰ ≈ 1,000,000.",
+          "analogy": "Guessing a number from 1 to 100 with 'higher or lower' hints: start at 50.",
+          "visual": {
+            "component": "BinarySearchStepper",
+            "kind": "stepper",
+            "shows": "A sorted array with low, mid and high pointers; each step greys out the discarded half and logs the comparison.",
+            "interaction": "Pick a target; step through; compare with a linear-search counter; shuffle the array to see binary search fail.",
+            "aha": "Halving makes search logarithmic, but only on sorted data."
+          }
+        },
+        {
+          "name": "Sorting algorithms race",
+          "explain": "Bubble sort repeatedly swaps neighbours and takes O(n²) comparisons; merge sort splits the list in halves, sorts each and merges them in O(n log n). Python's built-in sort (Timsort) is O(n log n) and should almost always be used.",
+          "analogy": "Sorting exam scripts by repeatedly swapping neighbours versus splitting the pile among friends and merging the sorted piles.",
+          "visual": {
+            "component": "SortVisualizer",
+            "kind": "animation",
+            "shows": "Bars being sorted by the chosen algorithm with highlighted comparisons and swaps, and a comparison counter.",
+            "interaction": "Choose bubble, insertion or merge sort; change n and the initial order (random, nearly sorted, reversed); play.",
+            "aha": "Divide-and-conquer turns quadratic sorting into n log n."
+          }
+        }
+      ],
+      "code": "runnable",
+      "checkpoint_focus": [
+        "Tracing binary search on sorted data",
+        "Worst-case comparisons: about log2 n, one more per doubling",
+        "Merging two sorted lists by comparing front items",
+        "Sorting complexities: O(n²) versus O(n log n)",
+        "Quicksort worst case on sorted data"
+      ]
+    },
+    {
+      "slug": "hashing-and-heaps",
+      "title": "Hashing and heaps",
+      "summary": "Hash tables jump straight to a key's bucket, so dict and set lookups are O(1) on average, and a size-k min-heap finds the top k of n items in O(n log k) without sorting everything.",
+      "minutes": 25,
+      "objectives": [
+        "You can explain why dict and set lookups are O(1) on average and work out a hash table's load factor n/m",
+        "You can push a value into a min-heap stored as a list, sifting it up to its place",
+        "You can use a size-k min-heap to find the top k of n items in O(n log k), and explain why it is a min-heap and not a max-heap"
+      ],
+      "concepts": [
+        {
+          "name": "Hashing for constant-time lookup",
+          "explain": "A hash map computes a number from each key to decide which bucket stores it, so lookups go straight to the right bucket on average in O(1). Collisions (two keys in one bucket) are handled but slow things down if there are too many.",
+          "analogy": "Pigeonholes in a school staff room labelled by teacher's surname initial.",
+          "visual": {
+            "component": "HashBuckets",
+            "kind": "interactive",
+            "shows": "Keys being hashed into an array of buckets, with collisions chained; a lookup animation goes directly to one bucket.",
+            "interaction": "Insert keys; change the number of buckets and watch collisions grow; time a lookup.",
+            "aha": "Hashing trades memory for speed by jumping straight to the answer."
+          }
+        },
+        {
+          "name": "Heaps for top-k",
+          "explain": "A min-heap keeps the smallest item at the top and supports insert and remove-smallest in O(log n). To keep the k largest scores from a stream, keep a min-heap of size k and replace its top whenever a bigger score arrives: O(n log k) instead of sorting everything.",
+          "analogy": "A leaderboard that only keeps the top 10, kicking out the lowest whenever someone better arrives.",
+          "visual": {
+            "component": "HeapTopK",
+            "kind": "animation",
+            "shows": "A stream of numbers arriving, a size-k heap drawn as a tree with sift operations, and the current top-k list.",
+            "interaction": "Play the stream; change k; compare operation counts with full sorting.",
+            "aha": "You do not need to sort everything to find the best few, a pattern used in beam search and retrieval."
+          }
+        }
+      ],
+      "code": "runnable",
+      "checkpoint_focus": [
+        "Hash table average O(1) lookup",
+        "Load factor n/m and collisions",
+        "Heap push and sift-up in the list layout",
+        "Top-k with a heap in O(n log k)",
+        "Why a min-heap keeps the k largest"
+      ]
+    },
+    {
+      "slug": "recursion-and-dynamic-programming",
+      "title": "Recursion and dynamic programming",
+      "summary": "Functions that call themselves, why naive recursive Fibonacci is exponential, memoisation that remembers every answer, and dynamic-programming tables such as edit distance.",
+      "minutes": 30,
+      "objectives": [
+        "You can trace a recursive function down to its base case and back, and explain why n waiting calls use O(n) space on the call stack",
+        "You can explain how memoisation turns exponential recursion into linear time",
+        "You can fill a dynamic-programming table bottom-up, from counting ways up a staircase to the cells of an edit-distance table"
+      ],
+      "concepts": [
+        {
+          "name": "Recursion and memoisation",
+          "explain": "A recursive function calls itself on smaller inputs until a base case. Naive recursive Fibonacci recomputes the same values exponentially many times; storing each answer the first time (memoisation) makes it O(n).",
+          "analogy": "Asking the person in front of you in a queue what their position is, and noting it down so nobody has to ask twice.",
+          "visual": {
+            "component": "FibRecursionTree",
+            "kind": "interactive",
+            "shows": "The recursion tree for fib(n) with repeated subcalls highlighted in the same colour, and a call counter.",
+            "interaction": "Slide n; toggle memoisation to see the tree collapse into a chain.",
+            "aha": "Repeated subproblems are the signal to cache results."
+          }
+        },
+        {
+          "name": "Dynamic programming tables",
+          "explain": "Dynamic programming solves a problem by filling a table of answers to subproblems in an order where each entry only depends on ones already filled. Edit distance between two words, for example, fills a grid where each cell takes the cheapest of insert, delete or substitute.",
+          "analogy": "Planning the cheapest MRT route by building up the cheapest cost to each station from the start.",
+          "visual": {
+            "component": "DPTableFill",
+            "kind": "stepper",
+            "shows": "The edit-distance grid between two short words, filling cell by cell with arrows to the cell it came from, and the final path traced back.",
+            "interaction": "Edit the two words; step or play the fill; reveal the alignment.",
+            "aha": "DP is careful bookkeeping that avoids recomputing overlapping subproblems."
+          }
+        }
+      ],
+      "code": "runnable",
+      "checkpoint_focus": [
+        "Base case and recursive case",
+        "The call stack: n waiting calls use O(n) space",
+        "Overlapping subproblems and memoisation",
+        "DP table filling, bottom-up",
+        "Edit-distance cell: the cheapest of substitute, delete and insert"
+      ]
+    },
+    {
+      "slug": "graph-search",
+      "title": "Graph search: breadth-first and depth-first",
+      "summary": "Graphs stored as adjacency lists, breadth-first search with a queue for fewest-hop paths, depth-first search with a stack, and the graphs inside AI, from computational graphs to beam search.",
+      "minutes": 20,
+      "objectives": [
+        "You can store a graph as an adjacency list and trace breadth-first search by hand, writing down the queue after each visit",
+        "You can choose BFS (a queue) for fewest-hop paths, explain how DFS (a stack) differs, and explain why both take O(V + E) time",
+        "You can explain why BFS no longer finds the cheapest route once edges have different costs, the job of Dijkstra's algorithm",
+        "You can explain beam search as a breadth-first search that keeps only the k best partial sentences at each level"
+      ],
+      "concepts": [
+        {
+          "name": "BFS versus DFS",
+          "explain": "Breadth-first search explores a graph level by level using a queue, so it finds the shortest path (fewest edges) in an unweighted graph. Depth-first search follows one path as deep as possible using a stack or recursion, then backtracks. Both visit every node in O(V + E).",
+          "analogy": "Searching a shopping mall floor by floor (BFS) versus following one corridor to its end before trying another (DFS).",
+          "visual": {
+            "component": "GraphTraversal",
+            "kind": "animation",
+            "shows": "A small graph (e.g. an MRT-like network) with the frontier, visited nodes and visit order; BFS layers are coloured by distance.",
+            "interaction": "Pick start and goal; toggle BFS or DFS; play or step.",
+            "aha": "The data structure (queue or stack) is the only difference, and it changes which path is found first."
+          }
+        }
+      ],
+      "code": "runnable",
+      "checkpoint_focus": [
+        "Tracing BFS order with a queue",
+        "BFS finds shortest path in unweighted graphs",
+        "BFS and DFS are both O(V + E): queue versus stack",
+        "Weighted edges: BFS is not cheapest; Dijkstra's uses a priority queue",
+        "Beam search as a pruned BFS"
+      ]
+    }
+  ]
+}

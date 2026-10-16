@@ -1,0 +1,252 @@
+/* Shared styles for the word-embedding visuals. */
+
+.row {
+  width: 100%;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 0.75rem;
+  align-items: center;
+}
+.label {
+  font-size: var(--step--1);
+  font-weight: 700;
+  color: var(--ink-2);
+}
+.small {
+  font-size: 0.78rem;
+  color: var(--ink-3);
+}
+.mono {
+  font-family: var(--font-mono);
+}
+.input {
+  min-width: 0;
+  font-family: var(--font-mono);
+  font-size: 0.88rem;
+  padding: 0.4rem 0.55rem;
+  border-radius: 8px;
+  border: 1.5px solid var(--rule);
+  background: var(--surface-2);
+  color: var(--ink);
+}
+.input:focus-visible,
+.select:focus-visible {
+  outline: 3px solid var(--accent);
+  outline-offset: 1px;
+}
+.select {
+  font-family: var(--font-mono);
+  font-size: 0.88rem;
+  padding: 0.3rem 0.4rem;
+  border-radius: 8px;
+  border: 1.5px solid var(--rule);
+  background: var(--surface-2);
+  color: var(--ink);
+}
+.panel {
+  width: 100%;
+  display: grid;
+  gap: 0.4rem;
+  padding: 0.6rem 0.7rem;
+  border-radius: 10px;
+  background: var(--surface-2);
+  border: 1px solid var(--rule);
+}
+.equation {
+  font-family: var(--font-mono);
+  font-size: 0.86rem;
+  color: var(--ink);
+  overflow-wrap: anywhere;
+  line-height: 1.5;
+}
+
+/* ---------- clickable point on the map ---------- */
+.point {
+  cursor: pointer;
+  outline: none;
+}
+.point:focus-visible circle {
+  stroke: var(--accent);
+  stroke-width: 3;
+}
+.pointLabel {
+  font-size: 12px;
+  font-weight: 700;
+  paint-order: stroke;
+  stroke: var(--surface);
+  stroke-width: 3.5px;
+  stroke-linejoin: round;
+  pointer-events: none;
+}
+
+/* ---------- grids ---------- */
+.scroll {
+  width: 100%;
+  overflow-x: auto;
+  padding-bottom: 2px;
+}
+.grid {
+  display: grid;
+  gap: 2px;
+  width: max-content;
+  margin: 0 auto;
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+}
+.head {
+  font-family: var(--font-body);
+  font-size: 0.72rem;
+  font-weight: 800;
+  color: var(--ink-2);
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding-bottom: 2px;
+  white-space: nowrap;
+}
+.rowHead {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  padding-right: 5px;
+  font-weight: 700;
+  color: var(--ink);
+  white-space: nowrap;
+}
+.cell {
+  display: grid;
+  place-items: center;
+  min-height: 26px;
+  border-radius: 4px;
+  background: var(--surface-2);
+  color: var(--ink);
+  border: 1.5px solid transparent;
+  font-variant-numeric: tabular-nums;
+}
+.cellBtn {
+  composes: cell;
+  font: inherit;
+  cursor: pointer;
+  padding: 0;
+}
+.cellSel {
+  border-color: var(--viz-2);
+  font-weight: 800;
+}
+/* outline drawn over a topic block of the similarity matrix */
+.block {
+  margin: -3px;
+  border: 2px solid var(--viz-ink);
+  border-radius: 6px;
+  pointer-events: none;
+}
+.rowHl {
+  background: color-mix(in srgb, var(--viz-2) 24%, var(--surface));
+}
+.cellOne {
+  background: color-mix(in srgb, var(--viz-2) 45%, var(--surface));
+  font-weight: 800;
+}
+.cellMuted {
+  color: var(--ink-3);
+}
+.err {
+  width: 100%;
+  margin: 0;
+  padding: 0.45rem 0.7rem;
+  border-radius: 8px;
+  font-family: var(--font-mono);
+  font-size: 0.82rem;
+  background: var(--bad-soft);
+  color: var(--ink);
+  border-left: 4px solid var(--viz-neg);
+}
+.op {
+  font-size: 1.3rem;
+  font-weight: 800;
+  color: var(--ink-2);
+  align-self: center;
+  justify-self: center;
+}
+.matrices {
+  width: 100%;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem 0.9rem;
+  justify-content: center;
+  align-items: center;
+}
+.mat {
+  display: grid;
+  gap: 0.25rem;
+  justify-items: center;
+  min-width: 0;
+}
+.matTitle {
+  font-size: 0.75rem;
+  font-weight: 800;
+  color: var(--ink-2);
+  text-align: center;
+}
+
+/* ---------- skip-gram ---------- */
+.sentence {
+  width: 100%;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  justify-content: center;
+}
+.word {
+  display: inline-grid;
+  justify-items: center;
+  gap: 1px;
+  font: inherit;
+  font-family: var(--font-mono);
+  font-size: 0.92rem;
+  padding: 0.25rem 0.5rem 0.2rem;
+  border-radius: 8px;
+  border: 1.5px solid var(--rule);
+  background: var(--surface);
+  color: var(--ink-2);
+  cursor: pointer;
+}
+.wordRole {
+  font-family: var(--font-body);
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  min-height: 0.8rem;
+}
+.wordCentre {
+  background: color-mix(in srgb, var(--viz-2) 26%, var(--surface));
+  border-color: var(--viz-2);
+  color: var(--ink);
+  font-weight: 800;
+}
+.wordContext {
+  background: color-mix(in srgb, var(--viz-1) 18%, var(--surface));
+  border-color: color-mix(in srgb, var(--viz-1) 60%, var(--surface));
+  color: var(--ink);
+}
+.pairs {
+  width: 100%;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px 8px;
+  justify-content: center;
+}
+.pair {
+  font-family: var(--font-mono);
+  font-size: 0.82rem;
+  padding: 0.2rem 0.5rem;
+  border-radius: 6px;
+  background: var(--surface-2);
+  border: 1px solid var(--rule);
+  color: var(--ink);
+}
+.arrow {
+  color: var(--ink-3);
+  padding: 0 0.25em;
+}

@@ -1,0 +1,472 @@
+{
+ "paper": "noai2025_mcq",
+ "source": "NOAI 2025 (inaugural edition, 8 Mar 2025) Section 1 MCQ Assessment Questions, 20 MCQs with official answer key, AI Singapore. File 'NOAI 2025 MCQ Assessment Questions.pdf' in https://aisingapore.org/wp-content/uploads/2025/12/NOAI2025_Questions.zip",
+ "questions": [
+  {
+   "n": 1,
+   "question": "Which of the following is an example of an unsupervised learning algorithm?",
+   "options": [
+    "Support Vector Machine",
+    "Principal Component Analysis",
+    "Logistic Regression",
+    "Decision Tree"
+   ],
+   "answer": 1,
+   "domain": "ai_ml_dl",
+   "subtopic": "unsupervised",
+   "difficulty": "beginner",
+   "style": "definition",
+   "concepts": [
+    "supervised vs unsupervised learning",
+    "principal component analysis (PCA)",
+    "dimensionality reduction"
+   ],
+   "explanation": "**Unsupervised** learning finds structure in data that has **no labels** (no 'right answers'). PCA looks only at the input features $X$ and finds new axes (principal components) along which the data varies the most, so it never needs a target $y$; it is used for dimensionality reduction and visualisation. Support Vector Machines, Logistic Regression and Decision Trees are all **supervised**: they are trained on pairs $(x, y)$ to predict a label. A quick test: if the algorithm's `fit` needs a `y`, it is supervised.",
+   "confidence": "high",
+   "notes": ""
+  },
+  {
+   "n": 2,
+   "question": "In ensemble methods, what is 'bagging' typically used for?",
+   "options": [
+    "To decrease variance",
+    "To decrease bias",
+    "To optimize the loss function",
+    "To increase interpretability"
+   ],
+   "answer": 0,
+   "domain": "ai_ml_dl",
+   "subtopic": "trees-ensembles",
+   "difficulty": "beginner",
+   "style": "definition",
+   "concepts": [
+    "bagging (bootstrap aggregating)",
+    "bias-variance trade-off",
+    "random forest"
+   ],
+   "explanation": "**Bagging** = *bootstrap aggregating*: train many copies of the same model (often deep decision trees) on different random resamples of the training data, then average their predictions (or take a majority vote). Each deep tree is low-bias but **high-variance** (it changes a lot if the data changes a little); averaging many such noisy models cancels out much of that noise, so the main effect is **lower variance**. It does *not* really reduce bias, because averaging models that share the same systematic error keeps that error; reducing bias is what **boosting** targets. Bagging also makes the model *less* interpretable (hundreds of trees instead of one), so option D is backwards. Random Forest is the classic bagging example.",
+   "confidence": "high",
+   "notes": ""
+  },
+  {
+   "n": 3,
+   "question": "Which of the following properties best distinguishes a reinforcement learning problem?",
+   "options": [
+    "The presence of labeled training data",
+    "Learning from rewards and penalties in an environment",
+    "The assumption that data points are independent of each other",
+    "The use of unsupervised clustering techniques"
+   ],
+   "answer": 1,
+   "domain": "ai_ml_dl",
+   "subtopic": "reinforcement-learning",
+   "difficulty": "beginner",
+   "style": "definition",
+   "concepts": [
+    "reinforcement learning",
+    "agent, environment and reward",
+    "learning paradigms"
+   ],
+   "explanation": "In **reinforcement learning (RL)** an **agent** takes actions in an **environment** and receives **rewards** (or penalties); it learns a policy that maximises total reward over time, by trial and error. Labeled training data (A) is the hallmark of *supervised* learning: in RL nobody tells the agent the correct action, only how good the outcome was. Independent data points (C) is actually the opposite of RL, where each state depends on the previous actions, so experiences are strongly correlated. Clustering (D) is an unsupervised technique and has nothing to do with rewards.",
+   "confidence": "high",
+   "notes": ""
+  },
+  {
+   "n": 4,
+   "question": "Which of the following indicates that a model is underfitting the data?",
+   "options": [
+    "High training error and low validation error",
+    "Low training error and high validation error",
+    "High training error and high validation error",
+    "Low training error and low validation error"
+   ],
+   "answer": 2,
+   "domain": "ai_ml_dl",
+   "subtopic": "model-evaluation",
+   "difficulty": "beginner",
+   "style": "scenario-diagnosis",
+   "concepts": [
+    "underfitting vs overfitting",
+    "training vs validation error",
+    "bias-variance trade-off"
+   ],
+   "explanation": "**Underfitting** means the model is too simple to capture the pattern, so it does badly **even on the data it was trained on**: high training error, and therefore high validation error too (high bias). Option B (low training error, high validation error) is the classic sign of **overfitting**: the model memorised the training set but does not generalise. Option D is the goal: a well-fitted model. Option A is unusual (validation is normally at least as hard as training) and usually hints at a data problem such as a leaky or too-easy validation set (or regularisation like dropout that is only switched on during training), not underfitting.",
+   "confidence": "high",
+   "notes": ""
+  },
+  {
+   "n": 5,
+   "question": "In ensemble learning, what is the key assumption behind boosting?",
+   "options": [
+    "Weak learners can be combined sequentially to create a strong learner.",
+    "All models in the ensemble must be independent of each other.",
+    "The data needs to be divided into disjoint subsets.",
+    "Boosting is effective only for unsupervised learning."
+   ],
+   "answer": 0,
+   "domain": "ai_ml_dl",
+   "subtopic": "trees-ensembles",
+   "difficulty": "beginner",
+   "style": "definition",
+   "concepts": [
+    "boosting",
+    "weak vs strong learners",
+    "sequential ensembles (AdaBoost, gradient boosting)"
+   ],
+   "explanation": "**Boosting** trains models **one after another**: each new *weak learner* (e.g. a shallow tree that is only a bit better than guessing) focuses on the examples the previous ones got wrong, either by re-weighting them (AdaBoost) or by fitting the remaining errors/residuals (gradient boosting). Adding these corrections together produces a **strong learner**, and this mainly reduces **bias**. Option B describes the *opposite* idea: in boosting each model deliberately depends on the previous ones; independence is closer to bagging. Disjoint subsets (C) are not required, and boosting is used for supervised classification and regression, not only unsupervised learning (D).",
+   "confidence": "high",
+   "notes": ""
+  },
+  {
+   "n": 6,
+   "question": "Which optimizer is an extension of stochastic gradient descent and adjusts the learning rate based on past gradients?",
+   "options": [
+    "Adam",
+    "RMSProp",
+    "Adagrad",
+    "SGD"
+   ],
+   "answer": 0,
+   "domain": "mathematics",
+   "subtopic": "optimisation",
+   "difficulty": "intermediate",
+   "style": "definition",
+   "concepts": [
+    "adaptive learning-rate optimisers",
+    "Adam (momentum + RMSProp)",
+    "Adagrad and RMSProp"
+   ],
+   "explanation": "Adaptive optimisers keep a running record of **past gradients** and use it to give each parameter its own effective step size. **Adam** (the official answer) keeps two running averages: the mean of past gradients (*momentum*, $m_t$) and the mean of past *squared* gradients ($v_t$), and updates $\\theta \\leftarrow \\theta - \\eta\\, \\hat m_t / (\\sqrt{\\hat v_t} + \\epsilon)$. It is the most widely used SGD extension. Be careful, though: **Adagrad** (divides by the root of the *sum* of all past squared gradients) and **RMSProp** (divides by the root of a *moving average* of past squared gradients) also fit the description exactly; Adam actually builds on RMSProp. Only plain **SGD** (D) uses the same fixed learning rate for every parameter, so it is the one option that is clearly wrong.",
+   "confidence": "medium",
+   "notes": "Official key A (Adam) kept; both solvers agree. The question is ambiguous: RMSProp (B) and Adagrad (C) are also SGD extensions that adapt the learning rate from past gradients, so the wording does not single out Adam. A is the most defensible choice because Adam uses past gradients twice (momentum m_t and squared-gradient scaling v_t) and is the best-known adaptive optimiser. Only D (plain SGD) is clearly wrong. Flag for learners: on this paper, pick the most complete or most widely used answer when several options are technically true.",
+   "caveat": "Ambiguous: RMSProp (B) and Adagrad (C) also adapt the learning rate from past gradients, so the wording does not single out Adam. A is the most defensible choice because Adam uses past gradients twice (momentum and squared-gradient scaling) and is the best-known adaptive optimiser. Tip: when several options are technically true, pick the most complete or most widely used one."
+  },
+  {
+   "n": 7,
+   "question": "What does a 'vanishing gradient' problem typically affect?",
+   "options": [
+    "The performance of shallow neural networks",
+    "The training of deep neural networks",
+    "The dimensionality of the input data",
+    "The size of the training dataset"
+   ],
+   "answer": 1,
+   "domain": "ai_ml_dl",
+   "subtopic": "training-regularisation",
+   "difficulty": "beginner",
+   "style": "definition",
+   "concepts": [
+    "vanishing gradients",
+    "backpropagation and the chain rule",
+    "deep networks"
+   ],
+   "explanation": "During backpropagation the gradient for an early layer is a **product of many factors**, one per layer (chain rule). If each factor is smaller than 1, as with the sigmoid whose derivative is at most $0.25$, the product shrinks exponentially with depth: e.g. $0.25^{10} \\approx 10^{-6}$. The early layers then get almost no gradient and learn extremely slowly, so the problem mainly hurts the **training of deep networks**. Shallow networks (A) have too few layers for the product to shrink much, and the problem has nothing to do with input dimensionality (C) or dataset size (D). Fixes include ReLU activations, careful initialisation, batch normalisation and residual connections.",
+   "confidence": "high",
+   "notes": ""
+  },
+  {
+   "n": 8,
+   "question": "Which of the following best describes the term 'early stopping' in deep learning?",
+   "options": [
+    "A technique to speed up training by skipping unnecessary layers.",
+    "A regularization method to stop training once the model’s performance on the validation set stops improving.",
+    "A method to reduce the learning rate during training.",
+    "A strategy to train models with fewer epochs for faster results."
+   ],
+   "answer": 1,
+   "domain": "ai_ml_dl",
+   "subtopic": "training-regularisation",
+   "difficulty": "beginner",
+   "style": "definition",
+   "concepts": [
+    "early stopping",
+    "validation monitoring",
+    "overfitting / regularisation"
+   ],
+   "explanation": "As training goes on, training loss keeps falling, but at some point the **validation loss** stops improving and starts rising: the model has begun to **overfit**. **Early stopping** watches the validation metric and halts training (often after a 'patience' of a few epochs with no improvement), keeping the best checkpoint. It acts as a **regularizer** because it limits how far the model can fit noise in the training data. Option D is tempting, but early stopping is not about using a fixed smaller number of epochs to save time; the stopping point is decided by validation performance. Option C describes learning-rate scheduling and A describes nothing standard.",
+   "confidence": "high",
+   "notes": ""
+  },
+  {
+   "n": 9,
+   "question": "Why are residual connections critical in very deep neural networks?",
+   "options": [
+    "They prevent the gradient from becoming too large.",
+    "They mitigate the vanishing gradient problem by enabling gradient flow across layers.",
+    "They reduce the overall number of parameters in the network.",
+    "They ensure that the network output is always bounded."
+   ],
+   "answer": 1,
+   "domain": "ai_ml_dl",
+   "subtopic": "neural-networks",
+   "difficulty": "intermediate",
+   "style": "why-reasoning",
+   "concepts": [
+    "residual / skip connections (ResNet)",
+    "vanishing gradients",
+    "gradient flow"
+   ],
+   "explanation": "A **residual (skip) connection** computes $y = F(x) + x$: the block's input is added straight to its output. Differentiating gives $\\frac{\\partial y}{\\partial x} = \\frac{\\partial F}{\\partial x} + 1$, so even when $\\partial F / \\partial x$ is tiny there is a '+1' path that carries the gradient **directly back to earlier layers**. This stops the gradient from vanishing and lets networks with 100+ layers (e.g. ResNet-152) train well. Option A is the *exploding* gradient problem, which is usually handled with gradient clipping. Identity skip connections add no parameters (a $1 \\times 1$ projection shortcut, used when shapes change, adds a few), but they never remove any either (C), and they do not bound the output (D).",
+   "confidence": "high",
+   "notes": ""
+  },
+  {
+   "n": 10,
+   "question": "What does the term \"learning rate schedule\" refer to in training deep learning models?",
+   "options": [
+    "Adjusting the batch size dynamically during training",
+    "Decreasing the learning rate based on a predefined rule or performance metric",
+    "Gradually increasing the model's capacity during training",
+    "Restarting the training process at fixed intervals"
+   ],
+   "answer": 1,
+   "domain": "ai_ml_dl",
+   "subtopic": "training-regularisation",
+   "difficulty": "beginner",
+   "style": "definition",
+   "concepts": [
+    "learning rate",
+    "learning rate schedules (step decay, cosine, ReduceLROnPlateau)",
+    "warm-up"
+   ],
+   "explanation": "A **learning rate schedule** changes the learning rate $\\eta$ during training instead of keeping it fixed. Typically you start with a larger $\\eta$ to make fast progress, then shrink it so the optimiser can settle into a minimum without bouncing around. The rule can be fixed in advance (step decay, e.g. halve $\\eta$ every 10 epochs; cosine decay) or driven by a metric (e.g. PyTorch's `ReduceLROnPlateau` cuts $\\eta$ when validation loss stops improving). The other options change the batch size (A), the model (C) or restart training (D), not the learning rate.",
+   "confidence": "high",
+   "notes": "Minor wording simplification: real schedules can also increase the learning rate (linear warm-up, cyclical or warm-restart schedules), but B is clearly the best of the four options.",
+   "caveat": "Minor wording simplification: real schedules can also increase the learning rate (linear warm-up, cyclical or warm-restart schedules), but B is clearly the best of the four options."
+  },
+  {
+   "n": 11,
+   "question": "What is the primary function of pooling layers in a CNN?",
+   "options": [
+    "To add non-linearity to the model",
+    "To reduce the spatial dimensions of the feature maps",
+    "To learn features from the data",
+    "To normalize the feature maps"
+   ],
+   "answer": 1,
+   "domain": "ai_ml_dl",
+   "subtopic": "cnn-vision",
+   "difficulty": "beginner",
+   "style": "definition",
+   "concepts": [
+    "pooling (max / average)",
+    "feature-map downsampling",
+    "CNN building blocks"
+   ],
+   "explanation": "A **pooling layer** slides a small window (e.g. $2 \\times 2$ with stride 2) over each feature map and keeps one number per window: the maximum (max pooling) or the mean (average pooling). This **downsamples** the feature map, e.g. $32 \\times 32 \\rightarrow 16 \\times 16$, which cuts computation and makes features slightly tolerant to small shifts. Pooling has **no learnable weights**, so it does not *learn* features (C); that is the job of convolution layers. Non-linearity (A) comes from activation functions such as ReLU, and normalisation (D) from layers such as BatchNorm. (Max is technically a non-linear operation, but adding non-linearity is not pooling's purpose.)",
+   "confidence": "high",
+   "notes": ""
+  },
+  {
+   "n": 12,
+   "question": "In object detection, which algorithm combines region proposal and classification in one step?",
+   "options": [
+    "R-CNN",
+    "Fast R-CNN",
+    "YOLO (You Only Look Once)",
+    "SVM"
+   ],
+   "answer": 2,
+   "domain": "ai_ml_dl",
+   "subtopic": "cnn-vision",
+   "difficulty": "intermediate",
+   "style": "comparison",
+   "concepts": [
+    "one-stage vs two-stage object detectors",
+    "YOLO",
+    "R-CNN family"
+   ],
+   "explanation": "**YOLO** is a **one-stage** detector: the image passes through the network once, and a single output grid directly predicts bounding boxes, objectness and class probabilities together, as its name 'You Only Look Once' says. **R-CNN** and **Fast R-CNN** are **two-stage** detectors: first a separate algorithm (Selective Search) proposes about 2,000 candidate regions, then each region is classified. R-CNN runs the CNN once per region; Fast R-CNN runs it once on the whole image and pools features for each region, but it still depends on the separate proposal step. That is why they were slower. An **SVM** is just a classifier (it was used inside the original R-CNN to classify regions) and is not a detection algorithm by itself.",
+   "confidence": "high",
+   "notes": "Loose wording: YOLO has no separate region-proposal stage at all; it predicts boxes and classes in a single forward pass. The intended answer (one-stage detector) is clear.",
+   "caveat": "Loose wording: YOLO has no separate region-proposal stage at all; it predicts boxes and classes in a single forward pass. The intended answer (one-stage detector) is clear."
+  },
+  {
+   "n": 13,
+   "question": "In Faster R-CNN, what is the role of the Region Proposal Network (RPN)?",
+   "options": [
+    "To generate anchor boxes for object detection",
+    "To classify regions as object or background",
+    "To suggest candidate object regions in the feature map",
+    "To refine bounding box coordinates for final output"
+   ],
+   "answer": 2,
+   "domain": "ai_ml_dl",
+   "subtopic": "cnn-vision",
+   "difficulty": "intermediate",
+   "style": "definition",
+   "concepts": [
+    "Faster R-CNN",
+    "region proposal network",
+    "anchor boxes"
+   ],
+   "explanation": "Faster R-CNN replaced the slow, hand-crafted Selective Search with a small learned network, the **RPN**, whose job is to **propose candidate regions** that probably contain an object. It slides over the shared CNN feature map and, for each location, scores a fixed set of pre-defined **anchor boxes** for 'objectness' and nudges their coordinates. The best proposals are then passed to the second stage, which assigns the final class and refines the box. The other options are tempting because each describes *part* of what happens: the anchors are fixed in advance rather than generated by the RPN (A); the RPN's object-vs-background score (B) and coarse box adjustment are internal steps used to produce proposals; and the final box refinement (D) is done by the second-stage detection head.",
+   "confidence": "high",
+   "notes": "Options B (objectness scoring) and partly D (box regression of anchors) describe sub-steps the RPN really performs, but C is the standard description of its overall role.",
+   "caveat": "Options B (objectness scoring) and partly D (box regression of anchors) describe sub-steps the RPN really performs, but C is the standard description of its overall role."
+  },
+  {
+   "n": 14,
+   "question": "What is the primary advantage of depth-wise separable convolutions in CNNs?",
+   "options": [
+    "They improve spatial resolution in feature maps.",
+    "They reduce the number of parameters and computational cost.",
+    "They enhance the ability to handle overfitting.",
+    "They improve the interpretability of convolutional layers."
+   ],
+   "answer": 1,
+   "domain": "ai_ml_dl",
+   "subtopic": "cnn-vision",
+   "difficulty": "intermediate",
+   "style": "why-reasoning",
+   "concepts": [
+    "depthwise separable convolution",
+    "parameter count of a conv layer",
+    "efficient CNNs (MobileNet)"
+   ],
+   "explanation": "A depth-wise separable convolution splits a normal convolution into two cheap steps: a **depthwise** $k \\times k$ convolution that filters each input channel on its own, then a **pointwise** $1 \\times 1$ convolution that mixes channels. Example with a $3 \\times 3$ kernel, 64 input and 128 output channels (no bias): a standard conv needs $3 \\cdot 3 \\cdot 64 \\cdot 128 = 73{,}728$ weights; the separable version needs $3 \\cdot 3 \\cdot 64 + 64 \\cdot 128 = 576 + 8{,}192 = 8{,}768$, about **8.4 times fewer**, and the multiply-adds shrink by the same factor. That is why mobile models such as MobileNet and Xception use them. They do not increase spatial resolution (A), and any reduction in overfitting from having fewer parameters (C) is a side effect, not the main purpose.",
+   "confidence": "high",
+   "notes": ""
+  },
+  {
+   "n": 15,
+   "question": "Which of the following techniques is commonly used for instance segmentation in computer vision?",
+   "options": [
+    "U-Net",
+    "Mask R-CNN",
+    "YOLO",
+    "ResNet"
+   ],
+   "answer": 1,
+   "domain": "ai_ml_dl",
+   "subtopic": "cnn-vision",
+   "difficulty": "intermediate",
+   "style": "comparison",
+   "concepts": [
+    "instance vs semantic segmentation",
+    "Mask R-CNN",
+    "vision task types"
+   ],
+   "explanation": "**Instance segmentation** must label every pixel **and** tell separate objects of the same class apart (person #1 vs person #2). **Mask R-CNN** extends Faster R-CNN with an extra branch that predicts a pixel mask for each detected object, so it outputs one mask per instance. **U-Net** (A) is the classic **semantic** segmentation network: it labels every pixel with a class but does not separate individual objects. Classic **YOLO** (C) outputs bounding boxes (detection), and **ResNet** (D) is a classification backbone that other models are built on.",
+   "confidence": "high",
+   "notes": "Newer YOLO versions (e.g. YOLOv8-seg) also add instance-segmentation heads, but the textbook answer is Mask R-CNN.",
+   "caveat": "Newer YOLO versions (e.g. YOLOv8-seg) also add instance-segmentation heads, but the textbook answer is Mask R-CNN."
+  },
+  {
+   "n": 16,
+   "question": "What is the primary role of the attention mechanism in transformer models?",
+   "options": [
+    "To compress text into fixed-length vectors",
+    "To allow the model to focus on relevant parts of the input sequence",
+    "To preprocess text before embedding",
+    "To reduce overfitting in large datasets"
+   ],
+   "answer": 1,
+   "domain": "ai_ml_dl",
+   "subtopic": "nlp-transformers",
+   "difficulty": "beginner",
+   "style": "definition",
+   "concepts": [
+    "attention mechanism",
+    "queries, keys and values",
+    "context-dependent representations"
+   ],
+   "explanation": "**Attention** lets each token look at every other token and decide **how much each one matters** for understanding it. It computes similarity scores between a token's *query* and all *keys*, turns them into weights with softmax, and takes a weighted sum of the *values*: $\\text{Attention}(Q,K,V) = \\text{softmax}(QK^\\top/\\sqrt{d_k})\\,V$. For example, in 'The animal didn't cross the street because **it** was tired', attention can put high weight on 'animal' when processing 'it'. Option A describes the old RNN encoder bottleneck that attention was invented to *avoid*; preprocessing (C) is the tokenizer's job, and attention is not a regularisation method (D).",
+   "confidence": "high",
+   "notes": ""
+  },
+  {
+   "n": 17,
+   "question": "Which pre-trained model is commonly used for transfer learning in NLP?",
+   "options": [
+    "ResNet",
+    "BERT",
+    "AlexNet",
+    "LeNet"
+   ],
+   "answer": 1,
+   "domain": "ai_ml_dl",
+   "subtopic": "nlp-transformers",
+   "difficulty": "beginner",
+   "style": "definition",
+   "concepts": [
+    "transfer learning / fine-tuning",
+    "BERT",
+    "pre-trained language models"
+   ],
+   "explanation": "**Transfer learning** means taking a model pre-trained on a huge dataset and fine-tuning it on your smaller task. **BERT** is a Transformer encoder pre-trained on large amounts of text (masked-language modelling), and it is commonly fine-tuned for NLP tasks such as sentiment analysis, question answering and named-entity recognition. **ResNet**, **AlexNet** and **LeNet** are all convolutional networks for **images**: ResNet is a popular pre-trained backbone for transfer learning in *computer vision*, which makes it the tempting distractor, but it is not an NLP model.",
+   "confidence": "high",
+   "notes": ""
+  },
+  {
+   "n": 18,
+   "question": "What does 'beam search' optimize in the context of NLP models?",
+   "options": [
+    "The choice of hyperparameters",
+    "The decoding process by exploring multiple output sequences",
+    "The training speed of models",
+    "The initialization of weights"
+   ],
+   "answer": 1,
+   "domain": "ai_ml_dl",
+   "subtopic": "nlp-transformers",
+   "difficulty": "intermediate",
+   "style": "definition",
+   "concepts": [
+    "beam search",
+    "greedy decoding",
+    "sequence probability"
+   ],
+   "explanation": "When a model generates text word by word, **greedy decoding** always picks the single most likely next token, which can lead to a worse sentence overall. **Beam search** instead keeps the $k$ best partial sequences (the *beam*, e.g. $k=5$) at every step, extends each one, and again keeps the top $k$ by total (log-)probability. It explores several candidate outputs and returns the most probable complete sequence it finds. It runs at **inference/decoding time** only, so it has nothing to do with hyperparameter tuning (A), training speed (C) or weight initialisation (D).",
+   "confidence": "high",
+   "notes": ""
+  },
+  {
+   "n": 19,
+   "question": "What is the purpose of the \"CLS\" token in BERT?",
+   "options": [
+    "To serve as a separator between input sentences",
+    "To represent the pooled representation of the input for classification tasks",
+    "To signal the beginning of each sentence in a sequence",
+    "To improve attention mechanism during training"
+   ],
+   "answer": 1,
+   "domain": "ai_ml_dl",
+   "subtopic": "nlp-transformers",
+   "difficulty": "intermediate",
+   "style": "definition",
+   "concepts": [
+    "BERT special tokens ([CLS], [SEP])",
+    "sequence classification",
+    "fine-tuning"
+   ],
+   "explanation": "BERT puts a special **[CLS]** ('classification') token at the very start of every input. Through self-attention, its final hidden vector gathers information from the whole sequence, so it is used as a **single summary (pooled) vector** of the input; for sentence classification you simply put a small classifier on top of the [CLS] output. Option A describes **[SEP]**, the token that separates sentence pairs and marks the end. Option C is tempting because [CLS] does sit at the start, but it appears **once per input**, not at the beginning of each sentence, and its purpose is the summary representation, not marking boundaries.",
+   "confidence": "high",
+   "notes": ""
+  },
+  {
+   "n": 20,
+   "question": "In GPT models, what is the primary purpose of causal masking?",
+   "options": [
+    "To prevent the model from attending to future tokens in the sequence",
+    "To ensure that all words in the sequence are treated equally",
+    "To improve the efficiency of training by reducing the sequence length",
+    "To prioritize rare words during training"
+   ],
+   "answer": 0,
+   "domain": "generative_ai",
+   "subtopic": "llms",
+   "difficulty": "intermediate",
+   "style": "why-reasoning",
+   "concepts": [
+    "causal (look-ahead) mask",
+    "autoregressive next-token prediction",
+    "decoder-only transformers"
+   ],
+   "explanation": "GPT is trained to **predict the next token** from the tokens before it. If position $t$ could attend to tokens $t+1, t+2, \\dots$, it could simply copy the answer and learn nothing useful. A **causal mask** sets the attention scores for all future positions to $-\\infty$ before the softmax (an upper-triangular mask), so each token can only attend to itself and earlier tokens, exactly as during real generation. The mask does not shorten the sequence (C); it only blocks some attention links. It also does not make all words equal (B) or favour rare words (D).",
+   "confidence": "high",
+   "notes": ""
+  }
+ ],
+ "reconciliation": "Judge pass 2026-10-14: Solver A, Solver B and the official answer key agree on all 20 questions. All questions and options were checked word for word against the source. All 20 explanations were reviewed; small accuracy fixes were made to Q4, Q9 and Q12. Q6 is flagged as ambiguous (confidence medium)."
+}

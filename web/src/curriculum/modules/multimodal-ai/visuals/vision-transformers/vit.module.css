@@ -1,0 +1,194 @@
+/* Local styles for the vision-transformers visuals. */
+
+.row {
+  width: 100%;
+  display: grid;
+  gap: 1rem;
+  align-items: start;
+}
+.rowWide {
+  grid-template-columns: minmax(0, 300px) minmax(0, 1fr);
+}
+.rowTwo {
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+}
+
+.panel {
+  display: grid;
+  gap: 0.4rem;
+  justify-items: center;
+  min-width: 0;
+}
+.panelTitle {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--ink-2);
+  text-align: center;
+  line-height: 1.25;
+}
+.panelNote {
+  font-size: 0.8rem;
+  color: var(--ink-2);
+  text-align: center;
+  line-height: 1.35;
+}
+
+.image {
+  width: 100%;
+  max-width: 300px;
+  height: auto;
+  display: block;
+  border-radius: 6px;
+  touch-action: manipulation;
+  cursor: pointer;
+}
+.image:focus-visible {
+  outline: 3px solid var(--accent);
+  outline-offset: 3px;
+}
+
+.side {
+  display: grid;
+  gap: 0.6rem;
+  align-content: start;
+  min-width: 0;
+}
+.formula {
+  font-size: 0.95rem;
+  color: var(--ink);
+  overflow-x: auto;
+  max-width: 100%;
+}
+.small {
+  font-size: 0.8rem;
+  color: var(--ink-2);
+  line-height: 1.4;
+}
+
+/* ---------- token strip ---------- */
+.stripLabel {
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--ink-2);
+  margin-top: 0.25rem;
+}
+.strip {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 5px;
+  align-items: flex-start;
+  width: 100%;
+}
+.token {
+  display: grid;
+  justify-items: center;
+  gap: 2px;
+  padding: 0;
+  border: 0;
+  background: none;
+  cursor: pointer;
+  font: inherit;
+  color: inherit;
+}
+/* tokens pop in only after the learner changes a slider, so the figure is complete at rest */
+.tokenAnim {
+  animation: pop 0.35s ease-out both;
+}
+@media (prefers-reduced-motion: reduce) {
+  .tokenAnim {
+    animation: none;
+  }
+}
+@keyframes pop {
+  from {
+    opacity: 0;
+    transform: translateY(6px) scale(0.85);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+.tokenBox {
+  width: 34px;
+  height: 34px;
+  border-radius: 5px;
+  border: 1.5px solid color-mix(in srgb, var(--ink) 30%, transparent);
+  overflow: hidden;
+  display: block;
+}
+.tokenSel .tokenBox {
+  border: 2.5px solid var(--accent);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent) 30%, transparent);
+}
+.tokenCls {
+  display: grid;
+  place-items: center;
+  background: var(--accent-soft);
+  color: var(--accent);
+  font-size: 0.62rem;
+  font-weight: 800;
+  border-color: var(--accent);
+}
+.tokenPos {
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  color: var(--ink-2);
+}
+.gap {
+  align-self: center;
+  font-size: 0.75rem;
+  color: var(--ink-3);
+  padding: 0 4px 14px;
+  white-space: nowrap;
+}
+
+/* ---------- shuffle visual ---------- */
+.board {
+  width: 100%;
+  max-width: 260px;
+  height: auto;
+  display: block;
+  border-radius: 6px;
+}
+.tile {
+  transition: transform 0.55s cubic-bezier(0.3, 0.7, 0.2, 1);
+}
+@media (prefers-reduced-motion: reduce) {
+  .tile {
+    transition: none;
+  }
+}
+.verdict {
+  font-weight: 700;
+  font-size: 0.9rem;
+  text-align: center;
+  padding: 0.35rem 0.6rem;
+  border-radius: 6px;
+}
+.same {
+  background: var(--warn-soft);
+  color: var(--ink);
+}
+.diff {
+  background: var(--ok-soft);
+  color: var(--ink);
+}
+
+.legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem 0.9rem;
+  font-size: 0.78rem;
+  color: var(--ink-2);
+  align-items: center;
+  justify-content: center;
+}
+.swatch {
+  display: inline-block;
+  width: 0.9rem;
+  height: 0.9rem;
+  border-radius: 3px;
+  vertical-align: -0.15rem;
+  margin-right: 0.3rem;
+}

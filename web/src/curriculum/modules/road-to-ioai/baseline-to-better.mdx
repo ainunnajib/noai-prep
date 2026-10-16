@@ -1,0 +1,288 @@
+import SplitMirror from './visuals/baseline-to-better/SplitMirror'
+import AblationTable from './visuals/baseline-to-better/AblationTable'
+import LeaderboardShakeup from './visuals/baseline-to-better/LeaderboardShakeup'
+import TaskGallery from './visuals/baseline-to-better/TaskGallery'
+
+At NTU and at IOAI every task hands you a <Term def="A simple, working solution given with the task. Its score is the starting line you have to beat.">baseline</Term> notebook that already runs. Everyone has the same baseline, so the contest is decided by how quickly and reliably you make it better. This lesson is that craft: read the baseline, build a validation you can trust, change one thing at a time and write it down, and do not let the leaderboard fool you.
+
+## Before you change anything: read the baseline and the rules
+
+<Analogy title="Reading the paper before you write">
+
+In a school exam, the cheapest marks are lost by writing before reading the question, then answering a different question beautifully. The minutes spent reading the paper and its instructions are the best-spent minutes of the exam.
+
+</Analogy>
+
+Spend the first 15 to 20 minutes of a task reading, not coding. It feels slow, and it is the fastest thing you can do.
+
+1. **Run the notebook top to bottom** and write down the score it gets. That number is your starting line, the $\text{Min}$ in IOAI's scoring formula.
+2. **Read the task statement twice.** Underline the metric (and whether higher is better), the exact output format, and every constraint: allowed models and libraries, a run-time limit, a file-size limit, banned tools.
+3. **Read every cell of the starter code** for bugs. Do training and evaluation prepare the data the same way? Is a learning rate set? Is the loss the one you think? Past Singapore tests hid all of these.
+4. **Work out the trivial baselines**: the most common class for everyone, or random guessing. In the 2025 survey task, 81.8% of training rows were "no", so answering "no" for everyone already scores about 82%, and a model at 82% has achieved nothing.
+
+The output format deserves special care, because **a brilliant model in a wrongly formatted file scores nothing**. Two real examples:
+
+- In the 2025 Selection Test survey task, the instructions asked for the columns `id,Depression`, but the starter code and the sample file wrote a column called `class`.
+- In IOAI 2026's *Double Agent Dilemma*, each image needed two files named `{index}_a.pt` and `{index}_b.pt`, each a tensor of shape $3 \times H \times W$ at the image's **original** size, all at the top level of `submission.zip`, with no folders.
+
+So write a small checker once and run it before every submission. Run this one, then break the file in other ways (drop a row, swap two ids) and see what it catches:
+
+<PyRunner packages={['pandas']} code={`import pandas as pd
+
+# The task statement says: header "id,Depression", one row per test id, in order, labels 0 or 1.
+test_ids = [1001, 1002, 1003, 1004, 1005]
+
+# What the starter notebook wrote
+sub = pd.DataFrame({"id": [1001, 1002, 1003, 1004, 1005],
+                    "class": [0, 1, 0, 0, 1]})
+
+def check_submission(sub, test_ids, target="Depression"):
+    problems = []
+    if list(sub.columns) != ["id", target]:
+        problems.append(f"columns are {list(sub.columns)}, expected ['id', '{target}']")
+    if list(sub["id"]) != test_ids:
+        problems.append("ids missing, extra or out of order")
+    if target in sub.columns and not sub[target].isin([0, 1]).all():
+        problems.append("labels must be 0 or 1")
+    if sub.isna().any().any():
+        problems.append("missing values")
+    return problems or ["OK"]
+
+print(check_submission(sub, test_ids))
+sub = sub.rename(columns={"class": "Depression"})
+print(check_submission(sub, test_ids))
+sub.to_csv("submission.csv", index=False)
+print(open("submission.csv").read())`} />
+
+<QuickCheck
+  q="Your notebook saves predictions with `df.to_csv('submission.csv')`, where `df` has exactly the columns `id` and `label`. The grader rejects the file. What went wrong?"
+  options={['pandas wrote no header row, so the column names were lost', 'pandas sorted the rows by label, so the ids came out of order', 'pandas saved the file in Excel format instead of plain text', 'pandas also wrote the row index as an unnamed first column']}
+  answer={3}
+  explain="By default `to_csv` writes the DataFrame's index too, so the header becomes `,id,label` with an unnamed first column. Pass `index=False`. The header is written by default, rows keep their order, and the file is plain comma-separated text."
+/>
+
+## Validation you can trust
+
+<Analogy title="A mock exam with questions you have already seen">
+
+A mock exam made of questions you already did in class tells you little about the real paper: you remember the answers. A useful mock uses **new** questions, set the same way the real paper is set.
+
+</Analogy>
+
+You will try dozens of ideas and cannot check each on the hidden test set, so you hold back some labelled data as a <Term def="Labelled data kept out of training and used to compare models and choose settings. It stands in for the hidden test set.">validation set</Term> and judge ideas there. That only works if the validation set is **new to the model in the same way the test set will be**. Ask what is new in the test, and copy it:
+
+- **New people, places or things** (patients, users, HDB blocks)? Split by **group**: all rows of one patient go to the same side.
+- **A later time** (next month's sales, the latest transactions)? Validate on the **latest period** of your data, never on random rows.
+- **A different mix** (another language, another class balance)? Make validation look like the test: in the 2025 camp's language task, English-tweet accuracy said little about the Spanish test.
+- **Small dataset?** Use <Term def="Split the data into k parts; train k times, each time validating on a different part, and average the k scores.">k-fold cross-validation</Term> so every row is used for validation once and the estimate is less noisy.
+
+The visual below shows the most common way this goes wrong. A medical dataset has 5 scans per patient, and the test set contains new patients.
+
+<SplitMirror />
+
+The same experiment in scikit-learn: `GroupKFold` keeps all rows with the same group label on one side of each split.
+
+<PyRunner packages={['numpy', 'scikit-learn']} code={`import numpy as np
+from sklearn.model_selection import KFold, GroupKFold, cross_val_score
+from sklearn.neighbors import KNeighborsClassifier
+
+rng = np.random.default_rng(0)
+
+def make_patients(n_patients, scans_each=5):
+    centres = rng.uniform(0, 10, size=(n_patients, 2))
+    noise = rng.normal(0, 2.5, n_patients)
+    labels = (centres.sum(axis=1) + noise > 10).astype(int)
+    X = np.repeat(centres, scans_each, axis=0)
+    X = X + rng.normal(0, 0.3, X.shape)   # one patient's scans look alike
+    y = np.repeat(labels, scans_each)
+    patient = np.repeat(np.arange(n_patients), scans_each)
+    return X, y, patient
+
+X, y, patient = make_patients(60)     # 60 patients x 5 scans
+X_new, y_new, _ = make_patients(150)  # the test: 150 new patients
+
+model = KNeighborsClassifier(n_neighbors=1)
+by_row = KFold(5, shuffle=True, random_state=0)
+rows = cross_val_score(model, X, y, cv=by_row)
+groups = cross_val_score(model, X, y, cv=GroupKFold(5),
+                         groups=patient)
+real = model.fit(X, y).score(X_new, y_new)
+
+print(f"5-fold CV, random rows:     {rows.mean():.3f}")
+print(f"5-fold CV, whole patients:  {groups.mean():.3f}")
+print(f"real score on new patients: {real:.3f}")`} />
+
+<KeyIdea>
+
+A validation set is only useful if it is built **the way the test set was built**: new in exactly the way the test will be new (new people, a later time, a different mix). Fit every preprocessing step on the training part only, as in [Splitting and leakage](#/learn/data-and-features/splitting-and-leakage).
+
+</KeyIdea>
+
+## One change at a time: the experiment log
+
+<Analogy title="A science practical">
+
+In a science practical you change one variable, keep everything else fixed, and record every reading, including the ones that look wrong. Change three things at once and you cannot say which one caused the result.
+
+</Analogy>
+
+Treat every change to the baseline (augmentation, learning rate, pretrained backbone, loss) as an **experiment**. Before running it, write one line: what you change and what you expect ("flip + crop augmentation should help, because the model overfits"). After it, record the result. A good log has, for every run:
+
+- a run number and the **one change** since the run it builds on, with your reason;
+- the full configuration (model, learning rate, epochs, augmentation, loss);
+- the <Term def="The number that starts a random number generator. The same seed gives the same 'random' weights, shuffles and dropout masks, so a run can be repeated exactly.">random seed</Term>;
+- the validation score, and how long the run took.
+
+Why the seed? Training is full of randomness (starting weights, batch order, dropout), so two runs of the **same** configuration with different seeds get different scores, and you need to know how big that wobble is before trusting a small gain. Fixing the seed makes a run repeatable:
+
+```python
+import random
+import numpy as np
+import torch
+
+def set_seed(seed):
+    random.seed(seed)
+    np.random.seed(seed)
+    torch.manual_seed(seed)
+
+def tiny_run(seed):
+    set_seed(seed)
+    model = torch.nn.Linear(3, 1)   # random starting weights
+    x = torch.randn(4, 3)           # random "data"
+    return round(model(x).mean().item(), 4)
+
+print(tiny_run(0), tiny_run(0))   # the same seed twice
+print(tiny_run(1))                # a different seed
+```
+
+```text
+-0.4734 -0.4734
+0.3422
+```
+
+Same seed, same number; new seed, new number. On a GPU, also set `torch.backends.cudnn.deterministic = True` and `torch.backends.cudnn.benchmark = False`; even then a few GPU operations are not repeatable bit for bit, one more reason to compare averages over seeds. Contests often want a notebook that **reproduces your submission when run from the top**, which is why Singapore's 2025 camp told students to fix their seeds.
+
+Once you have a good model, an <Term def="Removing one component at a time from your best model and measuring how much the score drops. A big drop means that component matters; no drop means it can go.">ablation</Term> tells you which parts actually carry the score: remove each component in turn and measure the drop.
+
+Build a log yourself. The task below is simulated: a small network trained from scratch scores about 62% validation accuracy. You can try five common upgrades:
+
+- **Pretrained ResNet-18:** start from weights already trained on millions of ImageNet photos.
+- **Flip + crop augmentation:** train on randomly flipped and shifted copies of the images.
+- **Cosine learning-rate schedule:** lower the learning rate smoothly during training.
+- **Label smoothing:** aim for about 0.9 instead of 1 for the correct class, so the model is less overconfident.
+- **Dropout:** randomly switch off units during training.
+
+<AblationTable />
+
+<Steps title="Is a 0.4-point gain real?">
+  <Step title="Another task: baseline, three seeds">
+    On a different task from the figure, the baseline scores $74.1$, $74.9$ and $74.5$. The mean is $\dfrac{74.1 + 74.9 + 74.5}{3} = \dfrac{223.5}{3} = 74.5$, and single runs wander about $0.4$ either side of it.
+  </Step>
+  <Step title="Add label smoothing">
+    $74.6$, $75.2$, $74.9$: mean $\dfrac{224.7}{3} = 74.9$. The gain is $74.9 - 74.5 = 0.4$, the same size as the seed-to-seed wobble. Not convincing: run more seeds or move on.
+  </Step>
+  <Step title="Add augmentation instead">
+    $77.6$, $78.0$, $77.8$: mean $\dfrac{233.4}{3} = 77.8$. The gain is $77.8 - 74.5 = 3.3$, about eight times the wobble, and every single augmented run beats every baseline run. Keep it.
+  </Step>
+</Steps>
+
+<KeyIdea>
+
+Change **one** thing, run it on a few seeds, write it down, and keep it only if the gain is clearly bigger than the seed-to-seed wobble. Disciplined logging turns random tinkering into steady progress.
+
+</KeyIdea>
+
+In industry the log becomes software: **experiment trackers** such as MLflow record every run automatically, and a **model registry** keeps every trained version restorable (see [The ML lifecycle](#/learn/ml-systems-and-tradeoffs/lifecycle-and-deployment)).
+
+## Leaderboard overfitting
+
+<Analogy title="Writing for one marker">
+
+Imagine practising essays for weeks with one teacher and learning exactly what she likes. Your marks climb. Then the real exam is marked by someone else, and much of that "improvement" disappears, because it was about her, not about good writing.
+
+</Analogy>
+
+Many contests show a <Term def="A ranking computed during the contest on a part of the test data. Its scores guide you but do not count.">public leaderboard</Term> computed on one part of the test data, while the final ranking uses a hidden part: the <Term def="The ranking on the hidden part of the test data, revealed after the contest. It decides the result.">private leaderboard</Term>. IOAI 2026 worked this way: each submission (up to 60 per task) was scored on a validation set, Scoreboard A, and the official results came from a separate test set, Scoreboard B.
+
+Every public score is the true quality plus some **luck**: which examples happened to land in the public part. Keep the best of many public scores and you partly choose the luckiest version; when the hidden scores appear its luck is gone, and it drops down the ranking. This drop is called a <Term def="The reshuffling of the ranking when hidden (private) scores replace public ones. Large shake-ups mean many people tuned to the public set.">shake-up</Term>.
+
+How big is the luck? For accuracy measured on $n$ examples, the typical size of the random wobble, the <Term def="The typical size of the random error in an estimate. For an accuracy p measured on n examples it is the square root of p(1 − p) / n.">standard error</Term>, is
+
+$$
+\text{SE} = \sqrt{\frac{p\,(1 - p)}{n}}
+$$
+
+where $p$ is the accuracy as a fraction (0.8 for 80%) and $n$ the number of examples scored. More examples mean less luck, but only with the square root: 4 times as many examples halve it.
+
+It is the wobble you met in [mock Prelims](#/learn/prelim-speed-toolkit/mock-prelim-and-review): 150 questions at $p = 0.6$ wobble by $\sqrt{150 \times 0.6 \times 0.4} = 6$ marks, and $6 / 150 = 0.04$ (4 points) is exactly $\sqrt{0.6 \times 0.4 / 150}$.
+
+<Steps title="How much can a public score wobble?">
+  <Step title="A public set of 100 images, accuracy about 80%">
+    $p(1-p) = 0.8 \times 0.2 = 0.16$. Divide by $n$: $0.16 / 100 = 0.0016$. Square root: $\sqrt{0.0016} = 0.04$, which is **4 percentage points**.
+  </Step>
+  <Step title="What that means">
+    A "gain" of 1 point on that leaderboard is a quarter of one standard error: pure luck could easily produce it.
+  </Step>
+  <Step title="A set of 2,500 images">
+    $\sqrt{0.16 / 2500} = \dfrac{\sqrt{0.16}}{\sqrt{2500}} = \dfrac{0.4}{50} = 0.008$, so **0.8 points**. Twenty-five times the data gives a wobble five times smaller.
+  </Step>
+</Steps>
+
+<LeaderboardShakeup />
+
+<KeyIdea>
+
+The more often you probe a small public leaderboard, the less its top score means. Choose your final submission by a solid validation of your own, and treat public gains smaller than about two standard errors as noise.
+
+</KeyIdea>
+
+Rules of thumb that follow:
+
+- Pick the final submission by your own validation (cross-validation if you can), not by public rank.
+- Submit to check that the format works and to confirm big improvements, not to tune small settings.
+- When the public score and your validation disagree, believe the one computed on more examples.
+
+<QuickCheck
+  q="The public leaderboard uses 200 examples; your cross-validation uses 2,000. Your ResNet submission scores 85.1% public and 81.0% in your CV. Your ViT submission scores 84.2% public and 83.0% in your CV. Which should you choose as your final submission?"
+  options={['The ResNet, because the public leaderboard uses the real test data', 'The ResNet, because its public score is almost a point higher', 'The ViT, because its CV score rests on ten times as many examples', 'Either one, because the two are within 1 point on the leaderboard']}
+  answer={2}
+  explain="With $p \approx 0.84$ and $n = 200$, the public standard error is about $\sqrt{0.13/200} \approx 0.026$, so 2.6 points: the ResNet's 0.9-point public lead is noise. On 2,000 examples the standard error is about $\sqrt{0.82 \times 0.18 / 2000} \approx 0.009$, under 1 point, and the ViT leads by 2.0 points there: more than two standard errors. Public data is real test data, but only a small, noisy sample of it."
+/>
+
+<PastPaperQuestion paper="prelim2026" n={292} />
+
+<Mistake title="Tuning on the test">
+
+Checking the test set (or the public leaderboard) after every change and keeping whatever scores best. Each look leaks a little information about the test into your choices, so the final number is too optimistic. Tune on validation; look at the test once, at the end.
+
+</Mistake>
+
+## Learn from past tasks
+
+<Analogy title="A museum of past contests">
+
+Art students learn by studying the paintings in a museum, and copying a few, long before they paint their own. Past tasks are your museum: the next test will be new, but the skills it needs will not be.
+
+</Analogy>
+
+Singapore released its 2024 and 2025 selection-test and camp notebooks, and IOAI publishes every task with its data and code. Browse them by type:
+
+<TaskGallery />
+
+A good routine from March onwards is **one past task a week** in a fixed time box (about 4 hours: two 2-hour blocks): run the baseline, read the rules, set up validation, improve it one logged experiment at a time, then compare with the released solution if there is one. The [next lesson](#/learn/road-to-ioai/ioai-task-techniques) collects the techniques that keep winning these tasks.
+
+<ExamTip>
+
+NOAI tests these habits as theory: what each data split is for (the test set is used once, at the end), why tuning on the test set gives an optimistic score, what must be saved to reproduce a model (weights, data version, settings, seeds, library versions), leakage, and validation that does not match the deployment data.
+
+</ExamTip>
+
+<Takeaways>
+
+- Read before you code: note the baseline's score, the metric, the output format and the constraints, and hunt for starter-code bugs. A wrongly formatted file scores nothing.
+- Build validation **the way the test was built**: by group for new people, by time for a future test, and with the test's mix.
+- Change **one thing per experiment**, log configuration, seed and score, and keep a change only if it beats the seed-to-seed wobble; ablations show what really matters.
+- A small public leaderboard is noisy ($\text{SE} = \sqrt{p(1-p)/n}$), and the best of many public scores is partly luck: choose your final submission by your own validation.
+- Practise on past Singapore and IOAI tasks, one a week.
+
+</Takeaways>

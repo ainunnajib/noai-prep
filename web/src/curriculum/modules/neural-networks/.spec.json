@@ -1,0 +1,227 @@
+{
+  "slug": "neural-networks",
+  "order": 20,
+  "part": "deep-learning",
+  "domain": "ai_ml_dl",
+  "title": "Neural networks from the perceptron up",
+  "tagline": "Neurons, layers and non-linearity",
+  "summary": "The perceptron and its limits, activation functions and why non-linearity matters, multi-layer perceptrons in a TensorFlow-Playground-style sandbox, parameter counting, and matching output layers to loss functions.",
+  "prerequisites": [
+    "classification",
+    "calculus-and-gradient-descent"
+  ],
+  "syllabus": [
+    "IOAI 2A1 Perceptron Basics",
+    "IOAI 2A4 Activation Functions (ReLU, Sigmoid, Tanh)",
+    "IOAI 2A5 Loss Functions (MSE, MAE, Cross Entropy)",
+    "IOAI 2B1 Multi-Layer Perceptrons",
+    "Parameter counts of dense layers, softmax outputs, BCEWithLogits"
+  ],
+  "paper_subtopics": [
+    "neural-networks",
+    "classification",
+    "linear-algebra"
+  ],
+  "lessons": [
+    {
+      "slug": "perceptron",
+      "title": "The perceptron",
+      "summary": "A single artificial neuron: weighted sum, threshold, a learning rule, and the famous XOR problem it cannot solve.",
+      "minutes": 16,
+      "objectives": [
+        "You can compute a perceptron's output for given weights",
+        "You can apply one step of the perceptron learning rule",
+        "You can explain why a single perceptron cannot learn XOR"
+      ],
+      "concepts": [
+        {
+          "name": "A neuron is a weighted vote",
+          "explain": "A perceptron multiplies each input by a weight, adds a bias, and outputs 1 if the total is above 0 and 0 otherwise. Its decision boundary is a straight line, so it can learn AND and OR but not XOR, where the positive points sit on opposite corners.",
+          "analogy": "Deciding whether to go to the beach: sunshine (+2), homework due (−3), friends going (+1); if the total is positive, you go.",
+          "visual": {
+            "component": "PerceptronLine",
+            "kind": "interactive",
+            "shows": "A 2×2 input grid for AND, OR and XOR with the perceptron's boundary line and the output of each corner; weights and bias shown on a NeuralNet diagram of one neuron.",
+            "interaction": "Slide w₁, w₂ and b; choose AND, OR or XOR and try to separate the corners.",
+            "aha": "One neuron draws one straight line, so XOR needs more than one neuron."
+          }
+        },
+        {
+          "name": "The perceptron learning rule",
+          "explain": "For each misclassified example, nudge the weights towards the correct answer: w ← w + η(y − ŷ)x and b ← b + η(y − ŷ). Correct predictions change nothing. If the data is linearly separable, this is guaranteed to eventually stop making mistakes.",
+          "analogy": "A goalkeeper who adjusts their dive only after letting a goal in.",
+          "visual": {
+            "component": "PerceptronLearn",
+            "kind": "stepper",
+            "shows": "A 2D dataset with the current boundary; each step highlights the example being checked and animates the boundary update when it is wrong.",
+            "interaction": "Step through examples; change η; switch to non-separable data and watch it never settle.",
+            "aha": "Learning is just small corrections driven by mistakes."
+          }
+        }
+      ],
+      "code": "runnable",
+      "checkpoint_focus": [
+        "Weighted sum plus bias then step",
+        "Perceptron is a linear classifier",
+        "Learning rule w ← w + η(y − ŷ)x",
+        "XOR not linearly separable"
+      ]
+    },
+    {
+      "slug": "activation-functions",
+      "title": "Activation functions and non-linearity",
+      "summary": "Why stacking linear layers is pointless without activations, and how sigmoid, tanh, ReLU, Leaky ReLU and GELU differ.",
+      "minutes": 18,
+      "objectives": [
+        "You can show that two linear layers collapse into one",
+        "You can state the ranges and derivatives of sigmoid, tanh and ReLU",
+        "You can explain saturation and dying ReLU and how Leaky ReLU helps"
+      ],
+      "concepts": [
+        {
+          "name": "Without activations, depth is useless",
+          "explain": "A linear layer computes Wx + b. Two in a row give W₂(W₁x + b₁) + b₂, which is still just one linear function. A non-linear activation between layers lets the network bend and fold space, so deeper networks can represent more complex functions.",
+          "analogy": "Stacking glass panes still gives a flat window; you need hinges (non-linearities) to build a folding screen.",
+          "visual": {
+            "component": "LinearCollapse",
+            "kind": "interactive",
+            "shows": "The function computed by a tiny 1-input network plotted as a curve, with a toggle for the hidden activation (none, ReLU, tanh) and sliders for a few weights.",
+            "interaction": "Toggle the activation; drag weights; with 'none' the output is always a straight line, with ReLU it becomes a bent piecewise-linear curve.",
+            "aha": "Non-linearity is what makes depth meaningful."
+          }
+        },
+        {
+          "name": "The activation gallery",
+          "explain": "Sigmoid squashes to (0, 1) and saturates at both ends; tanh squashes to (−1, 1) and is zero-centred; ReLU is max(0, x), cheap and non-saturating for positive inputs; Leaky ReLU keeps a small slope for negatives; GELU is a smooth ReLU used in Transformers. Saturated regions have near-zero gradient, slowing learning.",
+          "analogy": "Different types of volume knobs: some max out quickly (sigmoid), some keep turning (ReLU), some have a small reverse range (Leaky ReLU).",
+          "visual": {
+            "component": "ActivationGallery",
+            "kind": "interactive",
+            "shows": "The chosen activation and its derivative on stacked Plots, with saturation zones shaded and the output range labelled.",
+            "interaction": "Toggle between sigmoid, tanh, ReLU, Leaky ReLU and GELU; drag an input marker to read value and gradient.",
+            "aha": "The derivative plot shows which activations let gradients flow and which choke them."
+          }
+        },
+        {
+          "name": "Dying ReLU",
+          "explain": "If a ReLU neuron's input becomes negative for every example (for example after a large update with a high learning rate), its output and gradient are always zero, so it never recovers. Leaky ReLU or lower learning rates avoid this.",
+          "analogy": "A shop that closes its shutters permanently because no customers came one week; with shutters down, no new customers can ever come in.",
+          "visual": {
+            "component": "DeadNeuronMap",
+            "kind": "interactive",
+            "shows": "A layer of 16 ReLU neurons as tiles coloured by the fraction of inputs that activate them; dead neurons turn grey.",
+            "interaction": "Slide the learning rate and press 'train 100 steps'; toggle Leaky ReLU.",
+            "aha": "Zero gradient means zero learning, so dead units stay dead."
+          }
+        }
+      ],
+      "code": "runnable",
+      "checkpoint_focus": [
+        "Linear ∘ linear = linear",
+        "Ranges: sigmoid (0,1), tanh (−1,1), ReLU [0, ∞)",
+        "Saturation and vanishing gradients",
+        "Dying ReLU and Leaky ReLU"
+      ]
+    },
+    {
+      "slug": "multilayer-perceptrons",
+      "title": "Multi-layer perceptrons",
+      "summary": "Stacking layers of neurons, the forward pass as matrix multiplication, counting parameters, and watching a network learn curved boundaries.",
+      "minutes": 22,
+      "objectives": [
+        "You can compute a forward pass through a small MLP",
+        "You can count the parameters of a dense network",
+        "You can predict how width and depth affect what a network can learn"
+      ],
+      "concepts": [
+        {
+          "name": "The mini playground",
+          "explain": "An MLP has an input layer, one or more hidden layers and an output layer, each neuron connected to all neurons in the next layer. With enough hidden neurons and non-linear activations, it can carve out curved and even enclosed decision regions. The universal approximation theorem says one wide enough hidden layer can approximate any continuous function, but deeper networks usually need far fewer neurons to do so.",
+          "analogy": "A team of map-makers: each draws one straight line, and the manager combines their lines into any shape.",
+          "visual": {
+            "component": "MiniPlayground",
+            "kind": "interactive",
+            "shows": "A TensorFlow-Playground-style view: a NeuralNet diagram with weight thickness and sign colour, each hidden neuron's own tiny heat-map, and the output decision region over a 2D dataset, with training and test loss curves.",
+            "interaction": "Choose dataset (circle, XOR, spiral, moons), add or remove hidden layers and neurons, pick the activation and learning rate, then play or step training.",
+            "aha": "Each hidden neuron is a simple boundary, and layers combine them into complex shapes; too few neurons cannot solve the spiral."
+          }
+        },
+        {
+          "name": "The forward pass in numbers",
+          "explain": "Each layer computes h = activation(Wx + b), where W has one row per output neuron. A 2-3-1 network takes two inputs, makes three hidden values, then one output, all with matrix multiplications you can do by hand for small numbers.",
+          "analogy": "An assembly line where each station transforms the product and passes it on.",
+          "visual": {
+            "component": "ForwardPassStepper",
+            "kind": "stepper",
+            "shows": "A NeuralNet diagram of a 2-3-1 network with small integer weights; stepping fills each neuron with its pre-activation and activation values and highlights the weights used.",
+            "interaction": "Edit inputs and weights; step layer by layer; toggle ReLU or sigmoid.",
+            "aha": "A neural network is just repeated 'multiply, add, squash'."
+          }
+        },
+        {
+          "name": "Counting parameters",
+          "explain": "A dense layer from n inputs to m outputs has n × m weights plus m biases. A 784-128-10 network therefore has 784×128 + 128 + 128×10 + 10 = 101,770 parameters. Most parameters sit in the widest connections.",
+          "analogy": "Counting the wires on a switchboard: every input connects to every output, plus one power cable per output.",
+          "visual": {
+            "component": "ParamCounter",
+            "kind": "interactive",
+            "shows": "A stack of layer boxes with editable sizes and a bar per layer showing weights and biases, plus the total.",
+            "interaction": "Edit layer sizes; add or remove layers; compare a wide-shallow network with a narrow-deep one of similar total size.",
+            "aha": "Parameter counts are simple products, a guaranteed quick MCQ win."
+          }
+        }
+      ],
+      "code": "runnable",
+      "checkpoint_focus": [
+        "Layer output = activation(Wx + b)",
+        "Parameters = in × out + out per layer",
+        "Hidden layers create non-linear boundaries",
+        "Width vs depth"
+      ]
+    },
+    {
+      "slug": "outputs-and-losses",
+      "title": "Output layers and loss functions",
+      "summary": "Matching the output layer and loss to the task, logits, BCEWithLogits, and the loss you should see at the start of training.",
+      "minutes": 16,
+      "objectives": [
+        "You can choose the output activation and loss for regression, binary, multi-class and multi-label tasks",
+        "You can explain why frameworks combine softmax with cross-entropy",
+        "You can predict the initial loss ln K for K balanced classes"
+      ],
+      "concepts": [
+        {
+          "name": "Match the head to the task",
+          "explain": "Regression uses a linear output with MSE or MAE; binary classification uses one logit with sigmoid and binary cross-entropy; multi-class uses K logits with softmax and cross-entropy; multi-label uses K logits with independent sigmoids. In PyTorch, CrossEntropyLoss and BCEWithLogitsLoss take raw logits and apply softmax or sigmoid internally for numerical stability. MSE on a sigmoid output is a poor choice for classification: when the sigmoid saturates, MSE's gradient is multiplied by σ′ ≈ 0 and learning stalls, while binary cross-entropy cancels σ′ and leaves a gradient of p − y.",
+          "analogy": "Choosing the right container for takeaway: soup in a bowl, satay in a bag; the wrong pairing makes a mess.",
+          "visual": {
+            "component": "HeadLossMatcher",
+            "kind": "interactive",
+            "shows": "Task cards on one side and output-layer plus loss options on the other; correct pairs connect with a line and show the matching PyTorch code.",
+            "interaction": "Drag to connect tasks to heads; toggle 'apply softmax before CrossEntropyLoss' to see the double-softmax bug flagged.",
+            "aha": "Frameworks expect logits; adding your own softmax or sigmoid first is a common bug."
+          }
+        },
+        {
+          "name": "The starting loss tells you something",
+          "explain": "A freshly initialised classifier should be unsure, giving each of K classes probability about 1/K, so its cross-entropy loss should be about −ln(1/K) = ln K (≈ 2.30 for 10 classes). A very different first loss suggests a bug, such as wrong labels or a bad output-layer initialisation.",
+          "analogy": "A new student guessing on a 4-option MCQ should score about 25%; scoring 0% means something is systematically wrong.",
+          "visual": {
+            "component": "BaselineLossCheck",
+            "kind": "interactive",
+            "shows": "K equal probability bars and the resulting loss value, alongside a curve of ln K against K.",
+            "interaction": "Slide K; skew the initial probabilities to see the loss move away from ln K.",
+            "aha": "Knowing the expected first loss is a free sanity check on any training run."
+          }
+        }
+      ],
+      "code": "torch-shown",
+      "checkpoint_focus": [
+        "Regression: linear + MSE/MAE",
+        "Binary: logit + BCEWithLogits",
+        "Multi-class: logits + CrossEntropyLoss (no softmax in model)",
+        "Initial CE ≈ ln K"
+      ]
+    }
+  ]
+}

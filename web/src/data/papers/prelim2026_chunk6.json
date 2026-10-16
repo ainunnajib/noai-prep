@@ -1,0 +1,1229 @@
+{
+ "paper": "prelim2026_chunk6",
+ "source": "NOAI 2026 Preliminary Round Assessment (20 Feb 2026; 300 MCQs, Google Form printed to PDF), AI Singapore. Questions 251-300 (form items 262-311). https://aisingapore.org/wp-content/uploads/2026/04/NOAI-2026-Preliminary-Round-Assessment-300-MCQs-Google-Forms.pdf",
+ "reconciliation": {
+  "solver_a_vs_b_disagreements": [],
+  "judge_notes": "Solvers A and B agreed on all 50 answers. Structural validation passed (50 questions, n=251..300, valid taxonomy slugs, answers in range, no unclosed code fences); all options and stems match the source PDF text (Q262, Q264, Q299 reformatted as LaTeX/lists/table only). Every explanation was reviewed, with random spot-check sample [251, 253, 256, 260, 267, 282, 287, 293] plus all low/medium-confidence items. All numeric claims re-verified with Python (Q259 0.85^20=0.039; Q262 BCE vs MSE gradient at z=-6, ratio ~203; Q264 stem inconsistency P=1.00/acc 98.2%/F1 0.18; Q265 true accuracy 96.86%, P=0.38, R=0.90, F1=0.53; Q258 50 random points in 100-D always linearly separable; Q284 epoch/time budget; Q294 GD simulation raw ~51% vs scaled ~88%). Wording fixes in Q262 (hinge-loss rebuttal), Q284 (option D timing), Q294 (scale ratio; simulation numbers now verified), Q296 (option C rebuttal). Flawed or ambiguous items kept at low confidence with notes: Q271 (B vs C), Q277 (flawed premise), Q278 (contrived), Q280 (C vs A). Q265 kept medium: option D (use F1/ROC-AUC) is defensible and the stem miscomputes accuracy.",
+  "official_key_check": "Checked against AI Singapore's official Self-Assessment Tool answer key (noai.aisingapore.org/preliminary-trial/). Adopted the official key, with confidence medium and notes on the alternative, for Q274 (A), Q277 (A), Q279 (A), Q280 (A), Q294 (B) and Q296 (A). Kept our key at low confidence for Q276, because the official BatchNorm option cannot produce a 'mat1 and mat2' shape error. Q285, Q292, Q293 and Q298 agree with the tool once its reworded options are mapped back to the PDF's options."
+ },
+ "questions": [
+  {
+   "n": 251,
+   "question": "Why is CLIP useful for downstream tasks?",
+   "options": [
+    "It's the fastest model",
+    "Pretrained representations transfer to various vision-language tasks",
+    "Smallest model size",
+    "Only for generation"
+   ],
+   "answer": 1,
+   "domain": "problem_solving",
+   "subtopic": "multimodal",
+   "difficulty": "beginner",
+   "style": "why-reasoning",
+   "concepts": [
+    "CLIP",
+    "contrastive image-text pretraining",
+    "transfer learning",
+    "zero-shot classification"
+   ],
+   "explanation": "CLIP (Contrastive Language–Image Pre-training) is trained on about 400 million image–caption pairs to place matching images and texts close together in a **shared embedding space**. Because these embeddings capture general visual and semantic concepts, they **transfer** well: you can do zero-shot classification (compare an image with prompts such as \"a photo of a dog\"), image–text retrieval, or reuse the image encoder as a backbone for other models. CLIP is not chosen for being the fastest or smallest model. It also does not generate images itself: it is an encoder that *scores* how well an image matches a text, although image generators such as DALL·E 2 and Stable Diffusion reuse CLIP's encoders.",
+   "confidence": "high",
+   "notes": ""
+  },
+  {
+   "n": 252,
+   "question": "Flamingo model combines:",
+   "options": [
+    "Text only",
+    "Audio and video",
+    "Generative Adversarial Networks and Diffusion",
+    "Vision and language for few-shot multimodal learning"
+   ],
+   "answer": 3,
+   "domain": "problem_solving",
+   "subtopic": "multimodal",
+   "difficulty": "intermediate",
+   "style": "definition",
+   "concepts": [
+    "Flamingo",
+    "visual language model",
+    "few-shot in-context learning",
+    "gated cross-attention"
+   ],
+   "explanation": "Flamingo (DeepMind, 2022) is a **visual language model**: it connects a frozen pretrained vision encoder to a frozen large language model through new gated cross-attention layers. It reads interleaved images/videos and text and writes text, so it can caption images or answer questions about them. Its headline result was strong **few-shot** performance: given just a handful of examples in the prompt, it adapts to new vision-language tasks without fine-tuning. It is not text-only and not an audio model, and it is not a GAN or diffusion image generator.",
+   "confidence": "high",
+   "notes": ""
+  },
+  {
+   "n": 253,
+   "question": "GPT-4 Vision (GPT-4V) can:",
+   "options": [
+    "Process images and text together",
+    "Only process text",
+    "Only generate images",
+    "Only classify images"
+   ],
+   "answer": 0,
+   "domain": "problem_solving",
+   "subtopic": "multimodal",
+   "difficulty": "beginner",
+   "style": "definition",
+   "concepts": [
+    "GPT-4V",
+    "multimodal LLM",
+    "image + text input"
+   ],
+   "explanation": "GPT-4 with Vision (GPT-4V) is a **multimodal large language model**: it accepts images *and* text in the same prompt and responds in text. For example, it can describe a photo, read a chart, or solve a problem shown in a screenshot. \"Only process text\" describes the original text-only GPT-4. GPT-4V does not generate images (that was a separate model, DALL·E), and it is far more general than a pure image classifier.",
+   "confidence": "high",
+   "notes": ""
+  },
+  {
+   "n": 254,
+   "question": "Cross-attention in multimodal models:",
+   "options": [
+    "Speeds up training",
+    "Only within same modality",
+    "Allows one modality to attend to another",
+    "Removes attention"
+   ],
+   "answer": 2,
+   "domain": "problem_solving",
+   "subtopic": "multimodal",
+   "difficulty": "intermediate",
+   "style": "definition",
+   "concepts": [
+    "cross-attention",
+    "queries, keys and values",
+    "self-attention vs cross-attention",
+    "modality fusion"
+   ],
+   "explanation": "In **cross-attention**, the queries $Q$ come from one sequence (for example, text tokens) while the keys $K$ and values $V$ come from another (for example, image patch embeddings). Each text token can therefore \"look at\" the most relevant parts of the image. This is how many multimodal models fuse information, for example Flamingo, the text conditioning in Stable Diffusion, and encoder–decoder Transformers. Attention *within* one sequence is **self-attention**, so \"Only within same modality\" is wrong. Cross-attention adds computation rather than speeding up training, and it obviously does not remove attention.",
+   "confidence": "high",
+   "notes": ""
+  },
+  {
+   "n": 255,
+   "question": "Why is vision-language pretraining challenging compared to language-only?",
+   "options": [
+    "Less data available",
+    "Simpler models needed",
+    "No challenges",
+    "Aligning different modalities, scaling data collection"
+   ],
+   "answer": 3,
+   "domain": "problem_solving",
+   "subtopic": "multimodal",
+   "difficulty": "intermediate",
+   "style": "why-reasoning",
+   "concepts": [
+    "vision-language pretraining",
+    "cross-modal alignment",
+    "paired image-text data",
+    "data scaling"
+   ],
+   "explanation": "Vision-language pretraining needs **paired** data (images with matching text). It must also learn to **align** two very different kinds of input, pixels and words, in one shared representation. Collecting clean paired data at scale is hard (web alt-text is noisy), and training on images plus text needs more compute. \"Less data available\" is tempting, but huge noisy web datasets do exist (CLIP used 400M pairs). The core difficulties are alignment plus scaling up data collection, which is exactly what the last option says. The models are not simpler, and there certainly are challenges.",
+   "confidence": "high",
+   "notes": ""
+  },
+  {
+   "n": 256,
+   "question": "You're building a model to predict house prices using a dataset with 20 features (size, bedrooms, location, age, etc.) and 5,000 samples. Which algorithm choice is most appropriate and why?",
+   "options": [
+    "Deep neural network with 5 hidden layers - always performs better than classical ML on any dataset",
+    "Gradient boosted decision trees (XGBoost/LightGBM) - tabular data with moderate feature count and interpretability needs favor tree-based methods",
+    "Linear regression - simplest model is always best",
+    "K-Nearest Neighbors - works well for all tabular data"
+   ],
+   "answer": 1,
+   "domain": "problem_solving",
+   "subtopic": "trees-ensembles",
+   "difficulty": "intermediate",
+   "style": "comparison",
+   "concepts": [
+    "tabular data",
+    "gradient boosting",
+    "model selection",
+    "no free lunch"
+   ],
+   "explanation": "This is a **tabular** dataset (rows are houses, columns are numeric and categorical features) of moderate size. Gradient-boosted trees such as XGBoost or LightGBM are the standard strong choice for tabular data. They capture non-linear effects and interactions (for example, location × size), need little preprocessing, and provide feature importances for interpretation. Deep networks do *not* always beat classical ML: on small or medium tabular datasets they often do worse than boosted trees. Linear regression is a good baseline, but \"always best\" is false because price depends non-linearly on the features. K-NN struggles when features have different scales or there are many dimensions.",
+   "confidence": "high",
+   "notes": "The stem does not mention 'interpretability needs', but the gradient-boosting option is still clearly the best.",
+   "caveat": "The stem does not mention 'interpretability needs', but the gradient-boosting option is still clearly the best."
+  },
+  {
+   "n": 257,
+   "question": "For real-time object detection, which is better?",
+   "options": [
+    "R-CNN",
+    "ResNet",
+    "LSTM",
+    "YOLO"
+   ],
+   "answer": 3,
+   "domain": "problem_solving",
+   "subtopic": "cnn-vision",
+   "difficulty": "beginner",
+   "style": "comparison",
+   "concepts": [
+    "object detection",
+    "single-stage vs two-stage detectors",
+    "YOLO",
+    "inference speed"
+   ],
+   "explanation": "YOLO (\"You Only Look Once\") is a **single-stage** detector: one forward pass of a CNN predicts all bounding boxes and class labels at once, so it can run in real time (tens to hundreds of frames per second). The original R-CNN is a **two-stage** detector. It runs a CNN separately on about 2,000 region proposals per image, so it takes seconds per image. ResNet is a backbone for image *classification* and does not output boxes by itself, and an LSTM is a sequence model, not a detector.",
+   "confidence": "high",
+   "notes": ""
+  },
+  {
+   "n": 258,
+   "question": "A medical diagnosis dataset contains 50 patient samples with 100 biomarker measurements per patient (blood protein levels, gene expressions, etc.). A data scientist trains a logistic regression model achieving:\n\n- Training accuracy: 98% (49/50 correct)\n- Validation accuracy: 62% (31/50 correct)\n- Most feature weights are non-zero\n\nWhat problem is the model experiencing and what is its root cause?",
+   "options": [
+    "Overfitting due to high dimensionality (p=100) relative to sample size (n=50) - the model has more parameters (100 weights) than effective training samples, allowing it to memorise training data rather than learn generalisable patterns",
+    "Underfitting because 50 samples are insufficient to train any model - need minimum 1000 samples for machine learning to work",
+    "Class imbalance in the dataset causing the model to predict only the majority class",
+    "Feature scaling issues - biomarkers measured in different units (ng/mL, copies, etc.) preventing proper convergence"
+   ],
+   "answer": 0,
+   "domain": "problem_solving",
+   "subtopic": "ml-debugging-diagnosis",
+   "difficulty": "intermediate",
+   "style": "scenario-diagnosis",
+   "concepts": [
+    "overfitting",
+    "curse of dimensionality (p > n)",
+    "train-validation gap",
+    "regularisation"
+   ],
+   "explanation": "The large gap between training accuracy ($49/50 = 98\\%$) and validation accuracy ($31/50 = 62\\%$) is the classic sign of **overfitting**. The root cause is high dimensionality. With $p = 100$ features but only $n = 50$ samples, the model has 101 parameters (100 weights plus a bias), which is more than the number of samples. It can therefore find a hyperplane that separates almost any labelling of the training points, even pure noise: 50 points in 100 dimensions are almost always linearly separable. Fixes include regularisation (for example, L1/lasso to set most weights to zero), feature selection, or collecting more data. There is no universal \"1,000 samples\" rule, nothing in the stem suggests class imbalance, and feature-scaling problems slow convergence rather than produce near-perfect training accuracy.",
+   "confidence": "high",
+   "notes": "Minor stem inconsistency: the dataset has 50 patients, yet training and validation are each reported out of 50. They are presumably separate sets. This does not affect the answer.",
+   "caveat": "Minor stem inconsistency: the dataset has 50 patients, yet training and validation are each reported out of 50. They are presumably separate sets. This does not affect the answer."
+  },
+  {
+   "n": 259,
+   "question": "A customer churn prediction dataset has 10,000 samples with 20 features. After data collection, 15% of values are missing (randomly distributed across samples and features). Four ML practitioners propose different approaches:\n\n- **Approach A:** \"Use decision trees - they naturally handle missing values through surrogate splits during training.\"\n- **Approach B:** \"Use K-NN with complete-case analysis - just remove any sample with missing values before training.\"\n- **Approach C:** \"Use linear regression with mean imputation - replace missing values with feature means.\"\n- **Approach D:** \"Use SVM after forward-filling missing values with the previous non-missing value in the dataset.\"\n\nWhich practitioner's reasoning is most accurate?",
+   "options": [
+    "Practitioner A is correct - tree algorithms (CART, XGBoost, LightGBM) can handle missing values natively by learning optimal directions for missing data during split evaluation, without requiring imputation",
+    "Practitioner B is correct - K-NN requires complete feature vectors for distance calculation, so removing incomplete samples is the only valid approach",
+    "Practitioner C is correct - linear regression requires complete data, and mean imputation is the statistically optimal preprocessing method",
+    "Practitioner D is correct - SVM requires complete vectors for kernel computation, and forward-fill is a standard time-series imputation method that preserves temporal patterns"
+   ],
+   "answer": 0,
+   "domain": "problem_solving",
+   "subtopic": "data-preprocessing",
+   "difficulty": "intermediate",
+   "style": "comparison",
+   "concepts": [
+    "missing values",
+    "native missing-value handling in trees",
+    "complete-case analysis",
+    "imputation"
+   ],
+   "explanation": "Tree-based models can handle missing values directly. CART-style trees can use surrogate splits, and XGBoost/LightGBM learn a \"default direction\": at each split they try sending missing values left and right and keep whichever reduces the loss more. Practitioner B's approach would be disastrous. With 15% of values missing at random across 20 features, the chance that a row is complete is $0.85^{20} \\approx 0.039$, so you would discard about 96% of the 10,000 rows and keep only ~390. Mean imputation (C) is a simple baseline, not \"statistically optimal\": it shrinks variance and distorts relationships between features (and churn is a classification task, so linear regression is an odd choice anyway). Forward-fill (D) only makes sense for time-ordered data, and customer rows are not a time series.",
+   "confidence": "high",
+   "notes": "Option A over-generalises slightly: CART's surrogate splits differ from XGBoost/LightGBM's learned default directions, and scikit-learn trees gained native NaN support only in v1.3. It is still clearly the most accurate statement.",
+   "caveat": "Option A over-generalises slightly: CART's surrogate splits differ from XGBoost/LightGBM's learned default directions, and scikit-learn trees gained native NaN support only in v1.3. It is still clearly the most accurate statement."
+  },
+  {
+   "n": 260,
+   "question": "For clustering variable-density regions, which is better?",
+   "options": [
+    "K-means",
+    "Linear regression",
+    "DBSCAN",
+    "Logistic regression"
+   ],
+   "answer": 2,
+   "domain": "problem_solving",
+   "subtopic": "unsupervised",
+   "difficulty": "beginner",
+   "style": "comparison",
+   "concepts": [
+    "DBSCAN",
+    "density-based clustering",
+    "K-means assumptions",
+    "noise points"
+   ],
+   "explanation": "DBSCAN is a **density-based** clustering algorithm. It grows clusters from \"core\" points that have at least `minPts` neighbours within a radius $\\varepsilon$, so it can find arbitrarily shaped clusters and label sparse points as noise. K-means assumes roughly round (convex), similar-sized clusters around centroids, so it handles irregular dense regions poorly. Linear and logistic regression are supervised methods, not clustering algorithms. One caveat: DBSCAN uses a single global $\\varepsilon$, so clusters with *very* different densities are actually a known weakness, and HDBSCAN or OPTICS handle that better. Among these options, though, DBSCAN is clearly the intended answer.",
+   "confidence": "high",
+   "notes": "Technically, DBSCAN struggles with clusters of widely varying density because it uses one global eps; HDBSCAN/OPTICS are better tools for that. DBSCAN is still the only reasonable option listed.",
+   "caveat": "Technically, DBSCAN struggles with clusters of widely varying density because it uses one global eps; HDBSCAN/OPTICS are better tools for that. DBSCAN is still the only reasonable option listed."
+  },
+  {
+   "n": 261,
+   "question": "A sentiment analysis model (classifying movie reviews as positive/negative) shows the following performance after training for 50 epochs:\n\n**Performance Metrics:**\n- Training accuracy: 98.5%\n- Training loss: 0.08\n- Validation accuracy: 72.3%\n- Validation loss: 1.45\n- Test accuracy: 71.8%\n- Model complexity: 3-layer LSTM with 512 hidden units, 2.4M parameters\n- Training set size: 5,000 reviews\n\nWhat is the most likely problem and what evidence supports this diagnosis?",
+   "options": [
+    "Data leakage - validation and test performance are similar (72.3% vs 71.8%), suggesting information leaked from training to validation set",
+    "Underfitting - 72% validation accuracy is too low for sentiment analysis, indicating the model failed to learn the underlying patterns in the data",
+    "Overfitting - large train-validation gap (98.5% vs 72.3%), loss divergence (0.08 vs 1.45), and model complexity (2.4M parameters) relative to dataset size (5K samples) indicates the model memorised training data rather than learning generalisable patterns",
+    "Distribution shift - model performs well on training data (98.5%) but test data comes from different distribution, causing performance drop"
+   ],
+   "answer": 2,
+   "domain": "problem_solving",
+   "subtopic": "ml-debugging-diagnosis",
+   "difficulty": "intermediate",
+   "style": "scenario-diagnosis",
+   "concepts": [
+    "overfitting",
+    "train-validation gap",
+    "model capacity vs dataset size",
+    "loss divergence"
+   ],
+   "explanation": "Look at the gaps. Training accuracy is 98.5% but validation accuracy is 72.3%, a 26-point gap, and validation loss (1.45) is about 18× the training loss (0.08). Doing very well on training data but much worse on unseen data is **overfitting**. It is expected for a 2.4M-parameter LSTM trained on only 5,000 reviews (about 480 parameters per example). Similar validation and test accuracy (72.3% vs 71.8%) is actually reassuring: it shows the validation set is a fair estimate, not that data leaked. This is not underfitting, because the model fits the training data almost perfectly. Distribution shift is also unlikely, because the validation set, drawn from the same data, shows the same drop as the test set.",
+   "confidence": "high",
+   "notes": ""
+  },
+  {
+   "n": 262,
+   "question": "A binary classification task (email spam detection) requires selecting a loss function. The model outputs raw logits (unbounded real values) from the final layer, which are then passed through a sigmoid activation $\\sigma(z) = 1/(1+e^{-z})$ to produce probabilities.\n\nFour loss functions are proposed:\n\n**Loss A – Binary Cross-Entropy (BCE):** $L = -[y \\log(p) + (1-y) \\log(1-p)]$, where $p = \\sigma(z)$\n- Penalises confident wrong predictions heavily\n- Gradient: $\\partial L/\\partial z = p - y$ (clean gradient for sigmoid)\n\n**Loss B – Mean Squared Error (MSE):** $L = (y - p)^2$, where $p = \\sigma(z)$\n- Measures squared distance between prediction and target\n- Gradient: $\\partial L/\\partial z = 2(p - y) \\cdot p(1-p)$ (vanishing gradient when $p$ near 0 or 1)\n\n**Loss C – Hinge Loss (SVM-style):** $L = \\max(0, 1 - y \\cdot z)$, where $y \\in \\{-1, +1\\}$\n- Maximises margin between classes\n- Not differentiable at margin boundary\n\n**Loss D – Mean Absolute Error (MAE):** $L = |y - p|$, where $p = \\sigma(z)$\n- Measures absolute distance between prediction and target\n- Gradient: $\\partial L/\\partial z = \\operatorname{sign}(p - y) \\cdot p(1-p)$ (constant, doesn't scale with error magnitude)\n\nWhich loss function is most appropriate for training this neural network, and why?",
+   "options": [
+    "Binary Cross-Entropy (Loss A) - designed for probabilistic binary classification, provides strong gradients throughout sigmoid range, penalizes confident mistakes heavily (essential for calibrated spam detection), and gradient scales proportionally with prediction error",
+    "Mean Squared Error (Loss B) - simpler to understand and implement, treats classification as regression problem which is mathematically equivalent",
+    "Hinge Loss (Loss C) - maximises decision margin which improves robustness to adversarial spam examples",
+    "Mean Absolute Error (Loss D) - more robust to outliers than MSE, preventing extreme spam examples from dominating training"
+   ],
+   "answer": 0,
+   "domain": "problem_solving",
+   "subtopic": "neural-networks",
+   "difficulty": "intermediate",
+   "style": "comparison",
+   "concepts": [
+    "binary cross-entropy",
+    "sigmoid output",
+    "vanishing gradients with MSE",
+    "probability calibration"
+   ],
+   "explanation": "With a sigmoid output $p = \\sigma(z)$, binary cross-entropy is the negative log-likelihood of a Bernoulli model. Its gradient with respect to the logit is simply $\\partial L/\\partial z = p - y$, which is proportional to the error. Take a confidently wrong prediction: $y = 1$ but $z = -6$, so $p \\approx 0.0025$. BCE gives a gradient of about $-1.0$, while MSE gives $2(p-y)\\,p(1-p) \\approx -0.005$, about 200× smaller (checked numerically), so learning stalls exactly when the model is most wrong. MSE is *not* mathematically equivalent to BCE for classification. MAE suffers the same $p(1-p)$ shrinkage and its gradient ignores how wrong the prediction is. Hinge loss is a valid classification loss (it is what SVMs use), but it works on raw scores with labels in $\\{-1, +1\\}$, does not produce the calibrated probabilities this sigmoid set-up is meant to give, and a wider margin is no reliable defence against deliberately crafted (adversarial) spam.",
+   "confidence": "high",
+   "notes": ""
+  },
+  {
+   "n": 263,
+   "question": "You have imbalanced classes (1% positive). Which metric is misleading?",
+   "options": [
+    "F1-score",
+    "Precision",
+    "Accuracy",
+    "Recall"
+   ],
+   "answer": 2,
+   "domain": "problem_solving",
+   "subtopic": "model-evaluation",
+   "difficulty": "beginner",
+   "style": "why-reasoning",
+   "concepts": [
+    "class imbalance",
+    "accuracy paradox",
+    "precision and recall",
+    "F1-score"
+   ],
+   "explanation": "With 1% positives, a useless model that always predicts \"negative\" gets **99% accuracy** while catching zero positives, so accuracy is misleading. Precision ($TP/(TP+FP)$), recall ($TP/(TP+FN)$) and F1 all focus on the rare positive class, so that trivial model would score 0 on all three and the problem would be obvious. For imbalanced problems, report precision, recall, F1 or PR-AUC instead of plain accuracy.",
+   "confidence": "high",
+   "notes": ""
+  },
+  {
+   "n": 264,
+   "question": "A fraud detection dataset contains 10,000 transactions: 9,800 legitimate (98%) and 200 fraudulent (2%). A data scientist trains a logistic regression classifier with default settings and reports:\n\n**Model Performance:**\n- Overall accuracy: 98.0%\n- Precision (fraud): 0.15 (15%)\n- Recall (fraud): 0.10 (10%)\n- F1-score (fraud): 0.12\n\n**Confusion Matrix:**\n- True Negatives: 9,800 (all legitimate correctly classified)\n- False Positives: 0\n- False Negatives: 180 (missed frauds)\n- True Positives: 20 (caught frauds)\n\nThe model predicts \"legitimate\" for almost every transaction. Four approaches are proposed:\n\n**Approach A – Class Weights:**\n- Modify loss function: $L = w_1 \\times L(\\text{fraud}) + w_0 \\times L(\\text{legit})$, where $w_1 = 49$, $w_0 = 1$\n- Penalises fraud misclassification 49× more (inverse of class frequency ratio)\n\n**Approach B – Random Oversampling:**\n- Duplicate fraud samples randomly until balanced: 9,800 fraud + 9,800 legit\n- Train on 19,600 total samples (98% duplicates)\n\n**Approach C – SMOTE (Synthetic Minority Over-sampling):**\n- Generate synthetic fraud samples by interpolating between k-nearest fraud neighbors\n- Create 9,600 synthetic frauds + 200 real frauds = 9,800 fraud samples\n\n**Approach D – Random Undersampling:**\n- Randomly remove legitimate samples to balance: 200 fraud + 200 legit\n- Train on only 400 samples (discard 9,600 legit transactions)\n\nWhich approach best balances practicality and performance?",
+   "options": [
+    "Class Weights (Approach A) - preserves all training data, computationally efficient, directly encodes cost of misclassification into optimisation, and works with any algorithm that supports sample/class weighting",
+    "Random Oversampling (Approach B) - simplest implementation, guaranteed to balance classes, and allows model to see minority examples more frequently",
+    "SMOTE (Approach C) - creates synthetic samples that interpolate feature space, adds diversity beyond simple duplication, and avoids exact memorisation of minority class",
+    "Random Undersampling (Approach D) - fastest training time with smallest dataset, forces model to focus on minority class patterns"
+   ],
+   "answer": 0,
+   "domain": "problem_solving",
+   "subtopic": "classification",
+   "difficulty": "intermediate",
+   "style": "comparison",
+   "concepts": [
+    "class imbalance",
+    "class weights / cost-sensitive learning",
+    "oversampling and SMOTE",
+    "undersampling"
+   ],
+   "explanation": "Class weighting keeps all 10,000 real transactions and simply makes each fraud error count more in the loss. Setting $w_1 = 9{,}800/200 = 49$ makes the 200 frauds weigh as much in total as the 9,800 legitimate transactions. It adds no training time and is a single argument in most libraries (for example, `class_weight='balanced'` in scikit-learn). Random oversampling (B) duplicates each fraud about 49 times, which bloats the training set and encourages memorising those exact rows. SMOTE (C) adds diversity, but it can create unrealistic synthetic points near the class boundary and adds an extra preprocessing step. Undersampling (D) throws away 98% of the legitimate data (9,600 of 9,800 rows). SMOTE is a reasonable alternative, but class weights give the best balance of practicality and performance and are usually the first thing to try.",
+   "confidence": "medium",
+   "notes": "The stem's numbers are inconsistent. With TN=9,800, FP=0, FN=180 and TP=20, precision would be 20/20 = 1.00 (not 0.15), accuracy 98.2% (not 98.0%) and F1 about 0.18 (not 0.12). Approach B's '98% duplicates' is really about 49% of the 19,600 rows (98% of the fraud rows). None of this changes the answer, but SMOTE (C) is also somewhat defensible.",
+   "caveat": "The stem's numbers are inconsistent. With TN=9,800, FP=0, FN=180 and TP=20, precision would be 20/20 = 1.00 (not 0.15), accuracy 98.2% (not 98.0%) and F1 about 0.18 (not 0.12). Approach B's '98% duplicates' is really about 49% of the 19,600 rows (98% of the fraud rows). None of this changes the answer, but SMOTE (C) is also somewhat defensible."
+  },
+  {
+   "n": 265,
+   "question": "After applying class weights to the fraud detection model, three practitioners evaluate performance differently:\n\n**Dataset:** 10,000 transactions (9,800 legit, 200 fraud)\n\n**Model Results:**\n- True Positives (TP): 180 (frauds caught)\n- False Positives (FP): 294 (legit flagged as fraud)\n- True Negatives (TN): 9,506 (legit classified correctly)\n- False Negatives (FN): 20 (frauds missed)\n\n**Practitioner A** reports: \"98.7% accuracy - excellent model!\"\n- Calculation: (TP + TN) / Total = (180 + 9,506) / 10,000 = 98.7%\n\n**Practitioner B** reports: \"38% precision - terrible model, too many false alarms!\"\n- Calculation: Precision = TP / (TP + FP) = 180 / (180 + 294) = 38%\n\n**Practitioner C** reports: \"90% recall - good model, catches most fraud!\"\n- Calculation: Recall = TP / (TP + FN) = 180 / (180 + 20) = 90%\n\nWhich practitioner's evaluation is most appropriate for this imbalanced classification problem?",
+   "options": [
+    "Practitioner A using accuracy - 98.7% correctly classified transactions is objectively the best overall performance metric",
+    "Practitioner B using precision - 38% precision means majority of fraud alerts are false alarms, creating operational burden and user friction",
+    "Practitioner C focusing on recall - catching 90% of frauds (180/200) is the primary objective; false positives (294 legit transactions flagged) can be manually reviewed by fraud team",
+    "None individually sufficient - must evaluate F1-score (harmonic mean of precision and recall) or use ROC-AUC which aggregates performance across all thresholds"
+   ],
+   "answer": 2,
+   "domain": "problem_solving",
+   "subtopic": "model-evaluation",
+   "difficulty": "intermediate",
+   "style": "comparison",
+   "concepts": [
+    "precision vs recall",
+    "asymmetric error costs",
+    "accuracy on imbalanced data",
+    "F1 and ROC-AUC limitations"
+   ],
+   "explanation": "First, Practitioner A's arithmetic is wrong: $(180 + 9{,}506)/10{,}000 = 96.86\\%$, not 98.7%. That is *below* the 98% a model would get by calling every transaction legitimate, which shows why accuracy is useless here. The precision ($180/474 \\approx 38\\%$) and recall ($180/200 = 90\\%$) figures are correct. In fraud detection the costs are asymmetric: a missed fraud (FN) loses real money, while a false alarm (FP) costs a quick manual review. Recall is therefore the primary metric, and 474 alerts for 180 real frauds (about 1.6 false alarms per real fraud) is a manageable review load. Option D sounds balanced, but F1 weights precision and recall equally, ignoring that cost asymmetry (here F1 $\\approx 0.53$). ROC-AUC is also known to look over-optimistic on heavily imbalanced data, where PR-AUC is preferred. Option B ignores that catching fraud is the goal.",
+   "confidence": "medium",
+   "notes": "AI Singapore's Self-Assessment Tool also keys C (recall). Option D ('none individually sufficient; use F1/ROC-AUC') is defensible from a 'look at several metrics' viewpoint, but the scenario stresses the asymmetric cost of missed fraud and says false positives can be reviewed. Also, Practitioner A's accuracy is miscomputed in the stem (the true value is 96.86%).",
+   "caveat": "AI Singapore's Self-Assessment Tool also keys C (recall). Option D ('none individually sufficient; use F1/ROC-AUC') is defensible from a 'look at several metrics' viewpoint, but the scenario stresses the asymmetric cost of missed fraud and says false positives can be reviewed. Also, Practitioner A's accuracy is miscomputed in the stem (the true value is 96.86%)."
+  },
+  {
+   "n": 266,
+   "question": "You're training models on a text classification dataset (5,000 samples, 10 categories). Three models show different performance patterns:\n\n**Model A – Logistic Regression (Linear):**\n- Training accuracy: 68%\n- Validation accuracy: 67%\n- Training loss: 1.85\n- Validation loss: 1.88\n- Behaviour: Similar errors on both train and validation sets\n\n**Model B – Deep Neural Network (5 layers, 2M parameters):**\n- Training accuracy: 99%\n- Validation accuracy: 71%\n- Training loss: 0.05\n- Validation loss: 2.15\n- Behaviour: Memorises training data, fails on new examples\n\n**Model C – Neural Network with Regularisation (3 layers, dropout=0.5, L2=0.01):**\n- Training accuracy: 85%\n- Validation accuracy: 83%\n- Training loss: 0.52\n- Validation loss: 0.58\n- Behaviour: Balanced performance\n\nWhich diagnosis and solution is correct for each model?",
+   "options": [
+    "Model A: High bias (underfitting) → increase capacity or add features; Model B: High variance (overfitting) → add regularisation or get more data; Model C: Well-balanced (target this configuration)",
+    "Model A: Correct fit (train-val gap minimal) → no changes needed; Model B: High bias (needs more training) → train longer; Model C: High variance (dropout too strong) → reduce regularisation",
+    "Model A: High variance (too simple) → collect more data; Model B: Correct fit (high accuracy achieved) → deploy; Model C: High bias (accuracy too low) → increase capacity",
+    "All models have data quality issues → focus on data cleaning before model tuning"
+   ],
+   "answer": 0,
+   "domain": "problem_solving",
+   "subtopic": "ml-fundamentals",
+   "difficulty": "intermediate",
+   "style": "scenario-diagnosis",
+   "concepts": [
+    "bias-variance trade-off",
+    "underfitting vs overfitting",
+    "learning-curve diagnosis",
+    "regularisation"
+   ],
+   "explanation": "Compare training with validation performance. **Model A** is poor on *both* (68% / 67%) with a tiny gap, which means **high bias (underfitting)**: a linear model is too simple, so add capacity or better features. **Model B** is nearly perfect on training data (99%) but much worse on validation (71%), and its validation loss (2.15) is far above its training loss (0.05). That is **high variance (overfitting)**, so add regularisation, more data or early stopping. **Model C** has good accuracy and a small gap (85% / 83%), so it is well balanced and is the configuration to aim for. The other options mislabel these patterns: a small train–validation gap does not mean \"correct fit\" when both scores are low, and 99% training accuracy is no reason to deploy.",
+   "confidence": "high",
+   "notes": ""
+  },
+  {
+   "n": 267,
+   "question": "Which architecture is best suited for sequential data with long-term dependencies?",
+   "options": [
+    "Feedforward NN",
+    "Logistic regression",
+    "K-means",
+    "Transformer or LSTM"
+   ],
+   "answer": 3,
+   "domain": "problem_solving",
+   "subtopic": "sequence-models",
+   "difficulty": "beginner",
+   "style": "comparison",
+   "concepts": [
+    "long-term dependencies",
+    "LSTM gating",
+    "self-attention",
+    "sequence modelling"
+   ],
+   "explanation": "Sequential data with **long-term dependencies** needs a model that can carry information across many time steps. LSTMs use gated memory cells that let information and gradients flow over long ranges. Transformers use self-attention, so every position can attend directly to every other position, however far apart. A feedforward network and logistic regression treat the input as a fixed-size vector with no notion of order or memory, and K-means is an unsupervised clustering method, not a sequence model.",
+   "confidence": "high",
+   "notes": ""
+  },
+  {
+   "n": 268,
+   "question": "When to use cross-validation vs single train/validation split?",
+   "options": [
+    "Always use CV",
+    "Always use split",
+    "No difference",
+    "Cross-validation for small datasets, split for large"
+   ],
+   "answer": 3,
+   "domain": "problem_solving",
+   "subtopic": "model-evaluation",
+   "difficulty": "beginner",
+   "style": "comparison",
+   "concepts": [
+    "k-fold cross-validation",
+    "hold-out validation",
+    "variance of performance estimates",
+    "computational cost"
+   ],
+   "explanation": "$k$-fold cross-validation trains and evaluates the model $k$ times on different splits and averages the scores. Every sample is used for both training and validation, which matters most when data is scarce and a single split would give a noisy estimate. The cost is $k\\times$ as much training. On large datasets, a single held-out validation set is already big enough to give a stable estimate, and $k\\times$ training (especially for deep networks) is often too expensive. Neither \"always\" option is right, and there is a real difference in the variance of the estimate and in compute cost.",
+   "confidence": "high",
+   "notes": ""
+  },
+  {
+   "n": 269,
+   "question": "Your training loss oscillates wildly. What's likely wrong?",
+   "options": [
+    "Learning rate too low",
+    "Too much data",
+    "Learning rate too high",
+    "Perfect training"
+   ],
+   "answer": 2,
+   "domain": "problem_solving",
+   "subtopic": "training-regularisation",
+   "difficulty": "beginner",
+   "style": "scenario-diagnosis",
+   "concepts": [
+    "learning rate",
+    "overshooting",
+    "gradient descent dynamics",
+    "loss curves"
+   ],
+   "explanation": "When the learning rate is too high, each gradient step **overshoots** the minimum: the parameters jump from one side of the \"valley\" to the other, so the loss bounces up and down (or even explodes) instead of decreasing smoothly. A learning rate that is too *low* shows the opposite symptom: the loss decreases smoothly but very slowly. More data does not cause wild oscillation (bigger datasets usually make gradient estimates *less* noisy), and an oscillating loss is clearly not \"perfect training\". The first fix to try is lowering the learning rate (for example, by 10×) or adding a schedule or warm-up.",
+   "confidence": "high",
+   "notes": ""
+  },
+  {
+   "n": 270,
+   "question": "When might you prefer a generative model over discriminative?",
+   "options": [
+    "Never use generative",
+    "Only for classification",
+    "Always prefer discriminative",
+    "When you need to sample new data or model data distribution"
+   ],
+   "answer": 3,
+   "domain": "problem_solving",
+   "subtopic": "generative-models",
+   "difficulty": "beginner",
+   "style": "comparison",
+   "concepts": [
+    "generative vs discriminative models",
+    "P(x) vs P(y|x)",
+    "sampling new data"
+   ],
+   "explanation": "A **discriminative** model learns $P(y \\mid x)$, just the boundary between classes. A **generative** model learns how the data itself is distributed, $P(x)$ or $P(x, y)$. That lets it **sample** new data (images, text, audio) and estimate how likely an input is, which helps with anomaly detection, missing data and very small labelled datasets. Generative models are used everywhere (GPT, diffusion models, Naive Bayes), so \"never\" and \"always prefer discriminative\" are wrong, and they are not limited to classification.",
+   "confidence": "high",
+   "notes": ""
+  },
+  {
+   "n": 271,
+   "question": "Your training loss oscillates wildly without convergence after 50 epochs. Systematic debugging should prioritise which diagnostic sequence?",
+   "options": [
+    "Verify gradient flow with torch.autograd.grad, inspect loss surface curvature, then reduce learning rate with warm restarts",
+    "Check data pipeline integrity (normalisation, augmentation consistency, label encoding), then validate loss function implementation for numerical stability",
+    "Monitor gradient norms across layers, test learning rate with LR range test, then inspect optimiser state for momentum accumulation issues",
+    "Increase batch size for gradient stability, add gradient clipping, then switch to adaptive optimisers (Adam → AdamW)"
+   ],
+   "answer": 1,
+   "domain": "problem_solving",
+   "subtopic": "ml-debugging-diagnosis",
+   "difficulty": "advanced",
+   "style": "scenario-diagnosis",
+   "concepts": [
+    "systematic debugging order",
+    "data pipeline bugs",
+    "loss implementation checks",
+    "learning-rate diagnosis"
+   ],
+   "explanation": "Wild oscillation that persists for 50 epochs has two classic root causes. One is corrupted or inconsistent data: missing or wrong normalisation, labels shuffled out of sync with inputs, augmentation that behaves differently between batches, or wrong label encoding. The other is a learning rate that is too high. Systematic debugging checks the cheapest and most common failure points first, namely the data pipeline and the loss implementation (for example, applying softmax twice, or an unstable `log(0)`), before tuning optimisation hyperparameters. Option C (gradient norms, LR range test) is a sensible *next* step and is defensible, but if the data or loss is broken no learning rate will fix it. Option A jumps to exotic analysis such as loss-surface curvature, and option D applies fixes blindly without diagnosing anything.",
+   "confidence": "low",
+   "notes": "Ambiguous: option C (gradient norms + LR range test) is equally defensible, because the most common cause of oscillating loss is a learning rate that is too high (see the earlier question in this paper). We key B following the 'check data/labels and loss first' troubleshooting convention (e.g., Full Stack Deep Learning lists corrupted data/labels before 'LR too high' for oscillating error).",
+   "caveat": "Ambiguous: option C (gradient norms + LR range test) is equally defensible, because the most common cause of oscillating loss is a learning rate that is too high (see the earlier question in this paper). We key B following the 'check data/labels and loss first' troubleshooting convention (e.g., Full Stack Deep Learning lists corrupted data/labels before 'LR too high' for oscillating error)."
+  },
+  {
+   "n": 272,
+   "question": "Training abruptly produces NaN losses at epoch 23 after stable convergence. Which hypothesis-driven debugging approach is most effective?",
+   "options": [
+    "Enable anomaly detection (torch.autograd.set_detect_anomaly(True)), log pre-activation statistics, then inspect batch samples causing numerical overflow",
+    "Reduce learning rate by 10x, add gradient clipping at norm=1.0, switch to mixed precision training with loss scaling",
+    "Check for division by zero in loss function, add epsilon (1e-8) to denominators, validate input data range",
+    "Replace batch normalisation with layer normalisation, use gradient checkpointing, decrease model capacity"
+   ],
+   "answer": 0,
+   "domain": "problem_solving",
+   "subtopic": "ml-debugging-diagnosis",
+   "difficulty": "advanced",
+   "style": "scenario-diagnosis",
+   "concepts": [
+    "NaN/Inf debugging",
+    "torch.autograd.set_detect_anomaly",
+    "numerical overflow",
+    "diagnose before fixing"
+   ],
+   "explanation": "A sudden NaN after many stable epochs usually comes from a specific event: an unusual batch (corrupted or extreme input), an overflow in `exp`, a `log(0)`, or a division by a number near zero. The first job is therefore to **find where and when** it happens. `torch.autograd.set_detect_anomaly(True)` makes PyTorch raise an error at the exact operation that produced the NaN, logging activation statistics shows which layer blows up, and inspecting the offending batch tests the \"bad data\" hypothesis. Option B applies three fixes at once without knowing the cause, and switching to FP16 makes overflow *more* likely, not less. Option C commits to one specific cause before gathering evidence, and option D makes architectural changes unrelated to the symptom.",
+   "confidence": "medium",
+   "notes": "Option C (check divisions, add epsilon, validate inputs) is a reasonable partial approach, but it presumes the cause. A localises the fault first.",
+   "caveat": "Option C (check divisions, add epsilon, validate inputs) is a reasonable partial approach, but it presumes the cause. A localises the fault first."
+  },
+  {
+   "n": 273,
+   "question": "Validation accuracy remains at 10% (random baseline for 10-class problem) while training loss decreases smoothly to 0.01. Which failure mode is most likely?",
+   "options": [
+    "Label mismatch between training and validation sets (different encoding schemes or class mappings)",
+    "Extreme overfitting due to insufficient regularisation and model memorisation of training set",
+    "Vanishing gradients preventing feature learning, causing model to predict uniform distribution",
+    "Data leakage in training set artificially inflating training performance without validation generalisation"
+   ],
+   "answer": 0,
+   "domain": "problem_solving",
+   "subtopic": "ml-debugging-diagnosis",
+   "difficulty": "intermediate",
+   "style": "scenario-diagnosis",
+   "concepts": [
+    "chance-level accuracy",
+    "label encoding / class mapping bugs",
+    "overfitting vs pipeline bugs",
+    "sanity checks"
+   ],
+   "explanation": "A training loss that falls smoothly to 0.01 shows the model is learning *something*. Yet 10% on a 10-class problem is exactly chance: the validation predictions are no better than random guessing. That pattern points to a mismatch in how labels are defined in the two sets. For example, the validation labels may use a different class-to-index mapping (different folder order, or a re-fitted `LabelEncoder`), or the labels may be shuffled out of sync with the images. Overfitting usually leaves validation accuracy *above* chance, because some general patterns are still learned. Vanishing gradients would stop the training loss from falling, and leakage would make results look too good, not stuck at chance.",
+   "confidence": "high",
+   "notes": ""
+  },
+  {
+   "n": 274,
+   "question": "Training a ResNet-50 with batch size 128 causes \"CUDA out of memory\" on a 16GB GPU. Which memory optimisation strategy provides best throughput-memory tradeoff?",
+   "options": [
+    "Gradient accumulation (effective batch 128 = 4 micro-batches × 32) with gradient checkpointing on residual blocks",
+    "Mixed precision training (FP16 forward/backward, FP32 optimiser) with dynamic loss scaling",
+    "Reduce batch size to 32 without other changes, accepting 4x longer training time",
+    "Enable torch.cuda.empty_cache() after each backward pass and use pin_memory for data loading"
+   ],
+   "answer": 0,
+   "domain": "problem_solving",
+   "subtopic": "optimisation-tradeoffs",
+   "difficulty": "advanced",
+   "style": "comparison",
+   "concepts": [
+    "mixed precision (AMP)",
+    "GPU memory vs throughput",
+    "gradient accumulation",
+    "gradient checkpointing"
+   ],
+   "explanation": "The goal is to make batch 128 fit in 16 GB **without changing the training recipe**, at a speed cost you can predict. Gradient accumulation runs 4 micro-batches of 32 and adds up their gradients before a single optimiser step, so every update still averages over $4 \\times 32 = 128$ samples (same learning rate and schedule), while only 32 samples' activations are in memory at once, roughly a 4× cut in activation memory. Gradient checkpointing on the residual blocks then keeps only each block's input and recomputes the inside during the backward pass, trading roughly 20–30% extra compute for another large memory saving. Together they are sure to fix the out-of-memory error with a modest, known slowdown, which is exactly the throughput–memory **trade-off** the question asks about. Mixed precision (B) is also a strong technique and is often combined with A, but on its own it only about halves activation memory, and its speed-up depends on GPUs with Tensor Cores. Cutting the batch to 32 (C) changes the optimisation itself, and `torch.cuda.empty_cache()` (D) only hands cached blocks back to the driver; it does not reduce the memory the model actually needs.",
+   "confidence": "medium",
+   "notes": "AI Singapore's Self-Assessment Tool keys option A (gradient accumulation + checkpointing), and we originally keyed B. Option B (mixed precision) is also strongly defensible, and many practitioners would try it first: on Tensor Core GPUs AMP improves *both* memory and speed, and halving activation memory is often enough for ResNet-50 at batch 128 on 16 GB. One caveat for option A: ResNet-50 uses BatchNorm, whose statistics are computed per micro-batch of 32, so accumulation is not exactly identical to a true batch of 128 (32 is still plenty for BatchNorm).",
+   "caveat": "AI Singapore's Self-Assessment Tool keys option A (gradient accumulation + checkpointing). Option B (mixed precision) is also strongly defensible, and many practitioners would try it first: on Tensor Core GPUs AMP improves *both* memory and speed, and halving activation memory is often enough for ResNet-50 at batch 128 on 16 GB. One caveat for option A: ResNet-50 uses BatchNorm, whose statistics are computed per micro-batch of 32, so accumulation is not exactly identical to a true batch of 128 (32 is still plenty for BatchNorm)."
+  },
+  {
+   "n": 275,
+   "question": "Production model shows train accuracy 99.8%, validation 92%, but test accuracy 64%. Training and validation sets are from 2023 data; test set is from 2025 production data. What's the primary issue?",
+   "options": [
+    "Temporal distribution shift - training distribution no longer represents production data characteristics",
+    "Overfitting masked by validation set from same temporal distribution as training set",
+    "Test set contamination or labeling errors causing artificially low accuracy measurement",
+    "Model capacity insufficient to generalise despite high training accuracy"
+   ],
+   "answer": 0,
+   "domain": "problem_solving",
+   "subtopic": "ml-debugging-diagnosis",
+   "difficulty": "intermediate",
+   "style": "scenario-diagnosis",
+   "concepts": [
+    "distribution shift",
+    "data drift / concept drift",
+    "temporal validation splits",
+    "train/val/test gaps"
+   ],
+   "explanation": "The validation set (92%) comes from the same 2023 data as the training set, so the model generalises reasonably *within* the 2023 distribution. The collapse to 64% happens only on 2025 production data, which points to **temporal distribution shift** (data drift or concept drift): customer behaviour, prices, products or even label definitions changed between 2023 and 2025. Option B is tempting, because the 7.8-point train–validation gap shows some overfitting and a random split does hide drift. But overfitting alone cannot explain a further 28-point drop from validation to test. The fix is to validate with time-based splits, monitor for drift, and retrain on recent data.",
+   "confidence": "high",
+   "notes": ""
+  },
+  {
+   "n": 276,
+   "question": "Custom model runs on GPU (CUDA) but CPU inference fails with \"RuntimeError: mat1 and mat2 shapes cannot be multiplied\". Identical input shape (batch_size=1) used for both. What's the root cause?",
+   "options": [
+    "Batch normalisation statistics (running_mean, running_var) stored with GPU-specific batch dimensions causing shape inference errors on CPU",
+    "GPU uses NHWC tensor layout while CPU defaults to NCHW, causing dimension misalignment in convolution operations",
+    "Implicit .cuda() calls within forward() method not wrapped in device-agnostic code (to(device))",
+    "Dynamic control flow (if-statements based on input.is_cuda) creates different computation graphs for GPU vs CPU execution"
+   ],
+   "answer": 3,
+   "domain": "problem_solving",
+   "subtopic": "code-debugging",
+   "difficulty": "advanced",
+   "style": "scenario-diagnosis",
+   "concepts": [
+    "shape mismatch errors",
+    "device-dependent code paths",
+    "device-agnostic PyTorch code",
+    "reading error messages"
+   ],
+   "explanation": "`mat1 and mat2 shapes cannot be multiplied` is a **shape** error from a matrix multiply, usually an `nn.Linear` receiving the wrong number of features. The input shape is identical on both devices, so the tensors must be taking **different code paths**. If `forward()` branches on `input.is_cuda` (for example, a fused or flattened path on GPU and a different reshape on CPU), the CPU branch can feed a wrongly shaped tensor into a Linear layer. A hard-coded `.cuda()` call (C) is a real and common portability bug, but it fails with a *device* error (`Expected all tensors to be on the same device`, or `Torch not compiled with CUDA enabled`), not a shape error. BatchNorm running statistics are per-channel and do not depend on the device or batch size (A). PyTorch tensors also keep the same logical NCHW shape on CPU and GPU whatever their memory format (B).",
+   "confidence": "low",
+   "notes": "AI Singapore's key marks 'Batch normalisation statistics (running_mean, running_var) stored with GPU-specific batch dimensions causing shape inference errors on CPU'; we believe 'Dynamic control flow (if-statements based on input.is_cuda) creates different computation graphs for GPU vs CPU execution' because BatchNorm's `running_mean` and `running_var` are per-channel vectors of shape `[C]` that depend on neither the batch size nor the device (they survive `.to('cpu')` unchanged), and a BatchNorm problem would raise a BatchNorm error, not 'mat1 and mat2 shapes cannot be multiplied', which comes from a matrix multiply. Only a device-dependent code path explains a shape error that appears on one device but not the other with identical inputs. Treat this as a disputed item: the examiners' key is the BatchNorm option.",
+   "caveat": "AI Singapore's key marks 'Batch normalisation statistics (running_mean, running_var) stored with GPU-specific batch dimensions causing shape inference errors on CPU'; we believe 'Dynamic control flow (if-statements based on input.is_cuda) creates different computation graphs for GPU vs CPU execution' because BatchNorm's `running_mean` and `running_var` are per-channel vectors of shape `[C]` that depend on neither the batch size nor the device (they survive `.to('cpu')` unchanged), and a BatchNorm problem would raise a BatchNorm error, not 'mat1 and mat2 shapes cannot be multiplied', which comes from a matrix multiply. Only a device-dependent code path explains a shape error that appears on one device but not the other with identical inputs. Treat this as a disputed item: the examiners' key is the BatchNorm option."
+  },
+  {
+   "n": 277,
+   "question": "All gradients report zero for final layer during backpropagation, but earlier layers show non-zero gradients. Loss function is custom cross-entropy with label smoothing. What's the most likely culprit?",
+   "options": [
+    "Softmax saturation causing numerically zero gradients when predictions are overconfident (near 0 or 1)",
+    "In-place operations in final layer modifying tensors needed for gradient computation",
+    "Custom loss function returns scalar without maintaining computational graph via torch.mean() or similar",
+    "Dead neurons in final layer (all ReLU outputs zero) preventing gradient flow"
+   ],
+   "answer": 0,
+   "domain": "problem_solving",
+   "subtopic": "pytorch",
+   "difficulty": "advanced",
+   "style": "scenario-diagnosis",
+   "concepts": [
+    "softmax saturation",
+    "numerically stable log_softmax",
+    "custom loss functions",
+    "label smoothing gradients"
+   ],
+   "explanation": "The clues are a **custom** cross-entropy and gradients that are exactly zero. Hand-written versions often compute `softmax` first and then take the `log` (with a clamp or `+1e-8` to avoid `log(0)`). When the model is overconfident, float32 softmax returns probabilities of exactly 1 and 0, the softmax derivative $p_i(\\delta_{ij} - p_j)$ becomes exactly zero, and no gradient reaches the final layer, even though label smoothing keeps the targets away from 0 and 1. A quick PyTorch check with logits $[200, 0, -50, 10, 3]$ (true class second) gives a gradient of exactly 0 for such a loss, but about $[0.98, -0.92, -0.02, -0.02, -0.02]$ for the built-in `F.cross_entropy(..., label_smoothing=0.1)`, which uses the numerically stable `log_softmax` (that is the fix). A loss that breaks the autograd graph (C) usually makes `loss.backward()` fail with a 'does not require grad' error, or leaves the gradients as `None`, rather than reporting zeros. In-place operations (B) normally raise an explicit autograd error, and a classifier's output layer has no ReLU, so dead neurons (D) do not fit.",
+   "confidence": "medium",
+   "notes": "AI Singapore's Self-Assessment Tool keys softmax saturation (A); we originally keyed C. Option C (a custom loss that breaks the computational graph) is partly defensible, because the stem stresses that the loss is custom. The stem's premise is shaky for every option: in a plain feed-forward network the earlier layers' gradients flow *through* the final layer, so if the final layer's gradients were exactly zero for every sample, the earlier layers' would be too. Non-zero earlier gradients need another path, such as a regularisation or auxiliary loss, or only some samples being saturated.",
+   "caveat": "AI Singapore's Self-Assessment Tool keys softmax saturation (A). Option C (a custom loss that breaks the computational graph) is partly defensible, because the stem stresses that the loss is custom. The stem's premise is shaky for every option: in a plain feed-forward network the earlier layers' gradients flow *through* the final layer, so if the final layer's gradients were exactly zero for every sample, the earlier layers' would be too. Non-zero earlier gradients need another path, such as a regularisation or auxiliary loss, or only some samples being saturated."
+  },
+  {
+   "n": 278,
+   "question": "Multi-class classifier (50 classes) predicts only classes 0, 1, 2 regardless of input after 100 epochs. Training loss converged to 2.8. Class distribution in training set is uniform. Which failure mode best explains this?",
+   "options": [
+    "Final layer bias initialised too negative for classes 3-49, creating insurmountable logit differences during early training",
+    "Class imbalance in mini-batches due to improper shuffling, causing model to optimise for frequent classes",
+    "Learning rate too high for final layer, causing weights to diverge while early layers converge",
+    "Weight initialisation drew final layer weights from distribution with wrong scale, causing partial mode collapse"
+   ],
+   "answer": 0,
+   "domain": "problem_solving",
+   "subtopic": "ml-debugging-diagnosis",
+   "difficulty": "advanced",
+   "style": "scenario-diagnosis",
+   "concepts": [
+    "output-layer bias",
+    "logits and softmax",
+    "baseline loss ln(K)",
+    "initialisation bugs"
+   ],
+   "explanation": "The predictions collapse onto three *specific* class indices (0, 1, 2) for every input, even though all 50 classes are equally common. Of the options, only a final-layer bias that handicaps classes 3–49 explains why exactly those indices win. The bias is added to the logits for every input, so if classes 3–49 start far lower (for example, through a buggy custom initialisation like `bias[3:] = -10`), classes 0–2 dominate the argmax whatever the input. Shuffling problems (B) would bias the model towards the classes seen *most recently* in each epoch, not towards fixed indices. A learning rate that is too high (C) would make the loss diverge rather than converge, and a wrong random weight scale (D) would not consistently favour the first three indices. For reference, a model that ignored its input would have loss $\\ln 50 \\approx 3.91$. The final loss of 2.8 shows the features still carry information, while a constant offset in the output layer keeps classes 0–2 on top.",
+   "confidence": "low",
+   "notes": "Contrived scenario. Biases are trainable, and the cross-entropy gradient on bias k, (mean p_k − 1/50), would normally pull such an offset back within 100 epochs unless the LR is tiny or the bias is frozen or excluded from the optimiser. A is still the only option that explains the specific indices 0–2.",
+   "caveat": "Contrived scenario. Biases are trainable, and the cross-entropy gradient on bias k, (mean p_k − 1/50), would normally pull such an offset back within 100 epochs unless the LR is tiny or the bias is frozen or excluded from the optimiser. A is still the only option that explains the specific indices 0–2."
+  },
+  {
+   "n": 279,
+   "question": "Training loss decreases smoothly for 80 epochs (2.1 → 0.3), then suddenly diverges to infinity at epoch 81. No hyperparameter changes, no data loading errors. What's the most sophisticated explanation?",
+   "options": [
+    "Accumulated floating-point errors in optimiser state (momentum buffers) exceeded numerical precision threshold",
+    "Learning rate schedule caused transition into unstable region of loss landscape where curvature exceeds inverse learning rate",
+    "Batch normalisation running statistics corrupted by outlier batch, causing future normalisation to amplify activations exponentially",
+    "Model entered sharp minimum at epoch 80, then learning rate kicked it into high-loss region due to insufficient generalisation"
+   ],
+   "answer": 0,
+   "domain": "problem_solving",
+   "subtopic": "optimisation",
+   "difficulty": "advanced",
+   "style": "scenario-diagnosis",
+   "concepts": [
+    "Adam optimiser state (m_t, v_t)",
+    "numerical precision and loss spikes",
+    "training divergence",
+    "stability condition η < 2/λmax"
+   ],
+   "explanation": "The stem rules out the usual suspects: no hyperparameter or data change, yet the loss blew up after 80 smooth epochs, so look for something that builds up **silently inside the training state**. Optimisers such as Adam keep running buffers for every parameter (a momentum average $m_t$ and a squared-gradient average $v_t$) and scale each step by roughly $m_t / (\\sqrt{v_t} + \\epsilon)$. As the loss falls, some gradients become tiny and their buffers drift towards the limits of numerical precision; when a slightly larger gradient then arrives, the tiny denominator turns it into an oversized step for many parameters at once, which can throw the model into a region where the loss explodes. This is a known cause of sudden loss spikes late in long training runs, especially with mixed precision, where FP16 values overflow or underflow easily. Option B (a learning-rate schedule pushing the step size past the curvature limit $\\eta < 2/\\lambda_{\\max}$) is a real mechanism too, but the stem explicitly says there were no hyperparameter changes. BatchNorm *running* statistics are used only in evaluation mode, so they cannot blow up the training loss (C), and D confuses generalisation with divergence of the training loss.",
+   "confidence": "medium",
+   "notes": "AI Singapore's Self-Assessment Tool keys the optimiser-state option (A); we originally keyed B. A's wording ('accumulated floating-point errors') is loose: plain rounding error does not pile up without limit in FP32 momentum buffers, so read it as numerical instability in the optimiser state. Option B is partly defensible: progressive sharpening of the loss surface (or a pre-set LR schedule) can push $\\eta\\,\\lambda_{\\max}$ past the stability limit of about 2 after many smooth epochs, even with no manual change. The stem's 'no hyperparameter changes' is what tips the examiners towards A.",
+   "caveat": "AI Singapore's Self-Assessment Tool keys the optimiser-state option (A). A's wording ('accumulated floating-point errors') is loose: plain rounding error does not pile up without limit in FP32 momentum buffers, so read it as numerical instability in the optimiser state. Option B is partly defensible: progressive sharpening of the loss surface (or a pre-set LR schedule) can push $\\eta\\,\\lambda_{\\max}$ past the stability limit of about 2 after many smooth epochs, even with no manual change. The stem's 'no hyperparameter changes' is what tips the examiners towards A."
+  },
+  {
+   "n": 280,
+   "question": "Custom CUDA kernel for attention mechanism produces correct outputs but gradients fail torch.autograd.gradcheck with relative error >0.1. Which debugging strategy is most rigorous?",
+   "options": [
+    "Implement analytical backward pass manually, verify against finite difference approximation with multiple perturbation scales (ε = 1e-3, 1e-5, 1e-7)",
+    "Use torch.autograd.grad with create_graph=True to verify second-order derivatives, then test gradient flow through concatenated operations",
+    "Decompose custom kernel into PyTorch primitives (matmul, softmax), verify equivalent forward pass, then compare gradient outputs elementwise",
+    "Enable CUDA-MEMCHECK for memory access violations, profile with nvprof for race conditions, then validate atomic operations in backward kernel"
+   ],
+   "answer": 0,
+   "domain": "problem_solving",
+   "subtopic": "pytorch",
+   "difficulty": "advanced",
+   "style": "comparison",
+   "concepts": [
+    "gradient checking",
+    "finite differences and precision",
+    "truncation vs rounding error",
+    "custom autograd functions"
+   ],
+   "explanation": "`gradcheck` compares your backward pass with a finite-difference estimate $\\frac{f(x+\\epsilon) - f(x-\\epsilon)}{2\\epsilon}$, so the first thing to settle is whether the failure is a **real bug** in the gradient formula or a **precision artefact**. Option A settles it from first principles: write out the analytical backward pass for attention (the gradients for Q, K and V through the softmax) and compare it with finite differences at several step sizes. A real bug gives a large mismatch at every $\\epsilon$, while a precision problem changes with $\\epsilon$: too large a step adds truncation error and too small a step is swamped by rounding (a quick float32 check on a small attention function gives a relative error of about $2\\times10^{-4}$ at $\\epsilon = 10^{-3}$ but 100% or more at $10^{-5}$ and $10^{-7}$, while float64 stays below $10^{-6}$ at all three). Option B checks second derivatives, which says nothing about a wrong first derivative. Comparing with a reference built from PyTorch primitives (C) is a very useful practical test, but A is the more fundamental check: it tests the gradient against the definition of the derivative and explains *why* gradcheck failed. Profiling for memory errors and race conditions (D) only makes sense once the gradient maths has been confirmed.",
+   "confidence": "medium",
+   "notes": "AI Singapore's Self-Assessment Tool keys option A; we originally keyed C. Option C (decompose the kernel into PyTorch primitives and compare forward outputs and gradients element by element) is also strongly defensible: autograd's gradients for the reference are exact up to rounding, and the comparison pinpoints which gradient and which elements are wrong. In practice the two checks are often used together, and gradcheck itself should be run in float64.",
+   "caveat": "AI Singapore's Self-Assessment Tool keys option A. Option C (decompose the kernel into PyTorch primitives and compare forward outputs and gradients element by element) is also strongly defensible: autograd's gradients for the reference are exact up to rounding, and the comparison pinpoints which gradient and which elements are wrong. In practice the two checks are often used together, and gradcheck itself should be run in float64."
+  },
+  {
+   "n": 281,
+   "question": "A ResNet-101 training job takes 72 hours on a single V100 GPU (batch size 32, mixed precision disabled). Management requests 10x speedup while maintaining convergence quality. Which combination provides optimal speed-accuracy tradeoff?",
+   "options": [
+    "Distributed data parallel across 8 GPUs with linear learning rate scaling (LR × 8), gradient accumulation to maintain effective batch size 256",
+    "Mixed precision (FP16) + larger batch size (128) + TensorFloat-32 on A100 GPUs, accepting potential generalisation degradation",
+    "Model architecture search for EfficientNet variant with 40% fewer FLOPs, knowledge distillation from original ResNet-101",
+    "Gradient checkpointing + activation recomputation to enable batch size 256 on single GPU, with learning rate warmup extended to 10 epochs"
+   ],
+   "answer": 0,
+   "domain": "problem_solving",
+   "subtopic": "optimisation-tradeoffs",
+   "difficulty": "advanced",
+   "style": "comparison",
+   "concepts": [
+    "distributed data parallel",
+    "linear learning-rate scaling rule",
+    "large-batch training",
+    "speed vs accuracy trade-offs"
+   ],
+   "explanation": "Data-parallel training across 8 GPUs splits each batch across the devices, giving close to 8× the throughput on the same kind of hardware. The **linear scaling rule** (multiply the LR by 8 when the total batch grows 8×, usually with a short warm-up) is the well-tested recipe for keeping accuracy unchanged at batch 256 (Goyal et al., 2017). Option B explicitly *accepts* worse generalisation, which breaks the \"maintain convergence quality\" requirement. Option C needs an expensive architecture search plus distillation, and a 40% cut in FLOPs is nowhere near 10×. Option D's gradient checkpointing *adds* recomputation, so a single GPU gets slower, not faster. Note that A on its own gives at most about 8×; reaching 10× in practice would also need mixed precision. Its \"gradient accumulation\" step is also redundant, because $8 \\times 32 = 256$ already.",
+   "confidence": "medium",
+   "notes": "No option literally reaches 10×. A (≈8× with preserved accuracy) is the only one that respects the 'maintain convergence quality' constraint, and its gradient-accumulation clause is redundant.",
+   "caveat": "No option literally reaches 10×. A (≈8× with preserved accuracy) is the only one that respects the 'maintain convergence quality' constraint, and its gradient-accumulation clause is redundant."
+  },
+  {
+   "n": 282,
+   "question": "Two training runs with identical architecture, data, and optimiser differ only in learning rate schedules. Run A uses constant LR=0.001, achieving 92% validation accuracy. Run B uses 1cycle policy (LR peaks at 0.01), achieving 94% accuracy. Why does Run B outperform?",
+   "options": [
+    "High LR phase explores loss landscape broadly, escaping sharp minima; low LR phase exploits flat minima for better generalisation",
+    "Learning rate momentum allows model to traverse saddle points faster, reducing training time while maintaining accuracy",
+    "Cyclical learning rates prevent overfitting by introducing noise into the optimisation trajectory, acting as implicit regularization",
+    "Higher peak learning rate enables larger effective batch sizes through gradient noise, improving convergence rate"
+   ],
+   "answer": 0,
+   "domain": "problem_solving",
+   "subtopic": "training-regularisation",
+   "difficulty": "advanced",
+   "style": "why-reasoning",
+   "concepts": [
+    "1cycle learning-rate policy",
+    "sharp vs flat minima",
+    "learning-rate annealing",
+    "generalisation"
+   ],
+   "explanation": "The 1cycle policy (Leslie Smith) ramps the learning rate up to a high peak and then anneals it down to a very small value. In the high-LR phase, large noisy steps cannot settle into narrow \"sharp\" minima, so the optimiser explores and ends up in wide, flat regions. The final low-LR phase then converges carefully inside such a flat region, and flat minima tend to generalise better. A constant LR of 0.001 gets neither the exploration benefit nor the final fine annealing. Option C contains a grain of truth (large LRs do act as a regulariser), but 1cycle is a single cycle rather than repeated cyclical noise, and C leaves out the crucial annealing phase. \"Learning-rate momentum\" (B) is not a real mechanism, and the learning rate does not change the batch size (D).",
+   "confidence": "medium",
+   "notes": "The source labels options with 'A)'–'D)' prefixes; these were removed. Option C is partially true (large-LR regularisation effect) but less complete.",
+   "caveat": "Option C is partially true (large-LR regularisation effect) but less complete."
+  },
+  {
+   "n": 283,
+   "question": "Training a Transformer (GPT-2 scale: 124M params) from scratch with AdamW diverges within 500 steps despite stable loss for first 100 steps. After adding 2000-step linear learning rate warmup, training stabilises. What mechanism does warmup provide?",
+   "options": [
+    "Prevents large gradient updates from poorly-initialised parameters creating catastrophic Adam second-moment (v_t) estimates",
+    "Gradually exposes model to full dataset complexity, allowing early layers to learn basic features before tackling difficult examples",
+    "Stabilises batch normalisation statistics by allowing running mean/variance to accumulate before high learning rates",
+    "Allows optimiser momentum terms to initialise properly, preventing oscillations from zero-initialised momentum buffers"
+   ],
+   "answer": 0,
+   "domain": "problem_solving",
+   "subtopic": "training-regularisation",
+   "difficulty": "advanced",
+   "style": "why-reasoning",
+   "concepts": [
+    "learning-rate warm-up",
+    "Adam second-moment estimates",
+    "Transformer training stability",
+    "bias correction"
+   ],
+   "explanation": "Adam divides each update by $\\sqrt{\\hat v_t}$, a running average of squared gradients. In the first few hundred steps, $\\hat v_t$ is estimated from only a few large, noisy gradients of a randomly initialised network. The adaptive step sizes therefore vary wildly, and some parameters receive outsized updates, which can push a Transformer into a bad region from which it diverges. Warm-up keeps the learning rate tiny while these second-moment estimates settle, then ramps it up; this is the analysis behind RAdam (Liu et al., 2019). Option D sounds similar, but Adam already corrects its zero-initialised moment buffers through bias correction, $\\hat m_t = m_t/(1-\\beta_1^t)$. GPT-style Transformers use LayerNorm, not BatchNorm (C), and warm-up changes the step size, not which examples the model sees (B describes curriculum learning).",
+   "confidence": "medium",
+   "notes": ""
+  },
+  {
+   "n": 284,
+   "question": "Experimental results show ResNet-50 on ImageNet:\n\n- Batch 256: 76.5% top-1, 8 hours/epoch\n- Batch 2048: 75.8% top-1, 1.5 hours/epoch\n- Batch 8192: 73.2% top-1, 0.5 hours/epoch\n\nCompute budget allows 90 epochs. Which strategy maximises validation accuracy?",
+   "options": [
+    "Batch 256 baseline, train maximum epochs within time budget (train ~15 epochs only due to time = 120 hours)",
+    "Batch 2048 with LARS optimiser + label smoothing + 5-epoch warmup, balancing speed and generalisation (train 90 epochs = 135 hours)",
+    "Batch 8192 with gradient accumulation (4 micro-batches of 2048), maintaining 2048 statistics while using 8192 hardware throughput",
+    "Adaptive batch size: start at 256 (first 10 epochs), increase to 2048 (next 40), finish at 8192 (last 40) as loss landscape flattens"
+   ],
+   "answer": 1,
+   "domain": "problem_solving",
+   "subtopic": "optimisation-tradeoffs",
+   "difficulty": "advanced",
+   "style": "comparison",
+   "concepts": [
+    "large-batch training",
+    "LARS and warm-up",
+    "time/compute budgets",
+    "gradient accumulation semantics"
+   ],
+   "explanation": "Work out the time each plan needs. Batch 256 at 8 h/epoch manages only about 15 epochs in roughly 120 h, far too few for ImageNet (standard recipes use about 90), so its 76.5% potential is never reached. Batch 2048 completes the full 90 epochs in $90 \\times 1.5 = 135$ h. LARS (layer-wise adaptive learning rates), warm-up and label smoothing are exactly the large-batch techniques that close most of the gap to small-batch accuracy. Option C misunderstands gradient accumulation: accumulating 4 micro-batches of 2048 gives the *statistics* of batch 8192 (the worse 73.2% regime) at the *speed* of batch 2048, the opposite of what it claims. Option D would take $10\\times8 + 40\\times1.5 + 40\\times0.5 = 160$ h, longer than B's 135 h, and it spends its last 40 epochs in the batch-8192 regime that generalised worst (73.2%).",
+   "confidence": "medium",
+   "notes": "The time budget is stated loosely: option A implies about 120 h, while B needs 135 h. We read 'budget allows 90 epochs' as 90 epochs at batch 2048.",
+   "caveat": "The time budget is stated loosely: option A implies about 120 h, while B needs 135 h. We read 'budget allows 90 epochs' as 90 epochs at batch 2048."
+  },
+  {
+   "n": 285,
+   "question": "You're training a BERT model (110M parameters) on a 16GB GPU. Batch size 32 causes \"CUDA out of memory\" error. Batch size 8 fits in memory but training is unstable. You implement gradient accumulation with accumulation_steps=4. What is the effective outcome?",
+   "options": [
+    "Training speed increases 4x because gradients are computed in parallel across accumulation steps",
+    "Memory usage decreases by 75% because gradients are discarded after each micro-batch",
+    "Model accuracy improves because gradient accumulation acts as implicit regularisation through gradient noise",
+    "Effective batch size becomes 32 (8×4) while maintaining 8-sample memory footprint; gradients averaged across 4 micro-batches before optimiser step"
+   ],
+   "answer": 3,
+   "domain": "problem_solving",
+   "subtopic": "training-regularisation",
+   "difficulty": "intermediate",
+   "style": "why-reasoning",
+   "concepts": [
+    "gradient accumulation",
+    "effective batch size",
+    "GPU memory limits",
+    "optimiser step timing"
+   ],
+   "explanation": "Gradient accumulation runs 4 forward/backward passes on micro-batches of 8 and **adds up** their gradients (scaled by 1/4), and only then calls `optimizer.step()`. Each update therefore uses the average gradient of $8 \\times 4 = 32$ samples, just like batch 32, while only one micro-batch of 8 has to fit in memory at a time. It does **not** speed training up: the 4 micro-batches run one after another, so it is a little slower than a true batch of 32. It does not discard gradients either; they are kept and summed. The benefit is stability from a less noisy gradient, not extra regularisation, and if anything larger effective batches have *less* gradient noise. BERT uses LayerNorm rather than BatchNorm, so accumulation is essentially equivalent to a real batch of 32.",
+   "confidence": "high",
+   "notes": ""
+  },
+  {
+   "n": 286,
+   "question": "Training a ResNet-34 on CIFAR-10 with constant learning rate 0.1 for 200 epochs. Loss decreases rapidly for 50 epochs, then plateaus at 0.45 with training accuracy 88% and validation accuracy 85%. The loss curve shows continued oscillation around 0.45 rather than smooth convergence. What learning rate schedule would most improve final performance?",
+   "options": [
+    "Step decay: reduce LR by 10× at epochs 100 and 150 - allows initial fast convergence then refined optimisation near minimum",
+    "Start with LR 0.01 from epoch 0 - prevents initial overshooting and maintains stability throughout training",
+    "Increase LR gradually from 0.01 to 0.1 over first 100 epochs - enables careful exploration of loss landscape",
+    "Keep constant LR 0.1 but increase batch size from 128 to 512 - effectively reduces learning rate through larger gradient averaging"
+   ],
+   "answer": 0,
+   "domain": "problem_solving",
+   "subtopic": "training-regularisation",
+   "difficulty": "intermediate",
+   "style": "scenario-diagnosis",
+   "concepts": [
+    "learning-rate decay",
+    "step schedule",
+    "loss plateaus and oscillation",
+    "batch size vs learning rate"
+   ],
+   "explanation": "A loss stuck around 0.45 and oscillating means the constant LR of 0.1 was good for fast early progress but is now too large to settle into the minimum: every step overshoots. Step decay (divide the LR by 10 at epochs 100 and 150, as in the original ResNet CIFAR recipe) keeps the fast start and then takes smaller steps to go further down. You typically see a sharp drop in loss right after each decay. Starting at 0.01 (B) slows the useful early phase and still never anneals. Ramping *up* to 0.1 over 100 epochs (C) is a warm-up, which keeps the LR high exactly when it should be falling. A bigger batch (D) does reduce gradient noise, which is similar in spirit to decaying the LR, but one 4× change is much weaker than two 10× decays, and it is not a learning-rate schedule.",
+   "confidence": "high",
+   "notes": ""
+  },
+  {
+   "n": 287,
+   "question": "Why might Adam optimiser be preferred over Stochastic Gradient Descent (SGD)?",
+   "options": [
+    "Always gives better results",
+    "Simpler",
+    "Adaptive learning rates per parameter, faster convergence",
+    "No particular reason"
+   ],
+   "answer": 2,
+   "domain": "problem_solving",
+   "subtopic": "optimisation",
+   "difficulty": "beginner",
+   "style": "comparison",
+   "concepts": [
+    "Adam optimiser",
+    "adaptive per-parameter learning rates",
+    "momentum",
+    "SGD vs Adam"
+   ],
+   "explanation": "Adam keeps running averages of each parameter's gradient (momentum) and squared gradient, and uses them to give **every parameter its own adaptive step size**. Parameters with consistently small gradients get relatively larger steps, and noisy ones get smaller steps. As a result it usually converges quickly with little learning-rate tuning, which is why it is a common default, especially for Transformers. It does *not* always give better results: well-tuned SGD with momentum often generalises better on image classification. It is also more complex than SGD, storing two extra values for every parameter.",
+   "confidence": "high",
+   "notes": ""
+  },
+  {
+   "n": 288,
+   "question": "Data augmentation primarily helps:",
+   "options": [
+    "Speed up training",
+    "Reduce model size",
+    "Improve test speed",
+    "Reduce overfitting by increasing effective dataset size"
+   ],
+   "answer": 3,
+   "domain": "problem_solving",
+   "subtopic": "training-regularisation",
+   "difficulty": "beginner",
+   "style": "definition",
+   "concepts": [
+    "data augmentation",
+    "overfitting",
+    "invariance",
+    "effective dataset size"
+   ],
+   "explanation": "Data augmentation creates modified copies of training examples that keep the same label: flips, crops, rotations and colour jitter for images, or synonym swaps and back-translation for text. The model sees more variety, so it learns features that do not change under those transformations instead of memorising exact pixels. This **reduces overfitting** and improves generalisation. It actually makes each epoch *more* work, not faster, and it has no effect on model size or on inference (test) speed.",
+   "confidence": "high",
+   "notes": ""
+  },
+  {
+   "n": 289,
+   "question": "Mixed precision training (FP16) benefits:",
+   "options": [
+    "Faster training and reduced memory with minimal accuracy loss",
+    "Always reduces accuracy",
+    "Only for CPUs",
+    "No benefits"
+   ],
+   "answer": 0,
+   "domain": "problem_solving",
+   "subtopic": "optimisation-tradeoffs",
+   "difficulty": "beginner",
+   "style": "definition",
+   "concepts": [
+    "mixed precision",
+    "FP16/BF16 vs FP32",
+    "loss scaling",
+    "GPU Tensor Cores"
+   ],
+   "explanation": "Mixed-precision training does most of the forward and backward maths in 16-bit floats (FP16 or BF16) while keeping a 32-bit \"master\" copy of the weights for the updates, plus loss scaling to stop small FP16 gradients from underflowing to zero. Half-precision numbers take half the memory and run much faster on GPU Tensor Cores. You get faster training and room for larger batches or models, usually with no meaningful loss of accuracy. It is mainly a GPU/TPU technique (CPUs often gain little from FP16), so \"only for CPUs\" is wrong. \"Always reduces accuracy\" ignores the FP32 master weights that preserve it.",
+   "confidence": "high",
+   "notes": ""
+  },
+  {
+   "n": 290,
+   "question": "When might you prefer Stochastic Gradient Descent (SGD) with momentum over Adam?",
+   "options": [
+    "For better generalisation in some settings",
+    "Never",
+    "Always",
+    "Random choice"
+   ],
+   "answer": 0,
+   "domain": "problem_solving",
+   "subtopic": "optimisation",
+   "difficulty": "intermediate",
+   "style": "comparison",
+   "concepts": [
+    "SGD with momentum",
+    "adaptive optimisers",
+    "generalisation gap",
+    "optimiser choice"
+   ],
+   "explanation": "Adaptive optimisers such as Adam converge quickly, but several studies (for example, Wilson et al., 2017) found that on some tasks, notably image classification with CNNs such as ResNets, well-tuned SGD with momentum reaches **better test accuracy** (better generalisation), even though it trains more slowly. That is why many vision training recipes still use SGD with momentum plus a step or cosine schedule. \"Never\" and \"Always\" are both too absolute, and the choice is a deliberate trade-off, not random.",
+   "confidence": "high",
+   "notes": ""
+  },
+  {
+   "n": 291,
+   "question": "ML pipeline typically includes:",
+   "options": [
+    "Data collection → Preprocessing → Training → Evaluation → Deployment",
+    "Deployment → Evaluation → Data collection → Preprocessing →Training",
+    "Preprocessing → Data collection → Training → Evaluation → Deployment",
+    "Data collection → Preprocessing → Evaluation → Training → Deployment"
+   ],
+   "answer": 0,
+   "domain": "problem_solving",
+   "subtopic": "ml-fundamentals",
+   "difficulty": "beginner",
+   "style": "definition",
+   "concepts": [
+    "ML workflow",
+    "data preprocessing",
+    "model evaluation",
+    "deployment"
+   ],
+   "explanation": "The standard ML workflow follows the data. You first **collect** data, then **preprocess** it (clean it, handle missing values, engineer and scale features), **train** models, **evaluate** them on held-out data, and only then **deploy** the best one. The other orders are impossible: you cannot preprocess data you have not collected, or evaluate a model before training it. In practice this is a loop, because monitoring after deployment feeds new data back into collection.",
+   "confidence": "high",
+   "notes": ""
+  },
+  {
+   "n": 292,
+   "question": "Consider two experimental protocols:\n\n- **Protocol A:** 70% train, 30% test. Iterate: train model → evaluate test accuracy → adjust hyperparameters → retrain. Report best test accuracy across 50 iterations.\n- **Protocol B:** 60% train, 20% validation, 20% test. Train model → tune hyperparameters on validation → evaluate test once. Report single test accuracy.\n\nProtocol A reports 94.2% test accuracy. Protocol B reports 91.8%. Which protocol provides more credible generalisation estimates?",
+   "options": [
+    "Protocol A - larger training set (70% vs 60%) and extensive hyperparameter search (50 iterations) produces genuinely better model with higher true performance",
+    "Protocol A - multiple test evaluations provide confidence intervals through repeated sampling, making 94.2% more reliable than single 91.8% measurement",
+    "Protocol B - test set remains untouched during hyperparameter search, preventing selection bias; Protocol A's test accuracy is optimistically biased due to adaptive overfitting",
+    "Both equivalent - test sets are identically sized (30% vs 20%), so generalisation estimates have similar statistical power"
+   ],
+   "answer": 2,
+   "domain": "problem_solving",
+   "subtopic": "model-evaluation",
+   "difficulty": "intermediate",
+   "style": "comparison",
+   "concepts": [
+    "train/validation/test split",
+    "test-set reuse",
+    "selection bias / adaptive overfitting",
+    "unbiased performance estimates"
+   ],
+   "explanation": "In Protocol A the test set is used *during* model selection. Picking the best of 50 configurations by test accuracy means the chosen model is partly tuned to quirks of that particular test set (**adaptive overfitting**, or selection bias), so 94.2% is an optimistic estimate. Protocol B tunes on a separate validation set and touches the test set only once, so its 91.8% is an unbiased estimate of performance on new data. Re-scoring the same test set 50 times does not create independent samples or valid confidence intervals. The 10% of extra training data cannot be credited for the gap when the evaluation itself is biased. The \"both equivalent\" option even contradicts itself (30% vs 20% is not \"identically sized\").",
+   "confidence": "high",
+   "notes": ""
+  },
+  {
+   "n": 293,
+   "question": "A tabular dataset for credit risk prediction contains: numerical features (income, age), categorical features (employment_type, education), missing values (15% of records), and outliers (income values reaching \\$50M). Which preprocessing pipeline is most appropriate before model training?",
+   "options": [
+    "Remove all rows with missing values → normalise numerical features to [0,1] range → label encode categorical variables → proceed to training",
+    "Fill missing values with zeros → remove outlier rows (>3σ) → leave numerical features as-is → convert categorical to integer codes",
+    "Impute missing values (median for numerical, mode for categorical) → detect and cap outliers via IQR method → standardise numerical features (z-score) → one-hot encode categorical variables",
+    "Apply PCA dimensionality reduction → normalise to unit variance → encode categoricals with target encoding → impute remaining missing values"
+   ],
+   "answer": 2,
+   "domain": "problem_solving",
+   "subtopic": "data-preprocessing",
+   "difficulty": "intermediate",
+   "style": "comparison",
+   "concepts": [
+    "imputation",
+    "outlier capping (IQR)",
+    "standardisation",
+    "one-hot encoding"
+   ],
+   "explanation": "Each step deals with one listed problem without destroying information. Median/mode imputation fills the 15% of missing values and keeps those rows; the median is robust to extreme incomes. IQR-based capping (winsorising) limits the \\$50M outliers so they do not dominate. Z-score standardisation puts numeric features on comparable scales. One-hot encoding represents categories such as employment_type without inventing a fake order. Option A throws away 15% of rows, label-encodes nominal categories as 1, 2, 3 (implying an order that does not exist), and its min-max scaling is squashed by the \\$50M outliers. Option B's zero-filling invents fake incomes and ages of 0 and leaves features unscaled. Option D runs PCA *before* imputation (PCA cannot handle missing values). In a real project, fit all of these steps on the training split only, for example in a scikit-learn `Pipeline`.",
+   "confidence": "high",
+   "notes": "For tree-based models, scaling is unnecessary; the keyed pipeline is the best general-purpose answer.",
+   "caveat": "For tree-based models, scaling is unnecessary; the keyed pipeline is the best general-purpose answer."
+  },
+  {
+   "n": 294,
+   "question": "A binary classification dataset contains three features: age (18-80 years), income (\\$20K-\\$500K), and credit_score (300-850). Training a logistic regression model without normalisation achieves 72% accuracy. After applying StandardScaler (z-score normalisation), accuracy improves to 84%. What mechanism explains this improvement?",
+   "options": [
+    "Normalisation removes outliers in the income distribution, preventing the model from overfitting to high-earners",
+    "Normalisation increases the effective learning rate for low-variance features while decreasing it for high-variance features, balancing convergence",
+    "StandardScaler centers data at zero, which activates the sigmoid function's linear region for more expressive decision boundaries",
+    "Gradient descent converges faster when features have similar scales - large income values (up to 500K) dominate gradient updates, while small age values contribute negligibly without normalisation"
+   ],
+   "answer": 1,
+   "domain": "problem_solving",
+   "subtopic": "data-preprocessing",
+   "difficulty": "intermediate",
+   "style": "why-reasoning",
+   "concepts": [
+    "feature scaling",
+    "StandardScaler (z-score)",
+    "per-feature effective learning rate",
+    "gradient descent conditioning"
+   ],
+   "explanation": "Rescaling a feature changes how fast gradient descent moves its weight. If feature $x_j$ is divided by its standard deviation $\\sigma_j$, running gradient descent with learning rate $\\eta$ on the new weights is the same as updating the original weight with an **effective learning rate of $\\eta/\\sigma_j^2$**. So standardisation automatically shrinks the step for high-variance features such as income (values in the hundreds of thousands) much more than for low-variance features such as age, which balances how fast every weight converges; this per-feature rebalancing (a form of preconditioning) is exactly what option B describes. Without it, a learning rate small enough to keep the income weight stable barely moves the age and credit-score weights (in a quick simulation with these feature ranges, gradient descent on the raw features stayed at about 51% accuracy, while the same algorithm on standardised features reached about 88%). Option D describes the same effect in everyday terms (income dominating the gradient updates), but B names the mechanism itself. StandardScaler does not remove outliers (A), and centring cannot make logistic regression more \"expressive\" (C), because its decision boundary is still a straight line (hyperplane).",
+   "confidence": "medium",
+   "notes": "AI Singapore's Self-Assessment Tool keys option B; we originally keyed D. Option D is also partly defensible: it is the intuitive description of the same mechanism (large income values dominating the gradient updates). Also note that an exact solver with no regularisation reaches the same optimum on unscaled data, so the gain comes from optimisation and convergence (or a scale-dependent L2 penalty), not from a better model class.",
+   "caveat": "AI Singapore's Self-Assessment Tool keys option B. Option D is also partly defensible: it is the intuitive description of the same mechanism (large income values dominating the gradient updates). Also note that an exact solver with no regularisation reaches the same optimum on unscaled data, so the gain comes from optimisation and convergence (or a scale-dependent L2 penalty), not from a better model class."
+  },
+  {
+   "n": 295,
+   "question": "A production machine learning system needs to retrain daily on new customer transaction data. The current manual process takes 6 hours: download CSV from database (30 min), clean missing values (1 hour), feature engineering (2 hours), train model (1.5 hours), deploy (1 hour). The team proposes building a data pipeline. What are the essential components of this pipeline?",
+   "options": [
+    "Cron job to run training script at midnight, bash script to download data, Python script for preprocessing, manual model deployment after checking metrics",
+    "Data warehouse for storage, Jupyter notebook for analysis, CSV export functionality, email notifications when training completes",
+    "Orchestration (schedule/trigger), ETL stages (extract from DB, transform/clean/engineer features, load to training), model training/validation, deployment automation with versioning",
+    "Distributed computing cluster (Spark), real-time streaming ingestion (Kafka), feature store, MLOps platform for monitoring"
+   ],
+   "answer": 2,
+   "domain": "problem_solving",
+   "subtopic": "ml-system-design",
+   "difficulty": "intermediate",
+   "style": "comparison",
+   "concepts": [
+    "ML pipelines",
+    "orchestration",
+    "ETL",
+    "automated deployment and versioning"
+   ],
+   "explanation": "A production retraining pipeline needs four essential pieces. **Orchestration** runs it on a schedule or trigger (for example, Airflow). **ETL** stages extract data from the database, transform it (cleaning, feature engineering) and load it for training. **Automated training and validation** stops a worse model from being shipped. **Automated deployment with versioning** lets you roll back. Option A just wraps the manual process in scripts: deployment is still manual, and there is no validation gate or versioning. Option B describes analysis tools, not an automated pipeline. Option D lists heavyweight infrastructure (Spark, Kafka, a feature store) that a once-a-day batch job does not essentially need.",
+   "confidence": "high",
+   "notes": ""
+  },
+  {
+   "n": 296,
+   "question": "Training a convolutional neural network for medical image classification (X-rays: 512×512 pixels, grayscale, pixel values 0-255). Three preprocessing strategies are proposed:\n\n- **Strategy A:** Min-Max scaling to [0,1] - subtract min(0), divide by max(255)\n- **Strategy B:** Z-score normalisation - subtract mean(127.5), divide by std(across entire dataset)\n- **Strategy C:** Per-image standardisation - for each image, subtract its own mean, divide by its own std\n\n**Validation Results:**\n- Strategy A: 82.3% accuracy, stable training\n- Strategy B: 84.7% accuracy, stable training\n- Strategy C: 79.1% accuracy, unstable loss curves\n\nWhy does Strategy B outperform despite all images having similar value ranges?",
+   "options": [
+    "Z-score normalisation centers activations around zero, placing inputs in the most sensitive region of activation functions (tanh/sigmoid) and enabling better gradient flow",
+    "Strategy B normalises using dataset-wide statistics, preserving relative brightness differences between images that carry diagnostic information; Strategy C destroys this signal",
+    "Min-max scaling (Strategy A) compresses dynamic range when images don't span full [0,255] range; z-score preserves contrast information",
+    "Strategy B's centering at zero enables batch normalisation layers to work optimally, as BN expects zero-mean inputs for numerical stability"
+   ],
+   "answer": 0,
+   "domain": "problem_solving",
+   "subtopic": "data-preprocessing",
+   "difficulty": "advanced",
+   "style": "why-reasoning",
+   "concepts": [
+    "input centring (zero mean)",
+    "image normalisation",
+    "dataset-wide vs per-image statistics",
+    "input preprocessing for CNNs"
+   ],
+   "explanation": "Compare Strategy B with its closest rival, Strategy A: both apply one fixed linear transform to every image (A divides by 255; B subtracts 127.5 and divides by one dataset-wide standard deviation), so they keep exactly the same information, including brightness differences between images. The real difference is that Strategy A's inputs are all positive, in $[0, 1]$, while Strategy B's are **centred on zero**. Zero-centred inputs keep early pre-activations where activation functions respond most strongly, and avoid the zig-zag updates that happen when every input to a neuron has the same sign (all of that neuron's weight gradients then share one sign), so gradients flow better and training reaches a better solution (84.7% vs 82.3%). Strategy C does worse for a separate reason: standardising each image by its own mean and standard deviation erases brightness and contrast differences between X-rays and amplifies noise in flat images, which fits its unstable loss curves. The second option describes that weakness of Strategy C correctly, but it cannot explain why Strategy B beats Strategy A, because A preserves relative brightness too; the third option wrongly assumes Strategy A uses each image's own range, and BatchNorm layers normalise their own inputs, so they do not need zero-mean data (fourth option).",
+   "confidence": "medium",
+   "notes": "AI Singapore's Self-Assessment Tool keys option A (zero-centring); we originally keyed B. Option B is partly defensible: it correctly explains why dataset-wide statistics beat per-image standardisation (Strategy C). But it does not explain the gap between Strategies B and A, since both are global linear transforms, and the stem's 'despite all images having similar value ranges' points at that comparison. Option A's mention of tanh/sigmoid is a simplification: in a ReLU CNN the benefit of centring is mainly better-conditioned optimisation.",
+   "caveat": "AI Singapore's Self-Assessment Tool keys option A (zero-centring). Option B is partly defensible: it correctly explains why dataset-wide statistics beat per-image standardisation (Strategy C). But it does not explain the gap between Strategies B and A, since both are global linear transforms, and the stem's 'despite all images having similar value ranges' points at that comparison. Option A's mention of tanh/sigmoid is a simplification: in a ReLU CNN the benefit of centring is mainly better-conditioned optimisation."
+  },
+  {
+   "n": 297,
+   "question": "A fraud detection model is retrained weekly. After 6 weeks, the compliance team requests: \"Show us the model from Week 3 that flagged transaction #X as fraudulent.\" The ML engineer cannot reproduce Week 3's model because they only saved the latest checkpoint. What information must be versioned to fully reproduce a trained model?",
+   "options": [
+    "Model weights (.pth file) and training script (.py file) - these are sufficient to reload and make predictions",
+    "Model weights/checkpoint, training data version/hash, hyperparameters, random seeds, library versions (Python, PyTorch, scikit-learn), preprocessing artifacts (scalers, encoders)",
+    "Git commit hash of training code and model accuracy metrics on validation set",
+    "Model architecture definition (layers, dimensions) and final loss value from training"
+   ],
+   "answer": 1,
+   "domain": "problem_solving",
+   "subtopic": "ml-system-design",
+   "difficulty": "intermediate",
+   "style": "scenario-diagnosis",
+   "concepts": [
+    "model versioning",
+    "reproducibility",
+    "data versioning",
+    "preprocessing artefacts"
+   ],
+   "explanation": "To *reproduce* a past model, not just reload it, you need every ingredient that shaped it: the exact weights, the exact **data** snapshot (version or hash), the hyperparameters, the random seeds (initialisation, shuffling, dropout), the library versions (numerical results can change between PyTorch releases), and the fitted preprocessing artefacts. A scaler or encoder fitted on Week 3's data transforms transaction #X differently from one fitted on Week 6's data. Weights plus the script (A) miss the data and the preprocessing state. A git hash plus metrics (C) stores neither the data nor the weights. Architecture plus final loss (D) cannot recreate the specific trained weights. Tools such as MLflow and DVC record all of this automatically.",
+   "confidence": "high",
+   "notes": ""
+  },
+  {
+   "n": 298,
+   "question": "A startup's ML system has grown organically over 2 years. Current state:\n\n- **Development:** Data scientists train models in Jupyter notebooks, manually copy best model to production folder\n- **Deployment:** DevOps team manually updates Flask API with new model file once a month\n- **Monitoring:** Check Cloudwatch logs for 5xx errors, no model-specific metrics\n- **Data:** Training data downloaded from production DB, no version control\n- **Rollback:** If model breaks, restore previous Flask container (last month's version)\n\nThe CTO wants to \"implement MLOps.\" Which system components provide maximum operational maturity improvement?",
+   "options": [
+    "Hire ML platform engineer, buy commercial MLOps tool (Databricks, SageMaker), migrate all workflows to new platform",
+    "Move Jupyter notebooks to git repository, add unit tests to training code, create Docker container for reproducibility",
+    "Experiment tracking (MLflow), automated training pipelines (Airflow), model registry with staging/production promotion, automated deployment (CI/CD), monitoring dashboards (Grafana) with prediction drift detection",
+    "Implement real-time predictions (replace batch), add more powerful GPUs, retrain models daily instead of monthly"
+   ],
+   "answer": 2,
+   "domain": "problem_solving",
+   "subtopic": "ml-system-design",
+   "difficulty": "intermediate",
+   "style": "comparison",
+   "concepts": [
+    "MLOps maturity",
+    "experiment tracking and model registry",
+    "CI/CD for ML",
+    "drift monitoring"
+   ],
+   "explanation": "The current system's gaps are untracked experiments, manual deployment, no versioning of data or models, monthly releases, and no monitoring of model quality. The keyed option fixes each one. Experiment tracking (MLflow) records runs and parameters. Automated pipelines (Airflow) make training repeatable. A model registry versions models, controls promotion from staging to production, and enables instant rollback. CI/CD automates deployment. Drift monitoring catches silent model degradation that 5xx logs never show. Buying a platform (A) does not design the process. Git, tests and Docker (B) are good engineering hygiene but leave deployment, monitoring and model versioning manual. More compute and more frequent retraining (D) do not fix reliability at all.",
+   "confidence": "high",
+   "notes": ""
+  },
+  {
+   "n": 299,
+   "question": "Your deployed loan approval model shows these metrics:\n\n| Week | Approval rate | Error rate |\n|---|---|---|\n| Week 1 | 40% | 0.1% |\n| Week 2 | 35% | 0.1% |\n| Week 3 | 30% | 0.1% |\n\nGround truth labels (loan repayment outcomes) take 3 months to collect. Which monitoring metric would alert you to potential model problems FIRST?",
+   "options": [
+    "Error rate",
+    "Approval rate",
+    "Ground truth accuracy",
+    "No metric can detect problems until ground truth labels arrive"
+   ],
+   "answer": 1,
+   "domain": "problem_solving",
+   "subtopic": "ml-system-design",
+   "difficulty": "intermediate",
+   "style": "scenario-diagnosis",
+   "concepts": [
+    "model monitoring",
+    "prediction drift",
+    "delayed ground truth",
+    "proxy metrics"
+   ],
+   "explanation": "Ground-truth repayment labels take 3 months to arrive, so accuracy cannot be measured yet; you have to monitor something that is available **immediately**. The model's *output distribution* is such a signal. The approval rate fell steadily from 40% to 35% to 30% in three weeks, a 25% relative drop, which signals **prediction drift** (or input drift). Either the applicant population changed, or something upstream (a feature pipeline or data source) broke. The error rate (system or processing errors) stays flat at 0.1%, so it says nothing about prediction quality. Waiting for ground truth would let a broken model run for months.",
+   "confidence": "high",
+   "notes": ""
+  },
+  {
+   "n": 300,
+   "question": "A credit scoring model trained on 2023 data is deployed in January 2024. By June 2024, you observe:\n\n**Input Data Changes:**\n- Average income: \\$58K → \\$52K (decreased)\n- Gig-economy workers: 5% → 15% (tripled)\n- Average age: 42 → 38 years\n\n**Model Performance:**\n- January 2024 accuracy: 81%\n- June 2024 accuracy: 76% (5% drop)\n\n**Business Context:** Economic downturn in March 2024 caused unemployment to rise and shift to gig jobs.\n\nWhat is happening and what should you do?",
+   "options": [
+    "The model's decision threshold is miscalibrated - adjust the threshold from 0.5 to a different value without retraining",
+    "The input data distribution has changed (people applying for loans look different now) - retrain the model on recent 2024 data that includes these new patterns",
+    "This is normal variation - 5% accuracy drop is acceptable, continue monitoring",
+    "The features are invalid - remove income and employment_type features entirely"
+   ],
+   "answer": 1,
+   "domain": "problem_solving",
+   "subtopic": "ml-system-design",
+   "difficulty": "beginner",
+   "style": "scenario-diagnosis",
+   "concepts": [
+    "data drift / covariate shift",
+    "concept drift",
+    "retraining",
+    "model monitoring"
+   ],
+   "explanation": "The applicant population has changed because of an economic shock: lower incomes, three times as many gig workers, and younger applicants. That is **data drift** (covariate shift). Because unemployment and gig work also change how likely people are to repay, there is probably **concept drift** too. The 5-percentage-point accuracy drop (81% → 76%) confirms the model is suffering. The right response is to retrain or fine-tune on recent 2024 data that reflects these new patterns, then keep monitoring. Moving the threshold cannot teach the model new relationships. A sustained drop tied to a known economic event is not \"normal variation\". Deleting income and employment type would throw away some of the most predictive features.",
+   "confidence": "high",
+   "notes": ""
+  }
+ ]
+}

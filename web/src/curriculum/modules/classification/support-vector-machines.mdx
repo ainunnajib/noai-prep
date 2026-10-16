@@ -1,0 +1,328 @@
+import SVMStreet from './visuals/support-vector-machines/SVMStreet'
+import SoftMarginC from './visuals/support-vector-machines/SoftMarginC'
+import KernelLift from './visuals/support-vector-machines/KernelLift'
+import RBFGamma from './visuals/support-vector-machines/RBFGamma'
+
+Logistic regression draws a straight boundary that every training point helps to place. A **support vector machine** (SVM) also draws a boundary, but it asks a sharper question: of all the lines that separate the classes, which one leaves the **widest gap**? The answer depends on only a handful of points, the *support vectors*. Add the **kernel trick** and the same machine draws circles, curves and islands. Before deep learning took over, SVMs were among the best off-the-shelf classifiers, and NOAI still asks about every piece: support vectors, hard and soft margins, $C$, kernels and the RBF kernel's $\gamma$.
+
+## The widest street
+
+<Analogy title="A road between two kampongs">
+
+You must build a straight road through the valley between two villages without knocking down any house, and you want it as wide as possible. Only the houses right at the roadside limit the width. Every other house could be moved further back, or removed, and the best road would not change at all.
+
+</Analogy>
+
+When some straight line puts all of one class on one side and all of the other class on the other side, the data are <Term def="Two classes are linearly separable if some straight line (in 2-D), plane (in 3-D) or hyperplane (in more dimensions) has all of one class on one side and all of the other class on the other.">linearly separable</Term>. Then there are infinitely many separating lines. An SVM picks the one with the largest <Term def="The width of the empty band (the street) around the decision boundary: the gap between the boundary and the nearest training points on either side, counted on both sides.">margin</Term>: the line down the middle of the widest empty street between the classes. A wide street is a safety buffer: a new point that lands a little off its class's usual area still falls on the correct side.
+
+<SVMStreet />
+
+The points on the edges of the street, ringed in the figure, are the <Term def="The training points that lie exactly on the edges of the margin (or, in a soft-margin SVM, inside it or on the wrong side). They alone determine the SVM's boundary.">support vectors</Term>. They hold the street in place, like tent poles. Move any other point (without entering the street) and nothing changes; move a support vector and the whole street moves with it.
+
+### The street in symbols
+
+SVMs label the two classes $y = +1$ and $y = -1$ (instead of 1 and 0), which makes the formulas tidy. Like logistic regression, an SVM computes a linear score
+
+$$
+f(x) = w \cdot x + b = w_1 x_1 + w_2 x_2 + b
+$$
+
+and predicts $+1$ when $f(x) > 0$ and $-1$ when $f(x) < 0$. Here $x = (x_1, x_2)$ is the point, $w = (w_1, w_2)$ the weight vector and $b$ the bias. ($w \cdot x$ is the same dot product that logistic regression wrote as $\mathbf{w}^T\mathbf{x}$; this lesson writes vectors in plain letters to keep the formulas light.)
+
+- The **boundary** is the line $f(x) = 0$.
+- The **edges of the street** are the lines $f(x) = +1$ and $f(x) = -1$. (Multiplying $w$ and $b$ by any positive number gives the same boundary and the same sides, so we are free to scale them until the nearest points sit exactly at $f = \pm 1$.)
+- The distance from a point to the boundary is $\dfrac{|f(x)|}{\lVert w \rVert}$, where $\lVert w \rVert = \sqrt{w_1^2 + w_2^2}$ is the length of $w$. Each edge, with $|f| = 1$, is $\frac{1}{\lVert w \rVert}$ from the boundary, so the street is
+
+$$
+\text{margin width} = \frac{2}{\lVert w \rVert}.
+$$
+
+(Some books call half of this, $\frac{1}{\lVert w \rVert}$, the margin: the distance from the boundary to the nearest point. Either way a bigger margin means a shorter $w$, but check which one a question means.)
+
+A wide street therefore means a **short** $w$. The <Term def="An SVM that allows no training point inside the street or on the wrong side. It only works when the data are linearly separable.">hard-margin SVM</Term> finds it by solving
+
+$$
+\begin{aligned}
+&\min_{w,\, b}\; \tfrac{1}{2}\lVert w \rVert^2 \\
+&\text{subject to } \; y_i\,(w \cdot x_i + b) \ge 1 \\
+&\text{for every training point } i
+\end{aligned}
+$$
+
+- $\min_{w, b}$ means "find the $w$ and $b$ that make this smallest". Minimising $\frac12 \lVert w \rVert^2$ is the same as maximising the width $2/\lVert w \rVert$; the square and the $\frac12$ just make the calculus tidier.
+- The condition $y_i f(x_i) \ge 1$ packs two rules into one: a $+1$ point needs $f \ge 1$, and a $-1$ point needs $f \le -1$ (multiply by $y_i = -1$ and it becomes $-f \ge 1$). Every point must be on its own side **and** outside the street.
+- The support vectors are the points where $y_i f(x_i) = 1$ exactly. A result from optimisation, which you can take on trust, says that the best $w$ is built **from the support vectors themselves**: each support vector gets a positive weight $\alpha_i$ (how hard it pushes on the street), and every other point gets weight 0. In symbols, $w = \sum_i \alpha_i y_i x_i$, with $y_i = \pm 1$ setting which way each one pushes. In the figure above, only the ringed points build $w$, which is why the other points can be deleted without changing anything. (These $\alpha_i$ have nothing to do with the smoothing $\alpha$ of the last lesson, [Naive Bayes and Laplace smoothing](#/learn/classification/naive-bayes).)
+
+<Steps title="Reading an SVM: w = (3, 4), b = −11">
+  <Step title="Street width">
+    $\lVert w \rVert = \sqrt{3^2 + 4^2} = 5$, so the margin width is $\frac{2}{5} = 0.4$.
+  </Step>
+  <Step title="Classify A = (3, 2)">
+    $f = 3 \times 3 + 4 \times 2 - 11 = 6 > 0$, so predict $+1$. Its distance to the boundary is $\frac{6}{5} = 1.2$, well outside the street.
+  </Step>
+  <Step title="Check B = (2, 1), labelled −1">
+    $f = 6 + 4 - 11 = -1$, so $y f = (-1)(-1) = 1$: exactly on the edge of the street. B is a support vector.
+  </Step>
+</Steps>
+
+<QuickCheck
+  q="A linear SVM has $w = (6, 8)$. How wide is its margin (the whole street)?"
+  options={['$0.2$', '$0.1$', '$10$', '$5$']}
+  answer={0}
+  explain="$\lVert w \rVert = \sqrt{36 + 64} = 10$, so the width is $2/10 = 0.2$. The value $0.1 = 1/\lVert w \rVert$ is only the distance from the boundary to one edge, half the street."
+/>
+
+<KeyIdea>
+
+An SVM chooses the separating line with the **widest margin**, $\frac{2}{\lVert w \rVert}$. Only the **support vectors**, the points on the edges of the street, decide where it goes.
+
+</KeyIdea>
+
+## Soft margins and C
+
+Real data are rarely separable: classes overlap, labels are noisy, and one odd point can make a hard margin impossible (drag a point across the street in the figure above to see that). A <Term def="An SVM that allows some training points inside the street or even on the wrong side, each paying a penalty proportional to how far it intrudes. C sets the size of the penalty.">soft-margin SVM</Term> lets points break the rule, at a price.
+
+<Analogy title="A strict prefect and a relaxed one">
+
+A strict prefect (large $C$) allows no exceptions at all, even if that means bending the rules into strange shapes to fit one awkward case. A relaxed prefect (small $C$) lets a few people bend the rules, in return for rules that are simple and fair for everyone else.
+
+</Analogy>
+
+Each point $i$ gets a <Term def="ξ (xi): how far a training point falls short of being on its own side of the street. 0 = fine, between 0 and 1 = inside the street but on the correct side, exactly 1 = on the boundary, more than 1 = on the wrong side.">slack</Term> $\xi_i \ge 0$ ("xi"), the amount by which it is allowed to fall short: the rule becomes $y_i f(x_i) \ge 1 - \xi_i$. The SVM now solves
+
+$$
+\begin{aligned}
+&\min_{w,\, b,\, \xi}\; \tfrac{1}{2}\lVert w \rVert^2 + C \sum_i \xi_i \\
+&\text{subject to } \; y_i\,(w \cdot x_i + b) \ge 1 - \xi_i \\
+&\text{and } \; \xi_i \ge 0 \;\text{ for every point } i
+\end{aligned}
+$$
+
+- $\xi_i = 0$: the point is on its own side, outside the street (or on its edge).
+- $0 < \xi_i < 1$: the point is inside the street but still on the correct side of the boundary ($\xi_i = 1$ puts it exactly on the boundary).
+- $\xi_i > 1$: the point is on the wrong side: a training mistake.
+- $C > 0$ is the price of one unit of slack. The SVM trades a wide street (small $\frac12\lVert w \rVert^2$) against little total slack (small $C\sum \xi_i$).
+
+At the best solution each slack is as small as allowed: $\xi_i = \max(0,\; 1 - y_i f(x_i))$. This is the <Term def="The loss max(0, 1 − y·f(x)) used by SVMs: zero for points safely outside the street, growing linearly the further a point intrudes.">hinge loss</Term>, so a soft-margin SVM is "hinge loss + an L2 penalty on $w$".
+
+<SoftMarginC />
+
+These 32 points can just about be separated by a straight line; switching on the outlier is what makes a hard margin impossible. Try the extremes. At $C = 0.01$ the street is 5.31 wide and 20 of the 32 points have some slack. At $C = 10$ it has shrunk to 1.29 and no point is inside it. With the outlier switched on, $C = 100$ swings the boundary round towards that one orange point and the street narrows to 1.01, while at $C = 0.01$ the boundary hardly moves. Large $C$ chases individual points (low bias, high variance); small $C$ keeps the boundary simple (high bias, low variance).
+
+<Steps title="Slack for three points">
+  <Step title="Point P: y = +1, f = 2.5">
+    $1 - y f = 1 - 2.5 < 0$, so $\xi = 0$: outside the street, no penalty.
+  </Step>
+  <Step title="Point Q: y = +1, f = 0.4">
+    $\xi = 1 - 0.4 = 0.6$: inside the street, but on the correct side.
+  </Step>
+  <Step title="Point R: y = −1, f = 0.5">
+    $y f = -0.5$, so $\xi = 1 - (-0.5) = 1.5 > 1$: on the wrong side. With the penalty $C = 2$, the three points P, Q and R add $2 \times (0 + 0.6 + 1.5) = 4.2$ to the objective.
+  </Step>
+</Steps>
+
+<PastPaperQuestion paper="prelim2026" n={160} />
+
+<Mistake title="Which way does C go?">
+
+$C$ multiplies the **errors**, not the weights, so it works the opposite way to the regularisation strength $\lambda$ you met in regression: $C$ behaves like $\frac{1}{\lambda}$. **Large $C$ = narrow street, few violations, weak regularisation, risk of overfitting. Small $C$ = wide street, many violations, strong regularisation.** (scikit-learn's `LogisticRegression` uses the same $C = 1/\lambda$ convention.)
+
+</Mistake>
+
+## The kernel trick
+
+Some data defeat every straight line. Below, one class forms a disc and the other a ring around it; any line through the picture cuts both classes. The fix is to give the SVM a **new feature** that makes the classes separable.
+
+<Analogy title="Bounce the coins">
+
+Small coins and big coins are mixed on a table, and no straight ruler line can separate them. Tap the table hard so the light coins bounce higher than the heavy ones. Freeze the moment: now a flat sheet slid through the air at the right height separates them perfectly. A new dimension (height) turned an impossible cut into an easy one.
+
+</Analogy>
+
+<KernelLift />
+
+Call a point's two coordinates $x_1$ and $x_2$ (the letter $y$ is already taken by the label). Here the new feature is the height $h = x_1^2 + x_2^2$, the squared distance from the centre. Points in the disc get a small $h$, points on the ring a large $h$, so the flat plane $h = 2.5$ separates them. Written as a <Term def="A function φ that turns each input into a longer list of features, such as φ(x₁, x₂) = (x₁, x₂, x₁² + x₂²). A linear model on the new features can draw curved boundaries in the original space.">feature map</Term>, $\phi(x_1, x_2) = (x_1,\, x_2,\, x_1^2 + x_2^2)$. A boundary that is **straight in the new space** becomes **curved in the original space**: the plane $h = 2.5$ is the circle $x_1^2 + x_2^2 = 2.5$.
+
+Adding features by hand works for this toy, but real data may need thousands or millions of them. The trick that makes SVMs practical comes from how their solution is written. Because $w = \sum_i \alpha_i y_i x_i$, the score of a new point is
+
+$$
+f(x) = \sum_{i} \alpha_i\, y_i\, (x_i \cdot x) + b,
+$$
+
+which uses the training points **only through dot products** $x_i \cdot x$ (and so does the training). So if we map the data with $\phi$, all we ever need is $\phi(x_i) \cdot \phi(x)$. A <Term def="A function K(x, x′) that equals the dot product φ(x)·φ(x′) in some feature space, but is computed directly from x and x′ without building φ. It measures how similar two points are.">kernel</Term> is a function that computes that dot product directly from the original inputs:
+
+$$
+K(x, x') = \phi(x) \cdot \phi(x').
+$$
+
+Swapping every $x_i \cdot x$ for $K(x_i, x)$ is the <Term def="Replacing every dot product in an algorithm by a kernel K(x, x′), so the algorithm behaves as if it worked in a much bigger feature space without ever computing the features.">kernel trick</Term>: the SVM behaves as if it worked in the big feature space, without ever building it.
+
+<Steps title="The kernel trick by hand: K(x, x′) = (x · x′)²">
+  <Step title="Take two points">
+    $x = (1, 2)$ and $x' = (3, 1)$.
+  </Step>
+  <Step title="The kernel way: 2-D dot product, then square">
+    $x \cdot x' = 1 \times 3 + 2 \times 1 = 5$, so $K(x, x') = 5^2 = 25$.
+  </Step>
+  <Step title="The long way: build the features">
+    This kernel matches $\phi(x) = (x_1^2,\ \sqrt{2}\,x_1 x_2,\ x_2^2)$. So $\phi(x) = (1,\ 2\sqrt{2},\ 4)$ and $\phi(x') = (9,\ 3\sqrt{2},\ 1)$.
+  </Step>
+  <Step title="Same answer">
+    $\phi(x) \cdot \phi(x') = 9 + (2\sqrt{2})(3\sqrt{2}) + 4 = 9 + 12 + 4 = 25$. With 100 input features, $\phi$ would have 5,050 entries, yet the kernel still needs only one 100-term dot product and a square.
+  </Step>
+</Steps>
+
+The kernels you should know:
+
+| kernel | formula | boundary it can draw |
+|---|---|---|
+| linear | $K(x, x') = x \cdot x'$ | straight lines (the plain SVM) |
+| polynomial | $K(x, x') = (x \cdot x' + c)^d$ | curves of degree $d$ |
+| RBF (Gaussian) | $K(x, x') = e^{-\gamma \lVert x - x' \rVert^2}$ | almost any shape |
+
+In the polynomial kernel, $c \ge 0$ is a constant you choose and $d$ is the degree (not the number of features, as $d$ meant in k-NN).
+
+<PastPaperQuestion paper="prelim2026" n={150} />
+
+## The RBF kernel and gamma
+
+The <Term def="Radial basis function kernel K(x, x′) = exp(−γ‖x − x′‖²): equal to 1 when x = x′ and fading towards 0 as the points move apart. Also called the Gaussian kernel. Its feature space has infinitely many dimensions.">RBF kernel</Term> is the default choice in practice. It is a **similarity score**: $K = 1$ when $x = x'$, and it fades towards 0 as the points move apart. Its feature space has infinitely many dimensions, which is only usable thanks to the kernel trick. With the RBF kernel, $f(x)$ is a weighted sum of bumps, one centred on each support vector, and the number $\gamma$ ("gamma") sets how narrow each bump is.
+
+For two points at distance 1 (so $\lVert x - x' \rVert^2 = 1$): with $\gamma = 0.1$, $K = e^{-0.1} \approx 0.90$, so they count as very similar; with $\gamma = 10$, $K = e^{-10} \approx 0.00005$, so they barely influence each other at all.
+
+<RBFGamma />
+
+On this data, $\gamma = 0.01$ is too smooth (82.9% on the training data, 85.3% on new data); $\gamma = 0.1$ follows the moons (94.3% and 92.8%); $\gamma \approx 32$ (the slider's maximum) draws an island around nearly every point: 100% on the training data but only 64.3% on new data, with all 70 points as support vectors. Here that is a symptom of an RBF model memorising points. Be careful with the rule, though: a very small $C$ also makes most points support vectors (many points sit inside a wide street), so the count alone does not prove overfitting. Compare training and validation accuracy.
+
+<KeyIdea>
+
+**Large $\gamma$:** each point's influence is very local, so the boundary is wiggly and can overfit. **Small $\gamma$:** influence spreads widely, so the boundary is smooth and can underfit. $\gamma$ and $C$ are tuned together, usually by trying a grid of values with cross-validation.
+
+</KeyIdea>
+
+<QuickCheck
+  q="An RBF SVM scores 100% on the training data and 64% on the test data. Which change is most likely to help?"
+  options={['Lower $\\gamma$', 'Raise $\\gamma$', 'Raise $C$', 'Switch to a polynomial kernel of degree 10']}
+  answer={0}
+  explain="This is overfitting: the boundary hugs individual training points. Lowering $\gamma$ widens each point's bump and smooths the boundary (lowering $C$ would also help). Raising $\gamma$ or $C$, or a very high-degree polynomial, makes the model even more flexible."
+/>
+
+## SVMs in practice
+
+- **Scale the features first.** Margins, dot products and the RBF distance all depend on the units, exactly as in k-NN.
+- **Two classes at heart.** For more classes, train several SVMs: one-vs-rest (one SVM per class) or one-vs-one (one per pair of classes; scikit-learn's `SVC` does this).
+- **Scores, not probabilities.** $f(x)$ is a signed score: its sign is the class and its size is the confidence. Probabilities need an extra calibration step.
+- **Small to medium data.** Kernel SVM training time grows roughly like $n^2$ to $n^3$ for $n$ points, so millions of examples call for linear models or neural networks instead.
+- **One-class SVM.** Trained on normal data only, it draws a boundary around where normal data live and flags anything outside as an anomaly: useful when anomalies are too rare to collect.
+
+## In code
+
+scikit-learn's `SVC` solves exactly the same optimisation problem as the figures, with an exact solver. First the street from the start of the lesson; then the RBF kernel on a fresh set of moons.
+
+<PyRunner packages={['numpy', 'scikit-learn']} code={`import numpy as np
+from sklearn.svm import SVC
+
+X = np.array([[2.0, 2.4], [3.6, 4.6], [1.6, 5.6],   # class -1
+              [4.6, 2.2], [2.8, 7.4], [5.4, 1.0],
+              [6.0, 6.6], [7.6, 5.4], [8.4, 7.6],   # class +1
+              [5.6, 8.6], [8.8, 3.8], [7.0, 8.9]])
+y = np.array([-1] * 6 + [1] * 6)
+
+# a huge C: no violations allowed
+model = SVC(kernel="linear", C=1000).fit(X, y)
+w, b = model.coef_[0], model.intercept_[0]
+print("w =", w.round(3), "  b =", round(b, 3))
+print("street width 2/||w|| =", round(2 / np.linalg.norm(w), 3))
+print("support vectors:", model.support_vectors_.tolist())
+print("y * f(x):", (y * model.decision_function(X)).round(2))`} />
+
+Run it: exactly three points have $y f(x) = 1$: the three support vectors. Every other point has $y f(x) > 1$, safely outside the street.
+
+<PyRunner packages={['scikit-learn']} code={`from sklearn.datasets import make_moons
+from sklearn.svm import SVC
+
+X, y = make_moons(500, noise=0.3, random_state=0)
+X_train, y_train, X_test, y_test = X[:100], y[:100], X[100:], y[100:]
+
+for gamma in [0.1, 1, 10, 100]:
+    model = SVC(kernel="rbf", gamma=gamma, C=10).fit(X_train, y_train)
+    print(f"gamma={gamma:<5}  train {model.score(X_train, y_train):.2f}  "
+          f"test {model.score(X_test, y_test):.2f}  support vectors {len(model.support_)}")`} />
+
+Run it: the same story as the figure. As $\gamma$ grows, training accuracy climbs towards 100% while test accuracy peaks and then falls, and at large $\gamma$ the number of support vectors balloons.
+
+<Reveal label="Optional: train a linear SVM in PyTorch">
+
+A Final task could ask you to train a linear SVM yourself. In PyTorch that is just the soft-margin objective as a loss: $\frac12\lVert w \rVert^2 + C \sum_i \max(0,\, 1 - y_i f(x_i))$, minimised by gradient descent. (Centring the features first keeps $b$ small, which helps the optimiser. The optimiser here is Adam, a popular variant of gradient descent explained in [Momentum, RMSProp and Adam](#/learn/training-deep-networks/momentum-and-adam), with a step size that shrinks to 0 over the run.)
+
+```python
+import torch
+
+X = torch.tensor([[2.0, 2.4], [3.6, 4.6], [1.6, 5.6],    # class -1
+                  [4.6, 2.2], [2.8, 7.4], [5.4, 1.0],
+                  [6.0, 6.6], [7.6, 5.4], [8.4, 7.6],    # class +1
+                  [5.6, 8.6], [8.8, 3.8], [7.0, 8.9]])
+y = torch.tensor([-1.0] * 6 + [1.0] * 6)
+mu = X.mean(dim=0)
+Xc = X - mu                     # centre the features (keeps b small)
+
+w = torch.zeros(2, requires_grad=True)
+b = torch.zeros(1, requires_grad=True)
+C = 1.0
+steps = 5000
+opt = torch.optim.Adam([w, b], lr=0.02)
+# shrink the step size linearly to 0
+sched = torch.optim.lr_scheduler.LambdaLR(opt, lambda s: 1 - s / steps)
+
+for step in range(steps):
+    f = Xc @ w + b                          # decision values
+    slack = torch.clamp(1 - y * f, min=0)   # hinge: 0 outside the street
+    loss = 0.5 * (w ** 2).sum() + C * slack.sum()
+    opt.zero_grad()
+    loss.backward()
+    opt.step()
+    sched.step()
+    if step % 1000 == 0:
+        print(f"step {step:4d}  loss {loss.item():.4f}")
+
+b_orig = b.item() - (w @ mu).item()     # undo the centring
+print("w =", w.detach().numpy().round(3), " b =", round(b_orig, 3))
+print("margin width 2/||w|| =", round(2 / w.norm().item(), 3))
+```
+
+```text
+step    0  loss 12.0000
+step 1000  loss 0.2924
+step 2000  loss 0.2840
+step 3000  loss 0.2864
+step 4000  loss 0.2834
+w = [0.696 0.283]  b = -5.04
+margin width 2/||w|| = 2.663
+```
+
+Gradient descent on the hinge loss lands on the same street as scikit-learn's exact solver. The small rise in the loss around step 3000 is normal wobble from the step size, not a bug. (Here $C = 1$ is already large enough to forbid every violation, because this data is separable with room to spare.)
+
+</Reveal>
+
+<ExamTip title="How NOAI asks about SVMs">
+
+- **Support vectors** are the training points on the edge of (or inside) the margin; only they determine the boundary. Removing any other point changes nothing.
+- **Margin width** $= 2/\lVert w \rVert$. Maximising the margin = minimising $\frac12\lVert w \rVert^2$.
+- **Hard margin**: no violations, needs separable data, sensitive to outliers. **Soft margin**: slack $\xi_i$, price $C$. Large $C$ → narrow margin, overfitting risk; small $C$ → wide margin, more regularisation.
+- **Kernel trick**: implicitly maps the data to a higher-dimensional space by replacing dot products with $K(x, x')$. It does **not** reduce dimensionality or select features.
+- **RBF $\gamma$**: large → wiggly boundary, overfitting; small → smooth, underfitting.
+- SVMs are **supervised** (the unsupervised answers in those "which is unsupervised?" questions are methods such as [k-means clustering](#/learn/unsupervised-learning/k-means) and PCA), need scaled features, and output scores rather than probabilities.
+
+</ExamTip>
+
+Next, [Confusion matrix, precision, recall and F1](#/learn/model-evaluation/confusion-matrix-and-metrics) asks how good these classifiers really are, by counting **which kinds** of mistakes each one makes, not just how many.
+
+<Takeaways>
+
+- An SVM picks the separating boundary with the **widest margin**, $2/\lVert w \rVert$, by minimising $\frac12\lVert w \rVert^2$ subject to $y_i(w \cdot x_i + b) \ge 1$.
+- Only the **support vectors** on the edges of the street decide the boundary.
+- A **soft margin** gives each point a slack $\xi_i = \max(0, 1 - y_i f(x_i))$ at price $C$: large $C$ fits harder (narrow street), small $C$ regularises (wide street).
+- The **kernel trick** swaps dot products for $K(x, x') = \phi(x) \cdot \phi(x')$, giving curved boundaries from a linear method without building the big feature space.
+- For the **RBF kernel**, large $\gamma$ means very local influence and a wiggly, overfitting boundary; tune $\gamma$ and $C$ together with cross-validation.
+
+</Takeaways>

@@ -1,0 +1,384 @@
+{
+  "slug": "python-toolkit",
+  "order": 4,
+  "part": "code",
+  "domain": "computing",
+  "title": "Python power tools",
+  "tagline": "Read, reason about and fix code",
+  "summary": "The rest of the Python an AI programmer needs: dictionaries, tuples and sets, functions and scope, comprehensions, zip and generators, how names refer to objects (and the mutation traps examiners love), classes and the fit/predict pattern, and exceptions and systematic debugging.",
+  "prerequisites": [
+    "python-basics"
+  ],
+  "syllabus": [
+    "NOAI Computing: Python, Debugging",
+    "Dicts, tuples, sets and mutability",
+    "Functions, scope, *args/**kwargs; comprehensions, zip, enumerate, generators",
+    "Object references, is vs ==, mutating arguments",
+    "Classes, __init__, methods, inheritance",
+    "try/except/finally, common exceptions, tracebacks"
+  ],
+  "paper_subtopics": [
+    "python",
+    "code-debugging"
+  ],
+  "lessons": [
+    {
+      "slug": "dicts-tuples-sets",
+      "title": "Dictionaries, tuples and sets",
+      "summary": "Look things up by key, use fixed tuples and unique sets, and know which types are mutable.",
+      "minutes": 18,
+      "objectives": [
+        "You can create and update dictionaries, including an empty one",
+        "You can choose between list, tuple, dict and set for a task",
+        "You can classify Python types as mutable or immutable"
+      ],
+      "concepts": [
+        {
+          "name": "Dictionaries: key to value",
+          "explain": "A dict maps keys to values, for example {'kopi': 1.2, 'teh': 1.1}. Both {} and dict() create an empty dict. Looking up by key is very fast because Python hashes the key to jump straight to its slot, with no scanning.",
+          "analogy": "Like a hawker centre's stall numbers: say '#01-23' and you walk straight there without checking every stall.",
+          "visual": {
+            "component": "DictLookup",
+            "kind": "animation",
+            "shows": "Keys passing through a hash function into numbered buckets, then a lookup jumping straight to the right bucket.",
+            "interaction": "Add key/value pairs, look keys up, and try a missing key to trigger a KeyError (compare with .get()).",
+            "aha": "Dicts trade memory for instant lookup, which is why word counts and caches use them."
+          }
+        },
+        {
+          "name": "Tuples and sets",
+          "explain": "A tuple, such as (3, 4), is an ordered sequence you can't change. Tensor shapes and function return pairs are usually tuples. A set keeps only unique items and supports union, intersection and difference.",
+          "analogy": "A tuple is your NRIC: fixed once issued. A set is a CCA attendance list: each name appears once.",
+          "visual": {
+            "component": "SetVenn",
+            "kind": "interactive",
+            "shows": "Two overlapping circles holding the items of set A and set B, with the result of the chosen operation highlighted.",
+            "interaction": "Edit the two sets and toggle between |, &, - and ^. Add a duplicate item and watch it disappear.",
+            "aha": "Sets remove duplicates automatically, and set operations are Venn diagrams in code."
+          }
+        },
+        {
+          "name": "Mutable vs immutable",
+          "explain": "list, dict and set are mutable: you can change them after creation. int, float, str and tuple are immutable, so any 'change' really creates a new object. This decides whether a function can alter your data and what can be a dict key.",
+          "analogy": "A whiteboard (mutable) versus a printed certificate (immutable): you can wipe and rewrite one, but you'd have to reprint the other.",
+          "visual": {
+            "component": "MutabilitySorter",
+            "kind": "interactive",
+            "shows": "Cards for six types, each with a 'try to change it' button that runs an item assignment.",
+            "interaction": "Click to attempt the change. A mutable type updates; an immutable type throws a TypeError, which is shown and explained.",
+            "aha": "Lists and dicts can change under you, while strings and tuples can't."
+          }
+        }
+      ],
+      "code": "runnable",
+      "checkpoint_focus": [
+        "Which type is mutable (cf. 2026 Prelim Q77)",
+        "Creating an empty dict (cf. Q79)",
+        "type() of a list (cf. Q76)"
+      ]
+    },
+    {
+      "slug": "functions",
+      "title": "Functions: reusable recipes",
+      "summary": "Define functions with parameters, defaults and return values, and understand scope and *args/**kwargs.",
+      "minutes": 18,
+      "objectives": [
+        "You can write a function that returns a value",
+        "You can predict which variable a name refers to (scope)",
+        "You can explain what *args and **kwargs collect"
+      ],
+      "concepts": [
+        {
+          "name": "def, parameters and return",
+          "explain": "def area(w, h): return w * h packages a calculation under a name. Parameters receive the inputs, and return hands a value back to the caller. print only displays a value and gives back None. Default values, as in def f(x, lr=0.1), make an argument optional.",
+          "analogy": "Like a drink-vending machine: put in coins and a choice (arguments), and a can comes out (return value).",
+          "visual": {
+            "component": "FunctionMachine",
+            "kind": "interactive",
+            "shows": "A machine box with input slots for each parameter, an output chute, and the function code above it.",
+            "interaction": "Type argument values and run. Toggle 'return' to 'print' and see that the output chute delivers None.",
+            "aha": "return passes a value on so later code can use it; print just shows it on screen."
+          }
+        },
+        {
+          "name": "Scope: local vs global",
+          "explain": "Variables created inside a function are local: they exist only while it runs. When Python looks up a name, it checks local first, then global. This stops functions from accidentally clobbering each other's variables.",
+          "analogy": "Like what's said in a classroom versus the whole-school PA system: a class-only announcement doesn't reach other classes.",
+          "visual": {
+            "component": "ScopeBubbles",
+            "kind": "stepper",
+            "shows": "Nested bubbles for the global and function frames, each listing its variables, with the current name lookup animated as an arrow.",
+            "interaction": "Step through code that uses the same name x inside and outside a function. Predict each print before stepping.",
+            "aha": "The same name can mean different things in different scopes, and lookup goes from the inside out."
+          }
+        },
+        {
+          "name": "*args and **kwargs",
+          "explain": "*args collects any number of extra positional arguments into a tuple. **kwargs collects extra keyword arguments into a dict. They let a function accept a flexible number of inputs, a pattern used throughout ML libraries.",
+          "analogy": "Like a 'pack all extras here' bag at check-in: any additional items are bundled together.",
+          "visual": {
+            "component": "ArgsPacker",
+            "kind": "animation",
+            "shows": "Arguments flying into a function call and being sorted into named parameters, an args tuple and a kwargs dict.",
+            "interaction": "Edit the call, for example f(1, 2, 3, lr=0.1, epochs=5), and watch where each argument lands.",
+            "aha": "*args becomes a tuple and **kwargs becomes a dict. Nothing magic, just packing."
+          }
+        }
+      ],
+      "code": "runnable",
+      "checkpoint_focus": [
+        "What *args allows (cf. 2026 Prelim Q85)",
+        "return vs print",
+        "Scope lookups"
+      ]
+    },
+    {
+      "slug": "iteration-tools",
+      "title": "Comprehensions, zip, enumerate and generators",
+      "summary": "Write compact loops and produce values lazily.",
+      "minutes": 18,
+      "objectives": [
+        "You can predict the output of a list comprehension",
+        "You can use zip and enumerate correctly",
+        "You can explain how a generator saves memory"
+      ],
+      "concepts": [
+        {
+          "name": "List comprehensions",
+          "explain": "[x**2 for x in range(3)] builds [0, 1, 4] in one line. Read it as 'x squared, for each x in range(3)'. Adding a filter, as in [x for x in nums if x > 0], keeps only some items.",
+          "analogy": "Like a juice stall's conveyor: fruits go in, the ones that pass inspection are juiced, and cups come out in order.",
+          "visual": {
+            "component": "ComprehensionMachine",
+            "kind": "animation",
+            "shows": "Input values riding a conveyor through a filter gate and an expression box, then dropping into an output list.",
+            "interaction": "Edit the expression and the filter, then play to watch each value either pass or get rejected.",
+            "aha": "A comprehension is just a for loop with append, written compactly."
+          }
+        },
+        {
+          "name": "zip and enumerate",
+          "explain": "zip([1, 2], ['a', 'b']) pairs items up: (1, 'a'), (2, 'b'). It stops at the shorter list and returns an iterator, not a list. enumerate(items) gives (index, item) pairs, so you rarely need range(len(...)).",
+          "analogy": "Like a zip on a jacket: teeth from two sides interlock pair by pair.",
+          "visual": {
+            "component": "ZipZipper",
+            "kind": "animation",
+            "shows": "Two lists of different lengths zipping together into tuples, with the leftover items greyed out.",
+            "interaction": "Change the list lengths and toggle between zip and enumerate. Wrap the result in list() to see the materialised output.",
+            "aha": "zip stops at the shortest list, and it gives you an iterator you can only loop through once."
+          }
+        },
+        {
+          "name": "Generators and lazy evaluation",
+          "explain": "A generator function uses yield to produce values one at a time, only when asked. It doesn't build the whole list in memory, which is how PyTorch DataLoaders stream huge datasets. Once a generator is used up, it is empty.",
+          "analogy": "Like a queue-number machine at a clinic: it prints the next number only when the next patient arrives, not all 500 numbers at once.",
+          "visual": {
+            "component": "GeneratorVsList",
+            "kind": "interactive",
+            "shows": "A memory bar comparing a list of one million squares with a generator of the same squares, plus a 'next()' button.",
+            "interaction": "Toggle between list and generator to compare memory, and press next() repeatedly to pull values one by one until StopIteration.",
+            "aha": "Generators trade 'all at once' for 'on demand', which saves huge amounts of memory."
+          }
+        }
+      ],
+      "code": "runnable",
+      "checkpoint_focus": [
+        "Comprehension outputs (cf. 2026 Prelim Q82)",
+        "zip output (cf. Q88)",
+        "What a generator is (cf. Q87)"
+      ]
+    },
+    {
+      "slug": "references-mutability",
+      "title": "Names, references and surprises",
+      "summary": "Why changing one list can change 'another', is vs ==, and mutable default arguments.",
+      "minutes": 18,
+      "objectives": [
+        "You can draw names-and-objects diagrams for assignments",
+        "You can explain the difference between is and ==",
+        "You can predict what happens when a function modifies a list argument",
+        "You can explain why a mutable default argument such as items=[] keeps growing across calls"
+      ],
+      "concepts": [
+        {
+          "name": "Names point to objects",
+          "explain": "After a = [1, 2] and b = a, both names point to the same list, so b.append(3) also changes what a shows. Assignment copies the arrow, not the object. Use a.copy() or list(a) when you need a separate list.",
+          "analogy": "Like two people sharing a Google Doc link: if one edits, the other sees the edit, because it is one document.",
+          "visual": {
+            "component": "ReferenceArrows",
+            "kind": "stepper",
+            "shows": "A Python-Tutor-style diagram with names on the left, objects on the right and arrows between them, updated line by line.",
+            "interaction": "Step through aliasing, copying and reassignment snippets, predicting each printed result before you reveal it.",
+            "aha": "Two names, one object. Mutation through either name shows up in both."
+          }
+        },
+        {
+          "name": "is vs ==",
+          "explain": "== asks whether two values are equal. is asks whether they are the very same object in memory. Two separate lists [1, 2] are == but not is. Use 'is' mainly for None checks.",
+          "analogy": "Twins are equal (==) but are not the same person (is).",
+          "visual": {
+            "component": "IdentityVsEquality",
+            "kind": "interactive",
+            "shows": "Two names with arrows to objects, plus two lamps labelled == and is.",
+            "interaction": "Toggle between 'same object' and 'equal copy' setups and see which lamp lights. id() values are shown on hover.",
+            "aha": "Equality compares contents; identity compares arrows."
+          }
+        },
+        {
+          "name": "Functions that mutate their arguments",
+          "explain": "Passing a list to a function passes a reference, so if the function appends to it, the caller's list changes. A mutable default like def f(x=[]) is created once and shared across calls, which is a classic bug. Use None as the default and create the list inside.",
+          "analogy": "Like lending your notebook to a friend: they write in YOUR notebook, not a copy.",
+          "visual": {
+            "component": "FunctionMutationTrace",
+            "kind": "stepper",
+            "shows": "Caller and function frames whose names point to the same list object, with the list growing during the call.",
+            "interaction": "Run the buggy mutable-default function three times and watch the shared list grow, then apply the None fix and rerun.",
+            "aha": "Mutable arguments can be changed by the function. This shows up in exam MCQs."
+          }
+        },
+        {
+          "name": "The mutable default argument trap",
+          "explain": "Default argument values are created once, when the function is defined. def add(x, items=[]) therefore shares one list across calls, so it keeps growing. The fix is items=None and creating a new list inside.",
+          "analogy": "A shared sign-up sheet left at the counter: every customer writes on the same sheet instead of getting a fresh one.",
+          "visual": {
+            "component": "DefaultArgTrap",
+            "kind": "stepper",
+            "shows": "Three calls to the buggy function with the single default list growing in memory, then the fixed version creating a new list each call.",
+            "interaction": "Step calls; toggle the fix on and off.",
+            "aha": "Defaults are evaluated once, not every call."
+          }
+        }
+      ],
+      "code": "runnable",
+      "checkpoint_focus": [
+        "Modifying a list passed to a function (cf. 2026 Prelim Q83)",
+        "is vs == (cf. Q84)",
+        "Copy vs alias outputs",
+        "def f(x, items=[]) shares one list across calls; use items=None"
+      ]
+    },
+    {
+      "slug": "classes-objects",
+      "title": "Classes and objects",
+      "summary": "Build your own types with attributes and methods, the pattern behind scikit-learn models and PyTorch modules.",
+      "minutes": 24,
+      "objectives": [
+        "You can define a class with __init__ and methods",
+        "You can explain self and instance attributes",
+        "You can write a tiny model class with fit and predict",
+        "You can read an abstract base class and implement its abstract methods in a subclass"
+      ],
+      "concepts": [
+        {
+          "name": "Class = blueprint, object = instance",
+          "explain": "A class describes what its objects store (attributes) and can do (methods). __init__ runs when you create an object and sets up its attributes on self. Each object keeps its own copy of the data.",
+          "analogy": "Like a BTO flat floor plan (class) and the actual flats built from it (objects): same layout, different families inside.",
+          "visual": {
+            "component": "BlueprintFactory",
+            "kind": "animation",
+            "shows": "A class blueprint card stamping out three object cards, each with different attribute values.",
+            "interaction": "Edit the constructor arguments and stamp new objects, then click an object to inspect its attributes.",
+            "aha": "One class can make many independent objects."
+          }
+        },
+        {
+          "name": "Methods and the fit/predict pattern",
+          "explain": "A method is a function attached to an object that can read and change self. A tiny MeanPredictor class with fit(y), which stores self.mean_, and predict(), which returns it, follows the same pattern as every scikit-learn model. Objects remember what they learned.",
+          "analogy": "Like a student who studies (fit) and then answers questions from memory (predict).",
+          "visual": {
+            "component": "ObjectStateInspector",
+            "kind": "interactive",
+            "shows": "The MeanPredictor code beside a live inspector panel of the object's attributes.",
+            "interaction": "Call predict() before fit() and see the error, then call fit() and watch self.mean_ appear, then predict() again.",
+            "aha": "fit changes the object's state, and predict uses that state. This is the scikit-learn API."
+          }
+        },
+        {
+          "name": "Inheritance",
+          "explain": "class MyNet(nn.Module) creates a child class that inherits all of the parent's methods. You override the ones you need, such as forward, and call super().__init__() so the parent can set itself up. PyTorch models are built exactly this way.",
+          "analogy": "Like a new hawker stall inheriting its parent stall's recipes and changing only the chilli.",
+          "visual": {
+            "component": "InheritanceTree",
+            "kind": "diagram",
+            "shows": "A parent class box with its methods, and a child box that inherits them, with overridden methods highlighted.",
+            "interaction": "Click a method on the child to see whether Python finds it on the child or walks up to the parent.",
+            "aha": "Inheritance lets you reuse a whole framework by writing only the parts that differ."
+          }
+        },
+        {
+          "name": "Abstract base classes",
+          "explain": "An abstract base class (ABC) is a template that other classes must complete. With from abc import ABC, abstractmethod, a class Loss(ABC) that declares @abstractmethod def gradient(self, y, y_pred) cannot be created directly, and a subclass that forgets to define gradient raises TypeError when you try to create it. Shared code, such as a predict loop, lives once in the base class and each child fills in only the parts that differ. The 2026 Final's gradient-boosting scaffold (BaseGradientBoosting with L1 and L2 variants) uses exactly this pattern.",
+          "analogy": "A form with some boxes pre-printed and others marked 'must fill in': every copy shares the printed parts, and an incomplete form is rejected at the counter.",
+          "visual": {
+            "component": "AbstractTemplate",
+            "kind": "interactive",
+            "shows": "A base-class card with concrete methods (solid) and abstract methods (dashed slots), and two child-class cards (L1Loss and L2Loss) that plug code into the dashed slots; a console shows what happens when you create each class.",
+            "interaction": "Try to create the base class (TypeError), then a child with a missing method (TypeError), then a complete child (works); click a method call to see whether base or child code runs.",
+            "aha": "Abstract methods are the blanks you must fill, so reading which methods are abstract tells you exactly what an exam scaffold expects you to write."
+          }
+        }
+      ],
+      "code": "runnable",
+      "checkpoint_focus": [
+        "Reading class code and predicting attribute values",
+        "The role of self and __init__",
+        "Why nn.Module is subclassed (preview)",
+        "ABC and @abstractmethod: what must be filled in"
+      ]
+    },
+    {
+      "slug": "exceptions-debugging",
+      "title": "Exceptions and debugging",
+      "summary": "Know the common exceptions, handle errors with try/except, and debug systematically.",
+      "minutes": 18,
+      "objectives": [
+        "You can name the cause of IndexError, KeyError, TypeError, ValueError and ZeroDivisionError",
+        "You can write correct try/except/finally blocks",
+        "You can apply a step-by-step debugging routine"
+      ],
+      "concepts": [
+        {
+          "name": "Common exceptions",
+          "explain": "IndexError means a position is out of range, KeyError means a dict key is missing, and TypeError means the wrong type for an operation. ValueError means the right type but a bad value, as in int('abc'). ZeroDivisionError is dividing by zero. Knowing the cause from the name saves minutes in an exam.",
+          "analogy": "Like the warning lights on a car dashboard: each symbol points to a different problem.",
+          "visual": {
+            "component": "ExceptionZoo",
+            "kind": "interactive",
+            "shows": "A grid of one-line buggy snippets, each with a hidden exception type.",
+            "interaction": "Guess each snippet's exception, run it to check, and then reveal the one-line fix.",
+            "aha": "Each exception type points to a specific family of causes."
+          }
+        },
+        {
+          "name": "try / except / finally",
+          "explain": "Code in try runs normally. If an exception occurs, Python jumps to the matching except block. finally always runs, error or not, so it suits clean-up. Catch specific exceptions, because a bare except can hide real bugs.",
+          "analogy": "Like a wet-weather plan for sports day: try the field, fall back to the hall if it rains, and pack up the chairs either way.",
+          "visual": {
+            "component": "TryExceptFlow",
+            "kind": "animation",
+            "shows": "A flowchart of the try, except, else and finally paths, with the code beside it.",
+            "interaction": "Toggle an input that does or doesn't cause an error, then play to see which path runs and which prints appear.",
+            "aha": "finally always runs, and the except block only runs if a matching error happens."
+          }
+        },
+        {
+          "name": "Systematic debugging",
+          "explain": "Debug in a routine: reproduce the bug, read the error, and print or assert intermediate values. Then narrow down the location by halving the code you suspect. Off-by-one errors and wrong variable names are the most common culprits.",
+          "analogy": "Like a doctor's diagnosis: check the symptoms, run tests, and narrow down the cause before treating.",
+          "visual": {
+            "component": "PythonBugHunt",
+            "kind": "interactive",
+            "shows": "A buggy average() function that returns the wrong value, with clickable lines.",
+            "interaction": "Click lines to insert print probes and see a trace of the values, then click the line you think is wrong to reveal the off-by-one bug.",
+            "aha": "Printing intermediate values turns a mystery into a visible wrong number."
+          }
+        }
+      ],
+      "code": "runnable",
+      "checkpoint_focus": [
+        "Likely cause of IndexError (cf. 2026 Prelim Q126)",
+        "Correct exception handling (cf. Q86)",
+        "What print debugging reveals (cf. Q127)"
+      ]
+    }
+  ]
+}

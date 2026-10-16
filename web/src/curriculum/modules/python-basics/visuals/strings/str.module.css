@@ -1,0 +1,303 @@
+/* Styles for the strings lesson's visuals. */
+.wrap {
+  width: 100%;
+  display: grid;
+  gap: 0.75rem;
+  min-width: 0;
+}
+.row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: center;
+  width: 100%;
+}
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4rem;
+}
+.chipsLabel {
+  font-size: var(--step--1);
+  font-weight: 700;
+  color: var(--ink-2);
+  margin-right: 0.2rem;
+}
+.chip {
+  font: inherit;
+  font-family: var(--font-mono);
+  font-size: var(--step--1);
+  font-weight: 600;
+  padding: 0.3rem 0.75rem;
+  border-radius: 999px;
+  border: 1.5px solid var(--rule);
+  background: var(--surface);
+  color: var(--ink-2);
+  cursor: pointer;
+}
+.chip:hover:not(:disabled) {
+  border-color: var(--accent-line);
+  background: var(--accent-soft);
+}
+.chip:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+.chipOn,
+.chipOn:hover:not(:disabled) {
+  border-color: var(--accent);
+  background: var(--accent);
+  color: var(--accent-ink);
+}
+.field {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  flex: 1 1 200px;
+  min-width: 0;
+  padding: 0.3rem 0.6rem;
+  border-radius: var(--radius-m);
+  border: 1.5px solid var(--ink-3);
+  background: var(--surface);
+  font-family: var(--font-mono);
+}
+.field:focus-within {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-soft);
+}
+.fieldLabel {
+  color: var(--ink-3);
+  font-weight: 700;
+  flex: none;
+  font-size: 0.9rem;
+}
+.input {
+  flex: 1;
+  min-width: 0;
+  border: none;
+  outline: none;
+  background: transparent;
+  color: var(--ink);
+  font: inherit;
+  font-size: 0.95rem;
+  padding: 0.2rem 0;
+}
+.svgBox {
+  width: 100%;
+  min-width: 0;
+}
+.svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  overflow: visible;
+  font-family: var(--font-body);
+  touch-action: none;
+}
+.mono {
+  font-family: var(--font-mono);
+}
+.handle {
+  cursor: ew-resize;
+  outline: none;
+}
+.handle:focus-visible .grip {
+  stroke: var(--accent);
+  stroke-width: 3;
+}
+.result {
+  width: 100%;
+  display: grid;
+  gap: 0.3rem;
+  padding: 0.6rem 0.8rem;
+  border-radius: var(--radius-m);
+  background: var(--surface-2);
+  border: 1px solid var(--rule);
+  font-size: var(--step--1);
+  color: var(--ink-2);
+  line-height: 1.5;
+}
+.resultLine {
+  font-family: var(--font-mono);
+  font-size: 1rem;
+  color: var(--ink);
+  overflow-wrap: anywhere;
+}
+.prompt {
+  color: var(--ink-3);
+}
+.err {
+  color: var(--bad);
+  font-family: var(--font-mono);
+  overflow-wrap: anywhere;
+}
+
+/* ---------- method chain ---------- */
+.wrap .steps {
+  width: 100%;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 0.4rem;
+}
+.steps .step {
+  margin: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 9.5rem) minmax(0, 1fr);
+  gap: 0.6rem;
+  align-items: center;
+  padding: 0.45rem 0.6rem;
+  border-radius: var(--radius-m);
+  border: 1px solid var(--rule);
+  background: var(--surface);
+}
+.stepNarrow.step {
+  grid-template-columns: minmax(0, 1fr);
+  gap: 0.3rem;
+}
+.stepOrig {
+  background: var(--surface-2);
+}
+.stepBad {
+  border-color: color-mix(in srgb, var(--bad) 50%, var(--rule));
+  background: var(--bad-soft);
+}
+.op {
+  font-family: var(--font-mono);
+  font-size: 0.88rem;
+  font-weight: 700;
+  color: var(--ink);
+  overflow-wrap: anywhere;
+}
+.val {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+  align-items: center;
+  min-width: 0;
+}
+.cells {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 2px;
+  max-width: 100%;
+}
+.cell {
+  display: inline-grid;
+  place-items: center;
+  min-width: 1.15rem;
+  height: 1.6rem;
+  padding: 0 1px;
+  border-radius: 4px;
+  background: color-mix(in srgb, var(--viz-3) 14%, var(--surface));
+  border: 1px solid color-mix(in srgb, var(--viz-3) 40%, transparent);
+  font-family: var(--font-mono);
+  font-size: 0.88rem;
+  color: var(--ink);
+  white-space: pre;
+}
+.space {
+  color: var(--ink-3);
+}
+.pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.1rem 0.5rem;
+  border-radius: 999px;
+  border: 1.5px solid var(--viz-1);
+  background: color-mix(in srgb, var(--viz-1) 12%, var(--surface));
+  font-family: var(--font-mono);
+  font-size: 0.85rem;
+  color: var(--ink);
+  white-space: pre;
+}
+.bracket {
+  font-family: var(--font-mono);
+  font-weight: 700;
+  color: var(--ink-3);
+}
+.badge {
+  font-size: 0.7rem;
+  font-weight: 800;
+  padding: 0.05rem 0.45rem;
+  border-radius: 999px;
+  color: var(--surface);
+  background: var(--c);
+  white-space: nowrap;
+}
+.note {
+  font-size: 0.8rem;
+  color: var(--ink-2);
+}
+.codeLine {
+  width: 100%;
+  padding: 0.55rem 0.8rem;
+  border-radius: var(--radius-m);
+  background: var(--surface-2);
+  border: 1px solid var(--rule);
+  font-family: var(--font-mono);
+  font-size: 0.88rem;
+  line-height: 1.6;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.out {
+  color: var(--ink-2);
+}
+
+/* ---------- f-strings ---------- */
+.fBox {
+  width: 100%;
+  display: grid;
+  gap: 0.45rem;
+  padding: 0.7rem 0.85rem;
+  border-radius: var(--radius-m);
+  border: 1px solid var(--rule);
+  background: var(--surface-2);
+  font-family: var(--font-mono);
+  font-size: 0.95rem;
+  line-height: 1.7;
+}
+.fLabel {
+  display: block;
+  font-family: var(--font-body);
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--ink-3);
+}
+.fLine {
+  overflow-wrap: anywhere;
+}
+.field1,
+.field2 {
+  border-radius: 4px;
+  padding: 1px 3px;
+  font-weight: 700;
+}
+.field1 {
+  background: color-mix(in srgb, var(--viz-1) 18%, transparent);
+  box-shadow: inset 0 -2px 0 var(--viz-1);
+}
+.field2 {
+  background: color-mix(in srgb, var(--viz-2) 20%, transparent);
+  box-shadow: inset 0 -2px 0 var(--viz-2);
+}
+.plain {
+  color: var(--ink-2);
+}
+.grid2 {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.6rem 1rem;
+  width: 100%;
+}
+.grid2 > * {
+  min-width: 0;
+}
+@media (max-width: 560px) {
+  .grid2 {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

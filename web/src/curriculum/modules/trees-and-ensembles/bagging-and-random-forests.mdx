@@ -1,0 +1,191 @@
+import BootstrapSampler from './visuals/bagging-and-random-forests/BootstrapSampler'
+import AveragingVariance from './visuals/bagging-and-random-forests/AveragingVariance'
+import ForestAverager from './visuals/bagging-and-random-forests/ForestAverager'
+import ImportanceBars from './visuals/bagging-and-random-forests/ImportanceBars'
+
+export const forestCode = `import numpy as np
+from sklearn.tree import DecisionTreeClassifier
+from sklearn.ensemble import RandomForestClassifier
+
+rng = np.random.default_rng(0)
+
+def circle_data(n):
+    X = rng.uniform(0, 10, size=(n, 2))
+    y = ((X[:, 0] - 5) ** 2 + (X[:, 1] - 5) ** 2 < 3.4 ** 2).astype(int)
+    flip = rng.random(n) < 0.15                  # 15% label noise
+    return X, np.where(flip, 1 - y, y)
+
+X_train, y_train = circle_data(150)
+X_val, y_val = circle_data(1000)
+
+# bootstrap samples: draw 150 row numbers WITH replacement, 1000 times
+fracs = [len(np.unique(rng.integers(0, 150, size=150))) / 150 for _ in range(1000)]
+print("average fraction of distinct rows:", round(np.mean(fracs), 3))
+
+# bagging from scratch: deep trees on bootstrap samples, then a vote
+def bagging_predict(X, y, X_new, n_trees=100):
+    votes = np.zeros(len(X_new))
+    for b in range(n_trees):
+        idx = rng.integers(0, len(y), size=len(y))
+        tree = DecisionTreeClassifier(random_state=b).fit(X[idx], y[idx])
+        votes += tree.predict(X_new)
+    return (votes / n_trees > 0.5).astype(int)
+
+tree = DecisionTreeClassifier(random_state=0).fit(X_train, y_train)
+print("one deep tree:      ", tree.score(X_val, y_val))
+print("bagging, 100 trees: ", np.mean(bagging_predict(X_train, y_train, X_val) == y_val))
+
+rf = RandomForestClassifier(n_estimators=200, max_features=1, oob_score=True, random_state=0)
+rf.fit(X_train, y_train)
+print("random forest:      ", rf.score(X_val, y_val))
+print("out-of-bag estimate:", round(rf.oob_score_, 3))
+print("importances:", rf.feature_importances_.round(3))`
+
+At the end of the last lesson, [Decision trees](#/learn/trees-and-ensembles/decision-trees), a fully grown tree memorised the noise: perfect on its training data, shaky on new data, and completely different whenever the training data changed a little. The fix sounds too simple to work: grow **lots** of deep trees, each on a slightly different version of the data, and let them vote. That is **bagging**. Add one extra twist and you get a **random forest**, one of the most reliable models for tables of data, and a favourite NOAI topic.
+
+<Analogy title="Asking 100 friends where to eat">
+
+Ask one friend for a dinner recommendation and you inherit her quirks: maybe she rates every place by its chilli level. Ask 100 friends and go with the most popular answer, and the quirks cancel out: what is left is food that most people genuinely like. There is one catch. If all 100 friends got their picks from the same viral food video, asking more of them adds nothing, because they all make the **same** mistake. Averaging works best when the opinions are **independent**.
+
+</Analogy>
+
+## Step 1: a different dataset for every tree
+
+We only have one training set, so where do "slightly different versions" come from? We make them by resampling. A <Term def="A random sample of n examples drawn from a dataset of n examples WITH replacement, so some examples appear several times and others not at all.">bootstrap sample</Term> draws $n$ examples from the $n$ training examples **with replacement**: after each draw, the example goes back, so it can be drawn again. It is like drawing names from a hat and putting each name back before the next draw. Each bootstrap sample has the same size as the original data, but it is a different mix: some rows appear twice or more, and some rows are missing.
+
+<BootstrapSampler />
+
+How many rows get left out? You can work it out exactly.
+
+<Steps title="The chance that a row is never drawn">
+  <Step title="One draw">
+    Each draw picks one of the $n$ rows, so the chance it misses a particular row (say row 7) is $1 - \frac{1}{n}$. With $n = 10$ that is $0.9$.
+  </Step>
+  <Step title="n independent draws">
+    To be left out, row 7 must be missed by **every** draw, so multiply: $\left(1 - \frac{1}{n}\right)^n$. With $n = 10$: $0.9^{10} \approx 0.349$.
+  </Step>
+  <Step title="Larger datasets">
+    $n = 100$: $0.99^{100} \approx 0.366$. As $n$ grows, $\left(1 - \frac1n\right)^n$ gets closer and closer to $\frac{1}{e} \approx 0.368$, where $e \approx 2.718$ is <Term def="The mathematical constant e ≈ 2.718, the base of natural logarithms. One of its properties: (1 − 1/n)ⁿ approaches 1/e as n grows.">Euler's number</Term>.
+  </Step>
+  <Step title="The 63.2% rule">
+    So about **36.8%** of the rows are left out of each bootstrap sample, and about $1 - 0.368 = $ **63.2%** of the distinct rows appear at least once. The left-out rows are called <Term def="The training rows that were not drawn into a particular tree's bootstrap sample (about 36.8% of them). That tree never saw them, so they can test it.">out-of-bag (OOB)</Term> rows for that tree.
+  </Step>
+</Steps>
+
+<KeyIdea>
+
+A bootstrap sample draws $n$ rows from $n$ **with replacement**. It contains about **63.2%** of the distinct rows (some repeated) and leaves about **36.8%** out of bag.
+
+</KeyIdea>
+
+<QuickCheck
+  q="A training set has 1,000 rows. A random forest builds a bootstrap sample for one of its trees. How many rows does the sample have, and about how many of them are distinct?"
+  options={['1,000 rows, about 632 distinct', '632 rows, all distinct', '1,000 rows, all distinct (just shuffled)', '368 rows, all distinct']}
+  answer={0}
+  explain="A bootstrap sample has the same size as the data, n = 1,000, but because it draws with replacement some rows repeat. On average $1 - 0.368 = 0.632$ of the rows appear at least once, so about 632 are distinct. 632 rows all distinct would be sampling *without* replacement (a subsample), which is not a bootstrap."
+/>
+
+## Step 2: grow a tree on each sample and average
+
+<Term def="Bootstrap AGGregatING: train the same kind of model on many bootstrap samples and combine their predictions by voting (classification) or averaging (regression).">Bagging</Term>, short for **b**ootstrap **agg**regat**ing** (Leo Breiman, 1996), is:
+
+1. Draw $B$ bootstrap samples from the training data.
+2. Grow one deep, unpruned tree on each sample. The trees are independent of each other, so they can be trained **in parallel**.
+3. To predict, ask every tree. For classification take a **majority vote** (scikit-learn averages the trees' class probabilities instead, which almost always agrees); for regression take the **average**.
+
+Why does this help? Each deep tree has low bias but high variance: its prediction wobbles depending on which noisy rows it happened to see. Averaging cancels the wobbles that differ from tree to tree and keeps what they agree on. Precisely, suppose every tree's prediction has <Term def="A measure of spread: the average squared distance of a quantity from its mean. Here, how much a tree's prediction changes from one training sample to another.">variance</Term> $\sigma^2$ and the errors of any two trees have correlation $\rho$ (rho: 0 means unrelated, 1 means they always make the same error). Then the average of $B$ trees has variance
+
+$$
+\operatorname{Var}(\text{average of } B \text{ trees}) = \rho\,\sigma^2 + \frac{1 - \rho}{B}\,\sigma^2
+$$
+
+- If the trees were **independent** ($\rho = 0$), only the second term remains: $\frac{\sigma^2}{B}$. A hundred trees would cut the variance a hundredfold.
+- If the trees are **correlated** ($\rho > 0$), the second term still shrinks as $B$ grows, but the first term $\rho\,\sigma^2$ does not depend on $B$ at all. It is a **floor** that more trees can never break through.
+
+With $\sigma^2 = 1$ and $B = 100$: for $\rho = 0$ the variance is $0.01$, but for $\rho = 0.5$ it is $0.5 + \frac{0.5}{100} = 0.505$, barely half of one tree's.
+
+<AveragingVariance />
+
+<KeyIdea>
+
+Bagging **reduces variance**, not bias: each tree is already flexible enough, and averaging stops it from chasing noise. How much it helps is limited by how **correlated** the trees are.
+
+</KeyIdea>
+
+<PastPaperQuestion paper="noai2025" n={2} />
+
+## Step 3: random forests make the trees less alike
+
+Bootstrap samples overlap a lot (each holds about 63% of the same data), so bagged trees end up similar. Worse, if one feature is very strong, almost every tree asks about it at the root, and their errors become highly correlated. A <Term def="An ensemble of decision trees, each grown on a bootstrap sample, where every split may only choose among a random subset of the features. Predictions are averaged or voted.">random forest</Term> (Breiman, 2001) adds one twist: **at every split, the tree may only choose among a random subset of the features**. The size of the subset is the hyperparameter `max_features`:
+
+- for classification, scikit-learn's default is $\sqrt{p}$ features out of $p$ (for example, 4 out of 16);
+- for regression, scikit-learn's default is all the features, which is plain bagging; values such as $p/3$ are common.
+
+<PastPaperQuestion paper="prelim2026" n={151} />
+
+Each individual tree gets a little **worse**, since it sometimes cannot use the best feature. But the trees become **less correlated**, which lowers the floor $\rho\,\sigma^2$, so the **average** gets better. Try it on the noisy circle from [Decision trees](#/learn/trees-and-ensembles/decision-trees):
+
+<ForestAverager />
+
+Look at the accuracy curve: it rises quickly, then flattens. Adding trees **never makes a forest overfit more**, because each extra tree just makes the average a little more stable. It simply stops helping, while training time keeps growing in proportion to the number of trees. So `n_estimators` is not tuned to fight overfitting: pick "enough" trees (typically a few hundred) and stop when the validation or OOB score levels off. If a forest overfits, look instead at the trees themselves (`max_depth`, `min_samples_leaf`) or at `max_features`.
+
+<PastPaperQuestion paper="final2026" n={1} />
+
+<QuickCheck
+  q="Why does a random forest let each split choose from only a random subset of the features, even though this makes every single tree a little less accurate?"
+  options={['It makes the trees less alike, so their errors are less correlated and cancel out more', 'It makes each tree shallower, which lowers the bias of the forest as a whole', 'It is mainly there to speed up training; the accuracy of the average is unaffected', 'It stops the trees from overfitting, so they no longer need to be grown on bootstrap samples']}
+  answer={0}
+  explain="The variance of an average is $\rho\sigma^2 + \frac{1-\rho}{B}\sigma^2$, so lowering the correlation $\rho$ between trees lowers the floor that more trees cannot break. Random feature subsets stop every tree from asking the same strong question at the top. Faster training is a side benefit, not the main reason, and the trees are still grown deep on bootstrap samples."
+/>
+
+## Out-of-bag error: a free validation set
+
+Remember that each tree never saw about 37% of the training rows. That gives a free way to estimate how the forest does on unseen data. For every training row, collect the predictions of only the trees for which that row was **out of bag**, and let those trees vote. Comparing these votes with the true labels gives the <Term def="The error of a bagged ensemble measured on its own training data, where each row is predicted only by the trees that did not see it during training. It estimates the test error without a separate validation set.">out-of-bag (OOB) error</Term>. Because no tree is ever tested on a row it trained on, the OOB error behaves like a validation error, and you did not have to set any data aside. Compare the two readouts in the visual above: with 100 trees the OOB accuracy lands within a few percentage points of the validation accuracy. (With only a handful of trees it is unreliable: each row is judged by just the 37% or so of trees that did not see it, and some rows by none.) In scikit-learn, pass `oob_score=True` and read `model.oob_score_` after fitting.
+
+<Mistake>
+
+Scoring the forest on its own training rows with **all** the trees is not the OOB score. Every tree has seen most of those rows, so that score is almost 100% and tells you nothing about new data. OOB uses, for each row, only the trees that never saw it.
+
+</Mistake>
+
+<PastPaperQuestion paper="prelim2026" n={221} />
+
+## Which features matter? Feature importance
+
+A forest of hundreds of trees is hard to read, but it can still tell you which inputs it relies on. Think of crediting each football player by how many goals their passes led to. There are two common ways.
+
+1. **Impurity importance** (mean decrease in impurity, MDI). Every split reduces the impurity: by $n\,I(\text{node}) - n_\text{yes}\,I(\text{yes}) - n_\text{no}\,I(\text{no})$, the weighted drop you met in [Decision trees](#/learn/trees-and-ensembles/decision-trees). Give that amount to the feature the split used, scale each tree's totals to add up to 1, then average over all the trees. This is scikit-learn's `feature_importances_`. It is free to compute, but it is measured on the **training** data.
+2. **Permutation importance.** Take held-out data, randomly shuffle one feature's column (which breaks its link to the target while keeping its values realistic), and measure how much the score drops (below, the score is $R^2$: the fraction of the variation in price that the model explains, where 1 is perfect). A big drop means the model really relies on that feature for new data. In scikit-learn: `sklearn.inspection.permutation_importance`.
+
+<ImportanceBars />
+
+What the toggles reveal are the two classic traps:
+
+- **Correlated features share or hide credit.** Two copies of the same information split the impurity credit, so each looks half as important. Under permutation each copy can cover for the other, so both can look unimportant.
+- **Impurity importance favours features with many distinct values** (high cardinality). A feature with many possible thresholds, such as an ID number, gives deep trees many chances to find a split that happens to fit noise. Permutation importance on held-out data is not fooled.
+
+Importance also says nothing about **cause and effect**: it describes what this model uses, not what drives prices in the real world.
+
+## Bagging and a random forest in Python
+
+The first function builds bagging from scratch in a few lines (exactly the kind of loop a NOAI Final task might ask for), and the rest uses scikit-learn's `RandomForestClassifier` with an OOB score. Run it, then try `max_features=2`, or add a column of random numbers to `X_train` and `X_val` and look at the importances.
+
+<PyRunner packages={['numpy', 'scikit-learn']} code={forestCode} />
+
+With these seeds, one deep tree scores about 75% on the validation set, bagging about 76%, and the random forest about 79%; the OOB estimate lands within a percentage point of the forest's validation score, without using any validation data. The average fraction of distinct rows comes out at 0.634, matching $1 - \left(1 - \frac{1}{150}\right)^{150} \approx 0.633$.
+
+<ExamTip>
+
+Distractors NOAI likes to use here: "bagging reduces **bias**" (it reduces variance); "a bootstrap sample holds 63.2% of the rows" (it holds all $n$ rows, about 63.2% of them **distinct**); "more trees make a forest overfit" (they only stop helping); and "the forest's random subset is chosen once per tree" (it is drawn afresh at **every split**).
+
+</ExamTip>
+
+<Takeaways>
+
+- A **bootstrap sample** draws $n$ rows from $n$ with replacement: about 63.2% distinct rows, about 36.8% out of bag.
+- **Bagging** trains a deep tree on each bootstrap sample and votes or averages. It lowers the variance from $\sigma^2$ **to** $\rho\sigma^2 + \frac{1-\rho}{B}\sigma^2$: close to $\sigma^2/B$ when the trees are independent, but never below the floor $\rho\sigma^2$ when they are correlated.
+- A **random forest** also restricts each split to a random subset of features (`max_features`), which makes the trees less alike and the average better.
+- The **out-of-bag** score is a free estimate of test performance; adding trees gives diminishing returns but never more overfitting.
+- **Feature importance** (impurity or permutation) shows what the model relies on; watch out for correlated features and for impurity importance's bias towards high-cardinality features.
+
+</Takeaways>

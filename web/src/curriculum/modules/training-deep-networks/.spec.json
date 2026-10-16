@@ -1,0 +1,376 @@
+{
+  "slug": "training-deep-networks",
+  "order": 23,
+  "part": "deep-learning",
+  "domain": "ai_ml_dl",
+  "title": "Optimisers and training deep networks well",
+  "tagline": "Tricks that make deep learning work",
+  "summary": "Stochastic and mini-batch gradient descent, momentum, RMSProp, Adam and AdamW, weight initialisation, BatchNorm and LayerNorm, dropout, weight decay and early stopping, learning-rate warm-up and schedules, and stability tools: gradient clipping, mixed precision and gradient accumulation.",
+  "prerequisites": [
+    "pytorch",
+    "calculus-and-gradient-descent"
+  ],
+  "syllabus": [
+    "NOAI Mathematics: Optimisation",
+    "IOAI 2B7 SGD, Mini-Batch Gradient Descent",
+    "IOAI 2B8 Momentum Methods (Adam, AdamW)",
+    "IOAI 2B9 Convergence and Learning Rates",
+    "IOAI 2B10 Regularization: Dropout, Early Stopping, Weight Decay",
+    "IOAI 2B11 Weight Initialization",
+    "IOAI 2B12 Batch Normalization",
+    "NOAI: gradient clipping, mixed precision, gradient accumulation, warm-up and cosine schedules, LayerNorm"
+  ],
+  "paper_subtopics": [
+    "optimisation",
+    "training-regularisation",
+    "optimisation-tradeoffs",
+    "neural-networks",
+    "pytorch"
+  ],
+  "lessons": [
+    {
+      "slug": "sgd-and-mini-batches",
+      "title": "Stochastic and mini-batch gradient descent",
+      "summary": "Using small random batches to estimate the gradient cheaply, and the vocabulary of epochs, iterations and batch size.",
+      "minutes": 20,
+      "objectives": [
+        "You can contrast batch, stochastic and mini-batch gradient descent",
+        "You can compute iterations per epoch",
+        "You can explain why noisy mini-batch gradients still work and tend to find flatter minima"
+      ],
+      "concepts": [
+        {
+          "name": "Noisy but cheap gradients",
+          "explain": "Batch gradient descent uses all N examples per step, which is accurate but slow. Stochastic gradient descent (SGD) uses one random example, which is fast but noisy. Mini-batch GD uses, say, 32 examples, a middle ground that also suits GPUs. The noise averages out over many steps.",
+          "analogy": "Estimating Singapore's favourite hawker dish by asking everyone (batch), one random person (SGD) or a quick group of 32 (mini-batch).",
+          "visual": {
+            "component": "BatchSizePaths",
+            "kind": "interactive",
+            "shows": "Contour lines of a loss with three paths from the same start: full-batch (smooth), mini-batch (slightly wiggly) and SGD (very noisy).",
+            "interaction": "Slide the batch size; replay with a new seed; compare compute used per step in a readout.",
+            "aha": "Smaller batches trade smoothness for speed, and the noise rarely stops you reaching the valley."
+          }
+        },
+        {
+          "name": "Epochs, iterations and batches",
+          "explain": "An epoch is one full pass through the training data; an iteration (step) processes one batch. With 1000 examples and batch size 32, one epoch takes ⌈1000/32⌉ = 32 iterations (the last batch has 8 examples).",
+          "analogy": "Reading a 1000-page textbook 32 pages a night: one complete read is an epoch, each night is an iteration.",
+          "visual": {
+            "component": "EpochCounter",
+            "kind": "interactive",
+            "shows": "A strip of N data cells chunked into coloured batches, with counters for iterations per epoch and total iterations.",
+            "interaction": "Slide dataset size, batch size and number of epochs; toggle 'drop last incomplete batch'.",
+            "aha": "Iteration counting is simple division with a ceiling, a frequent quick-win MCQ."
+          }
+        },
+        {
+          "name": "Flat vs sharp minima",
+          "explain": "A sharp minimum is a narrow pit, and a flat minimum is a wide basin. If the test data's loss surface is slightly shifted from the training one, a flat minimum stays low while a sharp one shoots up. Large learning rates and SGD noise tend to find flatter minima.",
+          "analogy": "Like parking on a wide flat lot versus the tip of a narrow ramp: a small nudge matters much more on the ramp.",
+          "visual": {
+            "component": "SharpFlatMinima",
+            "kind": "interactive",
+            "shows": "A 1D loss curve with one sharp and one flat minimum, and a test curve shifted from the training curve.",
+            "interaction": "Slide the shift and compare the test loss at each minimum.",
+            "aha": "Flat minima generalise better because they are robust to small shifts."
+          }
+        }
+      ],
+      "code": "snippet",
+      "checkpoint_focus": [
+        "Batch vs SGD vs mini-batch trade-offs",
+        "Iterations per epoch = ceil(N / batch size)",
+        "Gradient noise and batch size",
+        "Flat minima generalise better than sharp ones"
+      ]
+    },
+    {
+      "slug": "momentum-and-adam",
+      "title": "Momentum, RMSProp and Adam",
+      "summary": "Smoothing gradients with moving averages and giving each parameter its own step size.",
+      "minutes": 20,
+      "objectives": [
+        "You can explain an exponential moving average",
+        "You can describe momentum, RMSProp and Adam in one sentence each",
+        "You can choose between Adam/AdamW and SGD with momentum"
+      ],
+      "concepts": [
+        {
+          "name": "Exponential moving averages",
+          "explain": "An exponential moving average (EMA) updates m ← βm + (1 − β)g, mixing a little of each new value into a running average. With β = 0.9 it roughly averages the last 10 values, smoothing out noise.",
+          "analogy": "Your mood after a week of exams: today's events matter, but yesterday's mood still carries over.",
+          "visual": {
+            "component": "EMASmoother",
+            "kind": "interactive",
+            "shows": "A noisy sequence of gradient values and its EMA line on the same Plot.",
+            "interaction": "Slide β from 0 to 0.99 and watch the EMA go from jumpy to smooth and laggy.",
+            "aha": "β trades responsiveness for smoothness, the core idea inside momentum and Adam."
+          }
+        },
+        {
+          "name": "Optimizer race",
+          "explain": "Momentum keeps an EMA of gradients so consistent directions build up speed and back-and-forth directions cancel. RMSProp divides each parameter's step by an EMA of its squared gradients, so steep directions take smaller steps. Adam combines both (with bias correction), and AdamW applies weight decay directly to the weights instead of through the gradient. Adagrad, an earlier method, divides each step by the square root of the sum of all past squared gradients, so its step sizes only ever shrink and can stall; RMSProp fixes this by using a moving average instead.",
+          "analogy": "A heavy trolley in a supermarket aisle keeps rolling straight (momentum), and a smart trolley that slows down on bumpy floors (RMSProp); Adam is both.",
+          "visual": {
+            "component": "OptimizerRace",
+            "kind": "animation",
+            "shows": "An elongated, curved valley contour map with four coloured balls racing: SGD, SGD+momentum, RMSProp and Adam, each leaving a trail.",
+            "interaction": "Play or step the race; adjust the learning rate and β values; drag the shared start point.",
+            "aha": "Momentum cuts zig-zags and adaptive methods equalise step sizes across directions, so they often reach the valley floor faster."
+          }
+        },
+        {
+          "name": "Per-parameter step sizes",
+          "explain": "Adam keeps two running averages per parameter: the first moment m (an average of gradients, like momentum) and the second moment v (an average of squared gradients, like RMSProp), both bias-corrected early in training. Its step is roughly η·m/(√v + ε), so parameters with rare or small gradients get relatively bigger steps, which helps with sparse features and embeddings. AdamW applies weight decay directly to the weights instead of mixing it into the gradient.",
+          "analogy": "A tutor who gives extra attention to topics you rarely practise and less to ones you drill daily.",
+          "visual": {
+            "component": "AdamStepBars",
+            "kind": "interactive",
+            "shows": "Bars for three parameters showing raw gradient, m, √v and the resulting step size side by side.",
+            "interaction": "Choose gradient patterns per parameter (steady, noisy, rare-but-large) and step the optimiser.",
+            "aha": "Adam normalises step sizes, which is why a single learning rate works across very different parameters."
+          }
+        }
+      ],
+      "code": "snippet",
+      "checkpoint_focus": [
+        "EMA with β",
+        "Momentum damps oscillation",
+        "Adam = momentum + per-parameter scaling",
+        "AdamW decouples weight decay",
+        "Adagrad's ever-shrinking steps versus RMSProp's moving average"
+      ]
+    },
+    {
+      "slug": "initialisation-and-normalisation",
+      "title": "Initialisation, BatchNorm and LayerNorm",
+      "summary": "Starting weights at the right scale, and normalising activations so deep networks train stably.",
+      "minutes": 22,
+      "objectives": [
+        "You can explain why all-zero initialisation fails (symmetry)",
+        "You can choose Xavier or He initialisation",
+        "You can describe BatchNorm's train and eval behaviour",
+        "You can contrast BatchNorm and LayerNorm axes"
+      ],
+      "concepts": [
+        {
+          "name": "Initial weights set the signal scale",
+          "explain": "If all weights start equal, every neuron in a layer learns the same thing (symmetry), so weights start random. Too small and activations shrink layer by layer; too big and they explode. Xavier/Glorot scaling suits tanh, and He scaling (variance 2/fan_in) suits ReLU, keeping the signal's spread roughly constant through the network. Orthogonal initialisation (a random orthogonal matrix) preserves vector lengths exactly, which helps very deep and recurrent networks. Initialise the output layer's bias sensibly too, at zero or at the log of each class's frequency: a bias set far too low for some classes can stop them ever being predicted.",
+          "analogy": "Tuning each stage of a sound system so the music is neither inaudible nor distorted by the final speaker.",
+          "visual": {
+            "component": "InitHistograms",
+            "kind": "interactive",
+            "shows": "Histograms of activations at layers 1, 5, 10 and 20 of a deep network for a chosen initialisation and activation.",
+            "interaction": "Choose initialisation (zeros, too small, Xavier, He, too large) and activation (tanh, ReLU); regenerate.",
+            "aha": "The right initialisation keeps activations healthy at every depth before any training happens."
+          }
+        },
+        {
+          "name": "BatchNorm step by step",
+          "explain": "BatchNorm takes each feature across the batch, subtracts the batch mean, divides by the batch standard deviation, then rescales and shifts with learnable γ and β. During training it also keeps running averages of the mean and variance, which it uses at evaluation time, so the output for one example does not depend on the rest of the batch. In a custom implementation the running statistics are buffers updated in place inside torch.no_grad(). Dropout placed just before BatchNorm makes the variance it sees differ between training and evaluation, one reason the two can conflict.",
+          "analogy": "Converting each subject's raw marks to z-scores across the cohort, then letting each subject adjust the scale it reports.",
+          "visual": {
+            "component": "BatchNormStepper",
+            "kind": "stepper",
+            "shows": "A MatrixGrid batch (rows = examples, columns = features); steps compute column means, standard deviations, normalised values and γ/β-scaled outputs; a side panel shows running statistics updating.",
+            "interaction": "Step through; edit batch values; toggle train/eval to see running statistics used instead of batch statistics.",
+            "aha": "BatchNorm normalises across the batch during training but uses stored averages at test time."
+          }
+        },
+        {
+          "name": "BatchNorm versus LayerNorm",
+          "explain": "BatchNorm normalises each feature across the examples in a batch; LayerNorm normalises each example across its own features. LayerNorm does not depend on batch size, so it suits Transformers and variable-length sequences.",
+          "analogy": "Ranking each subject across all students (BatchNorm) versus comparing each student's subjects against their own average (LayerNorm).",
+          "visual": {
+            "component": "NormAxes",
+            "kind": "interactive",
+            "shows": "A batch-by-feature MatrixGrid with the normalisation direction highlighted (columns for BatchNorm, rows for LayerNorm) and the resulting normalised grid.",
+            "interaction": "Toggle BatchNorm and LayerNorm; change batch size to 1 and see BatchNorm's statistics break down.",
+            "aha": "The only difference is the axis, and that axis decides where each method works."
+          }
+        }
+      ],
+      "code": "torch-shown",
+      "checkpoint_focus": [
+        "Symmetry breaking",
+        "He init Var = 2/fan_in for ReLU",
+        "BatchNorm: normalise per feature over batch, then γ, β; running stats at eval",
+        "LayerNorm: per sample over features",
+        "Orthogonal init; output-bias init; BatchNorm buffers"
+      ]
+    },
+    {
+      "slug": "regularising-deep-networks",
+      "title": "Dropout, weight decay, early stopping and augmentation",
+      "summary": "Keeping big networks from memorising the training set.",
+      "minutes": 18,
+      "objectives": [
+        "You can describe dropout at train and test time",
+        "You can explain weight decay and AdamW",
+        "You can apply early stopping with patience",
+        "You can explain how augmentation regularises"
+      ],
+      "concepts": [
+        {
+          "name": "Dropout",
+          "explain": "During training, dropout sets each activation to zero with probability p and scales the survivors by 1/(1 − p) so the expected total is unchanged. Every step trains a different thinned network, so no neuron can rely on any single partner. At evaluation dropout is switched off.",
+          "analogy": "A football team that trains with random players sitting out each drill, so nobody depends on the star striker.",
+          "visual": {
+            "component": "DropoutMask",
+            "kind": "animation",
+            "shows": "A NeuralNet diagram with neurons randomly greyed out each training step and the scaling factor shown; an eval toggle shows all neurons active.",
+            "interaction": "Slide p; play training steps; toggle eval mode.",
+            "aha": "Dropout is a cheap way to train an ensemble of thinned networks inside one network."
+          }
+        },
+        {
+          "name": "Weight decay and early stopping",
+          "explain": "Weight decay multiplies weights by slightly less than 1 each step, pulling them towards zero (equivalent to L2 regularisation for plain SGD). AdamW applies this decay separately from Adam's adaptive scaling, which works better. Early stopping watches validation loss and keeps the checkpoint from the best epoch.",
+          "analogy": "A garden that is lightly trimmed every week (weight decay) and a gardener who stops pruning when the hedge looks best (early stopping).",
+          "visual": {
+            "component": "DecayAndStop",
+            "kind": "interactive",
+            "shows": "Training and validation loss curves with an overfitting phase; a weight-norm curve beneath; the best checkpoint is starred.",
+            "interaction": "Slide weight decay and patience; watch the overfitting gap shrink and the stopping point move.",
+            "aha": "Both methods limit how far a model can drift into memorising noise."
+          }
+        },
+        {
+          "name": "Augmentation as regularisation",
+          "explain": "Augmentation creates new training examples by transforming existing ones in label-preserving ways (flips, crops, noise). The model sees more variety, so it learns the invariances you want instead of memorising pixels. It is applied only to training data.",
+          "analogy": "Practising Chinese characters written by many different hands so you can read anyone's handwriting.",
+          "visual": {
+            "component": "AugmentGapCurves",
+            "kind": "interactive",
+            "shows": "Train and validation accuracy curves with and without augmentation, and a strip of augmented copies of one training image.",
+            "interaction": "Toggle augmentation types and strength; observe the train-validation gap.",
+            "aha": "More varied data closes the generalisation gap without changing the model."
+          }
+        }
+      ],
+      "code": "torch-shown",
+      "checkpoint_focus": [
+        "Dropout drops with probability p and rescales by 1/(1 − p)",
+        "Dropout off in eval",
+        "Weight decay shrinks weights each step",
+        "Early stopping keeps best validation checkpoint"
+      ]
+    },
+    {
+      "slug": "learning-rate-warmup-schedules",
+      "title": "Learning-rate schedules and warm-up",
+      "summary": "Finding a good learning rate, warm-up for Adam and Transformers, and reading what schedules do to the loss curve.",
+      "minutes": 20,
+      "objectives": [
+        "You can use a learning-rate range test",
+        "You can explain why warm-up stabilises early training",
+        "You can compute the learning rate at a step for warm-up + cosine",
+        "You can predict the loss curve under step decay"
+      ],
+      "concepts": [
+        {
+          "name": "Learning-rate range test",
+          "explain": "Train briefly while increasing the learning rate exponentially and record the loss. The loss falls, flattens, then shoots up; a good learning rate is a bit below where the loss starts rising.",
+          "analogy": "Slowly turning up the heat under a wok until the oil starts smoking, then backing off a little.",
+          "visual": {
+            "component": "LRRangeTest",
+            "kind": "interactive",
+            "shows": "Loss against learning rate on a log axis with a draggable marker; a small preview shows a training curve at the chosen learning rate.",
+            "interaction": "Drag the marker; see the preview converge slowly, train well, or diverge.",
+            "aha": "The learning rate is the most important hyperparameter, and a two-minute test finds a good one."
+          }
+        },
+        {
+          "name": "Warm-up and decay in action",
+          "explain": "Early in training, Adam's moment estimates are unreliable and gradients are large, so starting at the full learning rate can destabilise a Transformer. Warm-up ramps the learning rate up over the first steps, then a decay schedule (cosine or step) lowers it so the model settles into a minimum. Step decay shows as sudden drops in the loss curve.",
+          "analogy": "Warming up before a run, then easing off as you approach the finish line.",
+          "visual": {
+            "component": "ScheduleLossCoupling",
+            "kind": "interactive",
+            "shows": "Two linked plots: the learning-rate schedule and the resulting training loss curve for a toy model, with a step marker reading off exact values.",
+            "interaction": "Choose schedule type, warm-up length, base learning rate and decay; drag the marker.",
+            "aha": "Loss curve features (spikes, plateaus, sudden drops) are fingerprints of the schedule."
+          }
+        },
+        {
+          "name": "Learning-rate schedules",
+          "explain": "A schedule changes the learning rate during training: step decay cuts it by a factor every few epochs, cosine decay glides it smoothly to a minimum, and warm-up ramps it up linearly at the start to avoid early instability (important with Adam and Transformers). For linear warm-up over 1000 steps to 0.001, step 250 uses 0.00025. Cosine decay from a base rate to a minimum follows lr = min + ½(base − min)(1 + cos(π·t/T)), so halfway through (t = T/2) the rate is exactly midway between the two. The 1cycle policy rises to a high rate and then anneals far below the start: the high-rate phase explores and escapes sharp minima, the low-rate phase settles. ReduceLROnPlateau instead cuts the rate (for example by 10×) whenever the validation loss stops improving.",
+          "analogy": "Driving into a carpark: you start slowly, cruise down the ramps, then creep into the lot.",
+          "visual": {
+            "component": "ScheduleDesigner",
+            "kind": "interactive",
+            "shows": "A Plot of learning rate versus step for constant, step decay, cosine and warm-up + cosine, with a draggable step marker and its exact learning-rate value.",
+            "interaction": "Choose a schedule; slide base LR, warm-up steps, decay factor and total steps; drag the marker.",
+            "aha": "Schedule questions are just arithmetic once you can picture the curve."
+          }
+        }
+      ],
+      "code": "torch-shown",
+      "checkpoint_focus": [
+        "LR range test reading",
+        "Warm-up rationale (unreliable early Adam statistics)",
+        "Cosine and step schedule arithmetic",
+        "Loss drops at step-decay boundaries",
+        "1cycle and ReduceLROnPlateau"
+      ]
+    },
+    {
+      "slug": "stability-and-scale",
+      "title": "Gradient clipping, mixed precision and accumulation",
+      "summary": "Tools for stable and memory-efficient training: clipping exploding gradients, FP16/BF16 with loss scaling, and simulating big batches.",
+      "minutes": 20,
+      "objectives": [
+        "You can explain gradient-norm clipping",
+        "You can explain FP16 underflow/overflow and why loss scaling (GradScaler) is used",
+        "You can compute the effective batch size with accumulation",
+        "You can explain linear learning-rate scaling for large batches"
+      ],
+      "concepts": [
+        {
+          "name": "Clipping the gradient",
+          "explain": "Gradient clipping rescales the whole gradient vector when its norm exceeds a threshold, keeping its direction but capping its length. This stops one bad batch from throwing the weights far away, a common fix for exploding gradients in RNNs and Transformers.",
+          "analogy": "A speed limiter on a bus: you still go in the same direction, just never faster than the limit.",
+          "visual": {
+            "component": "ClipNormArrow",
+            "kind": "interactive",
+            "shows": "A 2D gradient arrow and a circle of radius max_norm; arrows longer than the radius are scaled back to the circle, with a comparison to clipping each component separately.",
+            "interaction": "Drag the gradient arrow; slide max_norm; toggle norm clipping and value clipping.",
+            "aha": "Norm clipping preserves direction, value clipping can change it."
+          }
+        },
+        {
+          "name": "Mixed precision and loss scaling",
+          "explain": "FP16 numbers use half the memory and run faster on GPUs, but their range is small: values below about 6e-8 become zero (underflow) and above 65,504 overflow. Mixed precision keeps master weights in FP32 and multiplies the loss by a scale factor so small gradients survive in FP16, then unscales before the update (and before clipping). BF16 has FP32's range, so it rarely needs scaling. In PyTorch this is torch.autocast, which runs matrix multiplications in FP16 or BF16 on the GPU's Tensor Cores (often 1.5 to 3 times faster), together with a GradScaler; call scaler.unscale_(optimizer) before clipping so the threshold applies to real gradient sizes.",
+          "analogy": "Measuring ingredients with a smaller spoon: you must scale up tiny amounts so they register at all.",
+          "visual": {
+            "component": "FloatRangeRuler",
+            "kind": "interactive",
+            "shows": "A logarithmic number line with the representable ranges of FP32, FP16 and BF16, and a histogram of gradient magnitudes that slides when the loss scale changes.",
+            "interaction": "Slide the loss scale; watch gradients move out of the FP16 underflow zone or into overflow; toggle BF16.",
+            "aha": "Loss scaling is just shifting numbers into the range FP16 can represent."
+          }
+        },
+        {
+          "name": "Gradient accumulation and big batches",
+          "explain": "To mimic a batch of 128 on a GPU that fits only 32, run 4 mini-batches, call backward on each (dividing each loss by 4), and step once. Effective batch size is batch × accumulation steps × number of GPUs. When batch size grows k times, the learning rate is often scaled up about k times, with warm-up. Beyond a few thousand examples per batch, accuracy often drops even with linear scaling. Layer-wise adaptive optimisers such as LARS (for SGD) and LAMB (for Adam) scale each layer's step by the ratio of its weight norm to its gradient norm, and are combined with warm-up and label smoothing to train very large batches stably.",
+          "analogy": "Filling a big water tank with a small bucket: four trips equal one big delivery.",
+          "visual": {
+            "component": "AccumulationBuckets",
+            "kind": "animation",
+            "shows": "Four small batches pouring gradient into a bucket that empties into a single optimiser step, with the effective batch size readout.",
+            "interaction": "Set micro-batch size, accumulation steps and GPUs; toggle 'forgot to divide loss' to see the gradient four times too large.",
+            "aha": "Accumulation trades time for memory and gives the same update as one large batch."
+          }
+        }
+      ],
+      "code": "torch-shown",
+      "checkpoint_focus": [
+        "Clip by global norm keeps direction",
+        "FP16 range vs BF16 range",
+        "Unscale before clipping with GradScaler",
+        "Effective batch = batch × accumulation steps × GPUs",
+        "torch.autocast + GradScaler; LARS/LAMB for very large batches"
+      ]
+    }
+  ]
+}

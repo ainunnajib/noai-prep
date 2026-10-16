@@ -1,0 +1,242 @@
+/* Shared styles for the task-attention, task-pe-classifier-mask and practice-set visuals. */
+
+.py {
+  font-family: var(--font-mono);
+  font-size: 13px;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.panel {
+  width: 100%;
+  min-width: 0;
+  border: 1px solid var(--rule);
+  border-radius: 10px;
+  background: var(--surface-2);
+  overflow: hidden;
+}
+.bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.3rem 0.75rem;
+  border-bottom: 1px solid var(--rule);
+  background: var(--surface-3);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--ink-3);
+}
+.body {
+  padding: 0.35rem 0;
+}
+.row {
+  display: grid;
+  grid-template-columns: minmax(0, 1.7fr) minmax(0, 1fr);
+  gap: 0.15rem 0.75rem;
+  align-items: baseline;
+  padding: 0.08rem 0.75rem;
+  line-height: 1.55;
+  border-left: 3px solid transparent;
+}
+.narrow .row {
+  grid-template-columns: minmax(0, 1fr);
+  padding: 0.08rem 0.5rem;
+}
+.code {
+  min-width: 0;
+}
+.note {
+  min-width: 0;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--ink-2);
+  overflow-wrap: anywhere;
+}
+.narrow .note {
+  padding-left: 1.2em;
+}
+.tone_cur {
+  background: var(--highlight-soft);
+  border-left-color: var(--highlight);
+}
+.tone_ok {
+  background: color-mix(in srgb, var(--ok) 12%, var(--surface));
+  border-left-color: var(--ok);
+}
+.tone_bad {
+  background: color-mix(in srgb, var(--bad) 13%, var(--surface));
+  border-left-color: var(--bad);
+}
+.tone_warn {
+  background: color-mix(in srgb, var(--warn) 14%, var(--surface));
+  border-left-color: var(--warn);
+}
+.tone_dim {
+  opacity: 0.42;
+}
+
+.console {
+  width: 100%;
+  min-width: 0;
+  border: 1px solid var(--rule);
+  border-radius: 10px;
+  background: var(--surface);
+  overflow: hidden;
+}
+.consoleBar {
+  padding: 0.22rem 0.75rem;
+  border-bottom: 1px dashed var(--rule);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--ink-3);
+}
+.consoleBody {
+  padding: 0.45rem 0.75rem;
+  font-family: var(--font-mono);
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: var(--ink);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.okLine {
+  color: var(--ok);
+  font-weight: 600;
+}
+.badLine {
+  color: var(--bad);
+  font-weight: 600;
+}
+
+.chipsWrap {
+  display: grid;
+  gap: 0.3rem;
+  width: 100%;
+}
+.chipsLabel {
+  font-size: var(--step--1);
+  font-weight: 600;
+  color: var(--ink-2);
+}
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+.chip {
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  padding: 0.28rem 0.7rem;
+  border-radius: 999px;
+  border: 1.5px solid var(--rule);
+  background: var(--surface);
+  color: var(--ink-2);
+  cursor: pointer;
+  text-align: left;
+}
+.chip:hover {
+  border-color: var(--accent-line);
+}
+.chipOn {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+.chipBad.chipOn {
+  border-color: var(--bad);
+  background: var(--bad-soft);
+  color: var(--bad);
+}
+
+.shape {
+  display: inline-block;
+  font-family: var(--font-mono);
+  font-size: 12.5px;
+  font-weight: 700;
+  padding: 0.05rem 0.45rem;
+  border-radius: 6px;
+  background: var(--surface-3);
+  color: var(--ink);
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+.shape_ok {
+  background: var(--ok-soft);
+  color: var(--ok);
+}
+.shape_bad {
+  background: var(--bad-soft);
+  color: var(--bad);
+}
+.shape_accent {
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+
+/* ---------- labelled matrix ---------- */
+.mat {
+  display: grid;
+  justify-items: center;
+  gap: 0.3rem;
+  max-width: 100%;
+  min-width: 0;
+}
+.matCaption {
+  font-size: var(--step--1);
+  font-weight: 700;
+  color: var(--ink-2);
+  text-align: center;
+}
+.matGrid {
+  display: grid;
+  gap: 3px;
+  align-items: center;
+  max-width: 100%;
+}
+.matColLab {
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+  color: var(--ink-3);
+  text-align: center;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.matRowLab {
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+  color: var(--ink-3);
+  text-align: right;
+  padding-right: 0.3rem;
+  white-space: nowrap;
+}
+.matRowLabOn {
+  color: var(--ink);
+  font-weight: 700;
+}
+.matCell {
+  display: grid;
+  place-items: center;
+  font-family: var(--font-mono);
+  font-size: 12.5px;
+  color: var(--ink);
+  background: var(--surface-2);
+  border: 1.5px solid transparent;
+  border-radius: 5px;
+  font-variant-numeric: tabular-nums;
+  overflow: hidden;
+  white-space: nowrap;
+}
+.matCellRow {
+  border-color: var(--accent);
+}
+.matMasked {
+  color: var(--ink-3);
+  background: repeating-linear-gradient(
+    135deg,
+    var(--surface-2) 0 5px,
+    color-mix(in srgb, var(--viz-muted) 30%, var(--surface)) 5px 7px
+  );
+}

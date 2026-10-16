@@ -1,0 +1,231 @@
+import ConvolutionExplorer from './visuals/convolution/ConvolutionExplorer'
+import SharedWeights from './visuals/convolution/SharedWeights'
+import FeatureMapGallery from './visuals/convolution/FeatureMapGallery'
+
+export const convCode = `import numpy as np
+
+def conv2d(image, kernel):
+    """'Valid' conv, stride 1, no flip (like PyTorch)."""
+    H, W = image.shape
+    k = kernel.shape[0]
+    out = np.zeros((H - k + 1, W - k + 1))
+    for i in range(H - k + 1):      # every row position
+        for j in range(W - k + 1):  # every column position
+            patch = image[i:i + k, j:j + k]
+            # multiply element-wise, then add
+            out[i, j] = np.sum(patch * kernel)
+    return out
+
+# dark on the left (0), bright on the right (1)
+image = np.array([[0, 0, 1, 1, 1],
+                  [0, 0, 1, 1, 1],
+                  [0, 0, 1, 1, 1],
+                  [0, 0, 1, 1, 1]])
+vertical_edge = np.array([[1, 0, -1],
+                          [1, 0, -1],
+                          [1, 0, -1]])
+print(conv2d(image, vertical_edge))`
+
+In the last lesson, [Images as tensors](#/learn/convolutional-networks/images-as-tensors), a dense layer treated an image as one long list: millions of weights, and no idea which pixels are neighbours. The **convolution** fixes both problems with one simple move: take a tiny grid of weights, slide it across the image, and at every spot ask "how much does this patch look like my pattern?" That one operation is the heart of every convolutional neural network (CNN).
+
+<Analogy title="A magnifying glass over a newspaper">
+
+You are hunting through a newspaper page for the letters "MRT". You slide a magnifying glass across the page, row by row, and at every spot you jot down how well what you see matches "MRT": 0 for no match, high for a perfect one. When you finish, your notes form a map of the page showing **where** the pattern appears. The magnifying glass is the kernel, your notes are the feature map, and you used the **same** idea of "MRT" everywhere on the page.
+
+</Analogy>
+
+## One output number: multiply, then add
+
+A <Term def="A small grid of weights, such as 3 × 3, that is slid across an image. Also called a filter. In a CNN its weights are learned.">kernel</Term> (also called a **filter**) is a small grid of numbers, usually $3 \times 3$. Place it on top of the image: it covers a $3 \times 3$ block of pixels called a <Term def="The block of input pixels that the kernel covers at one position.">patch</Term>. Now:
+
+1. multiply each pixel by the weight lying on top of it (9 multiplications), then
+2. add the 9 products.
+
+The total is **one** output number. In symbols, with the kernel's top-left corner on pixel $(i, j)$:
+
+$$
+y_{i,j} = \sum_{a=0}^{2} \sum_{b=0}^{2} x_{i+a,\, j+b} \; w_{a,b}
+$$
+
+- $x_{i+a,\,j+b}$ is the input pixel in row $i+a$, column $j+b$: the pixel under kernel cell $(a, b)$.
+- $w_{a,b}$ is the kernel weight in row $a$, column $b$ (both counted 0, 1, 2).
+- The two $\sum$ signs mean "add over all 3 rows $a$ and all 3 columns $b$ of the kernel", 9 terms in total.
+- $y_{i,j}$ is the output at position $(i, j)$.
+
+If you flatten the patch and the kernel into lists of 9 numbers, $y_{i,j}$ is just their **dot product**. A dot product is large when two lists "point the same way", so the output is large where the patch looks like the kernel. A kernel is a pattern detector.
+
+<Steps title="One output by hand">
+  <Step title="The patch and the kernel">
+    Patch $= \begin{bmatrix} 3 & 1 & 0 \\ 2 & 5 & 1 \\ 0 & 2 & 4 \end{bmatrix}$, kernel (a "sharpen" filter) $= \begin{bmatrix} 0 & -1 & 0 \\ -1 & 5 & -1 \\ 0 & -1 & 0 \end{bmatrix}$.
+  </Step>
+  <Step title="Multiply matching positions">
+    Only 5 weights are non-zero. Centre: $5 \times 5 = 25$. Top, left, right, bottom: $1 \times (-1)$, $2 \times (-1)$, $1 \times (-1)$, $2 \times (-1)$. The four corners meet weight 0 and give 0.
+  </Step>
+  <Step title="Add the products">
+    $25 - 1 - 2 - 1 - 2 = 19$.
+  </Step>
+  <Step title="Read it">
+    The centre pixel (5) is much brighter than its four neighbours (average 1.5), and the output 19 exaggerates that difference. That is what "sharpen" means.
+  </Step>
+</Steps>
+
+<Mistake title="It is not matrix multiplication">
+
+A convolution multiplies **matching positions** (element-wise) and adds everything up into one number. It is not the matrix product "patch @ kernel", which would give a whole $3 \times 3$ matrix. In NumPy one output is `np.sum(patch * kernel)`, not `patch @ kernel`.
+
+</Mistake>
+
+<QuickCheck
+  q="The patch $\begin{bmatrix} 1 & 2 & 0 \\ 0 & 1 & 3 \\ 2 & 0 & 1 \end{bmatrix}$ is multiplied by the kernel $\begin{bmatrix} 1 & 0 & -1 \\ 1 & 0 & -1 \\ 1 & 0 & -1 \end{bmatrix}$. What is the output?"
+  options={['−1', '1', '3', '10']}
+  answer={0}
+  id="convolutional-networks.convolution.qc1"
+  explain="The middle column has weight 0. The left column has weight +1: $1 + 0 + 2 = 3$. The right column has weight −1: $-(0 + 3 + 1) = -4$. Total $3 - 4 = -1$. Getting 10 means adding all the pixels and ignoring the weights; 3 is the left column alone (the $-1$ column was forgotten), and 1 is right minus left, with the sign flipped."
+/>
+
+## Slide it everywhere: the feature map
+
+Now slide the kernel one pixel at a time, left to right and top to bottom, computing one number at every position. All those numbers, laid out in the same arrangement, form a <Term def="The grid of outputs produced by sliding one filter over its input; it shows how strongly the filter's pattern appears at each position. Also called an activation map.">feature map</Term>. Try it on an $8 \times 8$ picture of the digit 4:
+
+<ConvolutionExplorer />
+
+Two things to notice:
+
+- The feature map is **smaller** than the image: a $3 \times 3$ kernel fits in only $8 - 3 + 1 = 6$ positions across, so $8 \times 8$ becomes $6 \times 6$. The next lesson, [Padding, stride, channels and parameter counts](#/learn/convolutional-networks/padding-stride-shapes), shows how padding and stride control this size.
+- The vertical-edge kernel lights up along the two upright strokes of the 4 (orange on one side of a stroke, blue on the other) and is 0 on the flat black background.
+
+The readout names each output $y(i, j)$ with rows and columns counted from 0, exactly as in the formula and in Python.
+
+In a real CNN layer each output also gets a **bias** $b$ added, and then passes through an activation such as ReLU: $\text{output} = \text{ReLU}(y_{i,j} + b)$.
+
+<Note title="Convolution or cross-correlation?">
+
+In maths and signal processing, a "convolution" flips the kernel upside down and left to right before sliding it. Deep learning skips the flip: what PyTorch's `Conv2d` computes is strictly called **cross-correlation**. Since the kernel's weights are learned anyway, the flip makes no difference, and everyone still calls it convolution.
+
+</Note>
+
+## Edges, blur and sharpen
+
+Each preset in the explorer, and each filter in the gallery further down, is a classic hand-made filter:
+
+| Filter | Kernel idea | What it does |
+|---|---|---|
+| Vertical edges | left&nbsp;column&nbsp;$+1$, right&nbsp;column&nbsp;$-1$ | left minus right: large where brightness changes from left to right |
+| Horizontal edges | top&nbsp;row&nbsp;$+1$, bottom&nbsp;row&nbsp;$-1$ | top minus bottom: large where brightness changes from top to bottom |
+| Diagonal edges | bottom-left&nbsp;corner&nbsp;$-2$, top-right&nbsp;corner&nbsp;$+2$ | top-right minus bottom-left: strongest on edges that slope down from left to right, like the right side of a roof |
+| Blur | all&nbsp;1s, then divide&nbsp;by&nbsp;9 | the average of the 9 pixels, which smooths out detail |
+| Sharpen | centre&nbsp;$5$, four&nbsp;neighbours&nbsp;$-1$ | the pixel plus 4 times (pixel minus neighbours' average), so differences grow |
+| Outline | centre&nbsp;$8$, all&nbsp;eight&nbsp;neighbours&nbsp;$-1$ | 8 times (pixel minus neighbours' average): responds wherever a pixel differs from its surroundings, in any direction, so it traces outlines |
+
+A neat shortcut tells you how a filter treats a **flat** region, where every pixel has the same value $c$: the output is $c \times$ (sum of the weights).
+
+- The edge and outline kernels' weights add up to $0$, so flat regions give 0. They only respond where something **changes**.
+- The blur kernel's weights add up to $9$, then it divides by 9: a flat region keeps its value $c$.
+- The sharpen kernel's weights add up to $5 - 4 = 1$: flat regions are unchanged, and only edges are boosted.
+
+<KeyIdea>
+
+Each output of a convolution is the **sum of element-wise products** between the kernel and the patch under it. Sliding the kernel to every position gives a feature map: a picture of where the kernel's pattern appears.
+
+</KeyIdea>
+
+<ExamTip>
+
+To compute one output fast without a calculator: skip every weight that is 0, then group equal weights. For $[1, 0, -1]$ columns, it is just (sum of the left column) minus (sum of the right column). And the weight-sum trick answers "what does this filter output on a constant image?" in one line.
+
+</ExamTip>
+
+## Weight sharing: one kernel, used everywhere
+
+A kernel's 9 weights are used at **every** position. This is called <Term def="Using the same weights (the same kernel) at every position of the input, so a pattern learned in one place is detected everywhere.">weight sharing</Term>, and together with **local connections** (each output looks only at a small patch of neighbouring pixels) it is what makes convolutions so efficient. Compare the three layer types on a strip of 8 inputs:
+
+<SharedWeights />
+
+The saving is enormous on real images. One $3 \times 3$ filter on a greyscale image has $9$ weights plus 1 bias, **10 parameters**, whether the image is $28 \times 28$ or $4000 \times 3000$. A single dense neuron looking at a $28 \times 28$ image already needs 784 weights.
+
+Weight sharing also makes sense for images: a vertical edge is a vertical edge whether it is at the top left or the bottom right, so the same detector should be used everywhere.
+
+## Many filters, many feature maps
+
+One filter finds one kind of pattern. A convolutional layer therefore has **many** filters, each with its own weights, and each produces its own feature map. The maps are stacked into the layer's output, one per filter: these are the output **channels**. A layer with 6 filters applied to a $1 \times 28 \times 28$ image outputs a tensor of shape $(6, 26, 26)$.
+
+<FeatureMapGallery />
+
+Shifting the input shifts every feature map by the same amount. This property is called <Term def="A property of an operation: transforming the input (here, shifting it) transforms the output in the same way. Convolution is equivariant to shifts: shift the image and the feature map shifts by the same amount.">translation equivariance</Term>:
+
+$$
+\text{conv}(\text{shift}(x)) = \text{shift}(\text{conv}(x))
+$$
+
+It follows directly from weight sharing: the same filter is applied at every position, so a pattern produces the same response wherever it is, just in a different place. (Strictly, this holds away from the image borders, where pixels fall off the edge, and for a stride-1 convolution. With stride 2, which [Padding, stride, channels and parameter counts](#/learn/convolutional-networks/padding-stride-shapes) introduces, it holds only for shifts of an even number of pixels.) Note the word: **equi**variant, the output moves with the input. It is not **in**variant, which would mean the output does not change at all. Pooling, in [Pooling and receptive fields](#/learn/convolutional-networks/pooling-and-receptive-field), adds a little invariance.
+
+<QuickCheck
+  q="A picture is shifted 2 pixels to the right and fed through the same convolutional filter (stride 1). Ignoring the borders, what happens to the feature map?"
+  options={['It shifts 2 pixels to the right, with the same values', 'It stays exactly the same', 'Its values change, because different weights now cover the object', 'It shifts 2 pixels to the left']}
+  answer={0}
+  id="convolutional-networks.convolution.qc2"
+  explain="The same kernel is used at every position (weight sharing), so the object produces exactly the same responses, just 2 pixels further right: translation equivariance. 'Stays the same' would be invariance, which convolution alone does not give. The weights cannot change, since every position uses the same ones."
+/>
+
+<PastPaperQuestion paper="prelim2026" n={193} />
+
+## Learned, not hand-designed
+
+The edge, blur and sharpen kernels above were designed by people. In a CNN, nobody types in the weights: they are **parameters**, initialised randomly and learned by gradient descent like any other weight, so the network discovers whichever patterns help it reduce the loss. Remarkably, the first-layer filters of trained image networks (those of <Term def="The CNN that won the 2012 ImageNet image-classification competition by a large margin and started the deep-learning boom in computer vision.">AlexNet</Term>, famously) end up looking like edge detectors at various angles and colour blobs, much like the hand-made ones. Deeper layers then combine these simple features into textures, parts and whole objects, which you will see in [CNN architectures and ResNets](#/learn/convolutional-networks/cnn-architectures-and-resnets).
+
+<PastPaperQuestion paper="prelim2026" n={187} />
+
+<PastPaperQuestion paper="prelim2026" n={186} />
+
+### In code
+
+A convolution from scratch is two loops over positions and one `np.sum(patch * kernel)`. Turning a formula into loops like this is the skill the Final's programming tasks reward. Run it:
+
+<PyRunner packages={['numpy']} code={convCode} />
+
+The $-3$s mark where the image goes from dark (left) to bright (right): the left column of the patch is darker than the right, so "left minus right" is negative. Where the patch is entirely bright, the output is 0.
+
+PyTorch gives the same numbers. Its conv functions want a batch and channels, so the image becomes $(N, C, H, W) = (1, 1, 4, 5)$ and the kernel $(C_\text{out}, C_\text{in}, k, k) = (1, 1, 3, 3)$, meaning one output channel, one input channel and a 3 × 3 grid ([Padding, stride, channels and parameter counts](#/learn/convolutional-networks/padding-stride-shapes) explains the two channel counts):
+
+```python
+import torch
+import torch.nn as nn
+import torch.nn.functional as F
+
+image = torch.tensor([[0, 0, 1, 1, 1],
+                      [0, 0, 1, 1, 1],
+                      [0, 0, 1, 1, 1],
+                      [0, 0, 1, 1, 1]], dtype=torch.float32)
+kernel = torch.tensor([[1, 0, -1],
+                       [1, 0, -1],
+                       [1, 0, -1]], dtype=torch.float32)
+
+x = image.reshape(1, 1, 4, 5)    # (N, C, H, W)
+w = kernel.reshape(1, 1, 3, 3)   # (out channels, in channels, k, k)
+print(F.conv2d(x, w))
+
+# a learnable layer: 6 filters -> 6 feature maps
+torch.manual_seed(0)
+layer = nn.Conv2d(in_channels=1, out_channels=6, kernel_size=3)
+print(layer.weight.shape, layer.bias.shape)
+print(layer(torch.rand(1, 1, 28, 28)).shape)
+```
+
+```text
+tensor([[[[-3., -3.,  0.],
+          [-3., -3.,  0.]]]])
+torch.Size([6, 1, 3, 3]) torch.Size([6])
+torch.Size([1, 6, 26, 26])
+```
+
+`nn.Conv2d` holds 6 kernels of size $3 \times 3$ (its `weight`) and 6 biases, all learnable, and turns one $28 \times 28$ image into 6 feature maps of $26 \times 26$.
+
+<Takeaways>
+
+- A convolution slides a small kernel over the image; each output is the sum of element-wise products of the kernel and the patch under it (a dot product).
+- All the outputs together form a feature map, showing where the kernel's pattern appears. Many filters give many feature maps, stacked as output channels.
+- Edge filters' weights sum to 0 (flat regions give 0); blur averages; sharpen boosts differences. On a flat region the output is the value times the sum of the weights.
+- Weight sharing (the same kernel everywhere) plus local connections make convolutions cheap, and make them translation equivariant: shift the input and the feature map shifts with it.
+- In a CNN the kernel weights are learned, not hand-designed.
+
+</Takeaways>

@@ -1,0 +1,305 @@
+import SpanExplorer from './visuals/span-rank-independence/SpanExplorer'
+import RankCollapse from './visuals/span-rank-independence/RankCollapse'
+import ConditionNumberWobble from './visuals/span-rank-independence/ConditionNumberWobble'
+
+A spreadsheet with 50 columns does not always hold 50 different pieces of information: "height in cm" and "height in m" are one fact written twice. This lesson gives you the tools to count **truly different directions** (span, linear independence and rank). It then explains a quieter danger that NOAI likes to ask about: matrices that are *almost* squashed, where tiny rounding errors blow up into huge mistakes.
+
+<Analogy title="Expressways on the map">
+
+Suppose the only expressway near your home runs east to west, like the PIE. Drive forwards or backwards as far as you like: you never get any further north. Add a north–south expressway like the CTE, and by combining the two you can reach anywhere on the map. But a second east–west road running alongside the first adds nothing: it points in a direction you already had. Counting the roads that point somewhere new is exactly what this lesson is about.
+
+</Analogy>
+
+## Span: everywhere you can reach
+
+In [A matrix is a transformation of space](#/learn/linear-algebra-deeper/linear-transformations), a <Term def="A sum of vectors, each multiplied by a number, such as 2u + 3v.">linear combination</Term> of two arrows $u$ and $v$ was $a\,u + b\,v$: take $a$ copies of $u$, then $b$ copies of $v$, tip to tail. Here $a$ and $b$ can be any numbers, including negatives (go backwards) and fractions.
+
+The <Term def="The set of every point you can reach with linear combinations of some vectors, using any amounts.">span</Term> of some vectors is the set of **every** point you can reach this way:
+
+$$
+\operatorname{span}(u, v) = \{\, a\,u + b\,v \,\}.
+$$
+
+Read it as "the set of all points $a\,u + b\,v$, where $a$ and $b$ can be any real numbers". The curly brackets mean "the set of". In 2-D there are only three possibilities:
+
+- $u$ and $v$ are **not parallel** (neither is a multiple of the other): the span is the whole plane.
+- $u$ and $v$ are **parallel** and not both zero (one is a multiple of the other): the span is just a line through the origin.
+- both are the zero vector: the span is a single point, the origin.
+
+<SpanExplorer />
+
+## Linear independence: no wasted directions
+
+Vectors are <Term def="None of them can be made as a linear combination of the others. Equivalently, the only way to combine them into the zero vector is with all amounts equal to 0.">linearly independent</Term> if **none of them can be built from the others**. If one of them can, they are <Term def="At least one of them can be written as a linear combination of the others, so it adds no new direction.">linearly dependent</Term>, and that vector is a wasted direction: removing it doesn't shrink the span at all.
+
+There is a neater test that treats all the vectors equally. Vectors $v_1, v_2, \dots, v_k$ are independent when
+
+$$
+\begin{gathered}
+c_1 v_1 + c_2 v_2 + \dots + c_k v_k = \mathbf{0} \\
+\text{only when } c_1 = c_2 = \dots = c_k = 0.
+\end{gathered}
+$$
+
+- $c_1, \dots, c_k$ are amounts (numbers) and $\mathbf{0}$ is the zero vector.
+- Using all-zero amounts always gives $\mathbf{0}$; independence says **that is the only way**.
+- Why it matches the first definition: if, say, $2v_1 + 3v_2 - v_3 = \mathbf{0}$ with non-zero amounts, then $v_3 = 2v_1 + 3v_2$, so $v_3$ is built from the others.
+
+A few facts follow straight away:
+
+- **Two vectors** are dependent exactly when one is a multiple of the other (they are parallel). $(1, 2)$ and $(2, 4)$ are dependent because $(2, 4) = 2 \cdot (1, 2)$.
+- **Too many vectors** are always dependent: the plane has only 2 directions, so any 3 vectors in 2-D are dependent. In $n$-D, any $n + 1$ or more vectors are dependent.
+- **The zero vector** makes any set dependent, because $1 \cdot \mathbf{0} = \mathbf{0}$ is a combination with a non-zero amount.
+
+<KeyIdea>
+
+Independent means **no wasted directions**: each vector adds a new dimension to the span. $k$ independent vectors span a $k$-dimensional space (a line, a plane, …); dependent ones span less.
+
+</KeyIdea>
+
+A set of independent vectors that spans a space is a <Term def="A set of linearly independent vectors that spans a space. Every point of the space is exactly one combination of them.">basis</Term> of that space. Every basis of the same space has the same number of vectors, and that number is the space's **dimension**: any basis of the plane has exactly 2 vectors, and any basis of 3-D space has exactly 3. $\hat\imath$ and $\hat\jmath$ from the last lesson are one basis of the plane, and $(1, 0)$ and $(1, 1)$ are another.
+
+<Steps title="Are $u = (1, 0, 1)$, $v = (0, 1, 1)$ and $w = (1, 1, 2)$ independent?">
+  <Step title="Look for an easy relation">
+    Add the first two: $u + v = (1 + 0,\ 0 + 1,\ 1 + 1) = (1, 1, 2)$, which is exactly $w$.
+  </Step>
+  <Step title="Write it as the test">
+    $1 \cdot u + 1 \cdot v - 1 \cdot w = \mathbf{0}$, using amounts that are not all zero. So the three vectors are **dependent**.
+  </Step>
+  <Step title="What do they span?">
+    $u$ and $v$ are not parallel, so they span a plane. $w$ lies in that plane and adds nothing new. Three arrows in 3-D, but they only reach a flat plane, not the whole space.
+  </Step>
+</Steps>
+
+<QuickCheck
+  id="linear-algebra-deeper.span-rank-independence.qc1"
+  q="Which pair of vectors is linearly dependent?"
+  options={['$(1, 2)$ and $(2, 1)$', '$(1, 1)$ and $(1, -1)$', '$(2, -1)$ and $(-4, 2)$', '$(3, 0)$ and $(0, 0.5)$']}
+  answer={2}
+  explain="$(-4, 2) = -2 \cdot (2, -1)$, so one is a multiple of the other: they lie on the same line through the origin (pointing opposite ways still counts as parallel). In each other pair neither vector is a multiple of the other, so they span the whole plane; $(1, 2)$ and $(2, 1)$ contain the same numbers but point in different directions."
+/>
+
+<Mistake title="Independent is not the same as perpendicular">
+
+$(1, 0)$ and $(1, 1)$ are independent even though they meet at $45°$: neither is a multiple of the other. Perpendicular non-zero vectors are always independent, but independent vectors don't have to be perpendicular. Also, "linearly independent vectors" has nothing to do with "independent events" in probability; it is the same word for a different idea.
+
+</Mistake>
+
+## Rank: how many dimensions survive
+
+Now bring back the matrix picture. In [A matrix is a transformation of space](#/learn/linear-algebra-deeper/linear-transformations) you saw that $Ax$ mixes the columns of $A$:
+
+$$
+Ax = x_1 \mathbf{a}_1 + x_2 \mathbf{a}_2 + \dots + x_n \mathbf{a}_n,
+$$
+
+where $\mathbf{a}_1, \dots, \mathbf{a}_n$ are the columns of $A$ and $x_1, \dots, x_n$ are the numbers in $x$. So every output of $A$ is a linear combination of its columns, and the set of all outputs is exactly the span of the columns. This set is called the <Term def="The span of a matrix's columns: the set of every output Ax the matrix can produce.">column space</Term>. The <Term def="The number of linearly independent columns of a matrix, which always equals the number of linearly independent rows. It is the dimension of the space the outputs fill.">rank</Term> of $A$ measures its size:
+
+$$
+\begin{aligned}
+\operatorname{rank}(A) &= \text{number of independent columns} \\
+&= \text{dimension of the column space.}
+\end{aligned}
+$$
+
+"Dimension" here means how many independent directions the space has: 0 for a point, 1 for a line, 2 for a plane, 3 for all of 3-D space.
+
+In the transformation picture, **rank counts how many dimensions survive the move**. A 2×2 matrix of rank 2 spreads its outputs over the whole plane; rank 1 squashes the plane onto a line; rank 0 crushes everything to the origin.
+
+A remarkable fact: the number of independent **rows** is always the same as the number of independent **columns**. In $\begin{bmatrix} 1 & 2 \\ 2 & 4 \end{bmatrix}$ the second column is twice the first, and the second row is also twice the first: rank 1 either way. So you can count whichever is easier.
+
+<RankCollapse />
+
+<KeyIdea>
+
+$\operatorname{rank}(A)$ = number of independent columns = number of independent rows = how many dimensions the outputs fill. For an $m \times n$ matrix, $\operatorname{rank}(A) \le \min(m, n)$.
+
+</KeyIdea>
+
+Why can the rank never beat the smaller of $m$ and $n$?
+
+- **At most $n$:** there are only $n$ columns, so at most $n$ of them can be independent.
+- **At most $m$:** each column is a vector with $m$ numbers, living in $m$-dimensional space, and that space has room for at most $m$ independent directions (just as three arrows in a plane are always dependent).
+
+For a 3×5 matrix the five columns are arrows in 3-D, so at most 3 can be independent: the rank is at most 3. Try the **2×3** shape in the visual: however you set the three columns, the rank never passes 2. At the other end, the only matrix with rank 0 is the zero matrix: any non-zero entry makes a non-zero column, and a single non-zero vector already spans a line. Two real exam questions on the two ends:
+
+<PastPaperQuestion paper="prelim2026" n={19} />
+
+<PastPaperQuestion paper="prelim2026" n={10} />
+
+### Rank and invertibility
+
+A square $n \times n$ matrix with rank $n$ is called <Term def="A matrix whose rank is as large as its shape allows: min(m, n). For a square matrix, rank n.">full rank</Term>; a square matrix with smaller rank is <Term def="A square matrix that squashes space into fewer dimensions: its determinant is 0 and it has no inverse.">singular</Term>. These statements all mean the same thing:
+
+| For a square $n \times n$ matrix $A$ | Full rank | Rank less than $n$ |
+|---|---|---|
+| Columns | independent | dependent |
+| What it does to space | keeps every dimension | squashes at least one |
+| Determinant | $\det A \neq 0$ | $\det A = 0$ |
+| Inverse | exists | none: $A$ is **singular** |
+
+Why does losing a dimension kill the inverse? If $A$ squashes the plane onto a line, many different inputs land on the same output (a whole line of them lands on $\mathbf{0}$). An inverse would have to send that one output back to many inputs at once, which is impossible: the information is gone, like rebuilding someone's height from their shadow.
+
+The set of inputs that a matrix sends to $\mathbf{0}$ is called its <Term def="All the inputs x with Ax = 0. It always contains 0; for a singular matrix it is a whole line, plane or more.">null space</Term>. For an $m \times n$ matrix there is a neat bookkeeping rule, the **rank–nullity theorem**: rank $+$ (dimension of the null space) $= n$. Each of the $n$ input dimensions either survives or is squashed. A 2×2 matrix of rank 1 keeps one dimension and squashes one, the line that lands on $\mathbf{0}$.
+
+<Steps title="Find the rank of a 3×3 matrix">
+  <Step title="Spot multiples first">
+    The matrix is
+
+    $$
+    A = \begin{bmatrix} 1 & 2 & 3 \\ 2 & 4 & 6 \\ 1 & 0 & 1 \end{bmatrix}.
+    $$
+
+    Row 2 is $2 \times$ row 1, so row 2 adds nothing new. The rank is at most 2.
+  </Step>
+  <Step title="Check what is left">
+    Row 1 $= (1, 2, 3)$ and row 3 $= (1, 0, 1)$ are not multiples of each other, so they are independent. Rank $= 2$.
+  </Step>
+  <Step title="Same answer by elimination">
+    Subtracting a multiple of one row from another never changes the rank, so tidy up with it. Row 2 $- 2 \times$ row 1 $= (0, 0, 0)$ and row 3 $-$ row 1 $= (0, -2, -2)$. Two non-zero rows remain, $(1, 2, 3)$ and $(0, -2, -2)$, so the rank is 2.
+  </Step>
+  <Step title="Check with columns">
+    Column 3 $=$ column 1 $+$ column 2: $(1 + 2,\ 2 + 4,\ 1 + 0) = (3, 6, 1)$. Two independent columns, rank 2, as promised. $A$ is singular, so $\det A = 0$.
+  </Step>
+</Steps>
+
+<QuickCheck
+  id="linear-algebra-deeper.span-rank-independence.qc2"
+  q="What is the rank of $\begin{bmatrix} 2 & 4 \\ 1 & 2 \\ 3 & 6 \end{bmatrix}$?"
+  options={['1', '2', '3', '0']}
+  answer={0}
+  explain="Column 2 is $2 \times$ column 1, so there is only one independent column: rank 1 (every row is also a multiple of $(1, 2)$). A 3×2 matrix can have rank up to $\min(3, 2) = 2$, but this one doesn't reach it. Rank 3 is impossible with only 2 columns."
+/>
+
+<Mistake>
+
+Rank is **not** the number of rows, the number of columns or the number of non-zero entries. $\begin{bmatrix} 1 & 1 \\ 1 & 1 \end{bmatrix}$ has four non-zero entries and two rows but rank 1, because both columns are the same.
+
+</Mistake>
+
+### Where rank shows up in AI
+
+- **Duplicated features.** If a dataset has columns "height in cm" and "height in m", one column is 100 times the other, so the data matrix $X$ is not of full column rank. Linear regression's normal equation $w = (X^TX)^{-1}X^Ty$ then breaks, because $X^TX$ is singular: infinitely many weight vectors fit equally well (put the weight on either copy).
+- **Bottlenecks.** Doing one matrix after another can never create new dimensions: $\operatorname{rank}(AB) \le \min(\operatorname{rank} A, \operatorname{rank} B)$. If a 6×2 matrix follows a 2×6 matrix, everything passes through 2 numbers in the middle, so the 6×6 product has rank at most 2.
+- **Low-rank fine-tuning.** <Term def="Low-Rank Adaptation: a way to fine-tune a big model by learning a small update BA (B tall and thin, A short and wide) instead of changing the whole weight matrix.">LoRA</Term> <Term def="Keeps training an already-trained model on a smaller, more specific dataset, so it adapts to a new task.">fine-tunes</Term> a large model by learning a small update $\Delta W = BA$ whose rank is at most a small number $r$, so it needs far fewer numbers than the full weight matrix.
+
+<Reveal label="Going further: how much LoRA saves">
+
+$B$ has shape $d \times r$ and $A$ has shape $r \times d$, so $\Delta W = BA$ is $d \times d$ but has rank at most $r$ (everything passes through $r$ numbers in the middle). With $d = 4096$ and $r = 8$, that is $2 \times 4096 \times 8 = 65{,}536$ numbers to learn instead of $4096^2 = 16{,}777{,}216$: 256 times fewer.
+
+</Reveal>
+
+## Nearly singular: the condition number
+
+Rank tells you whether a matrix squashes space. But a matrix can be **technically invertible and still almost squashed**, for example when two of its columns point in nearly the same direction. That is where numerical trouble begins.
+
+Think of solving $Ax = b$ for a 2×2 system. Each equation is a line, and the solution is where the two lines cross.
+
+<Analogy title="Two almost-parallel roads">
+
+Two straight roads meet at a junction. If they cross at right angles, shifting one road by a metre moves the junction by about a metre. If they are almost parallel, shifting one road by a metre can move the junction by hundreds of metres along the road.
+
+</Analogy>
+
+<Steps title="A tiny nudge, a huge change">
+  <Step title="Solve with $b = (2,\ 2.01)$">
+    Take
+
+    $$
+    \begin{bmatrix} 1 & 1 \\ 1 & 1.01 \end{bmatrix} x = b.
+    $$
+
+    The equations are $x_1 + x_2 = 2$ and $x_1 + 1.01x_2 = 2.01$. Subtract the first from the second: $0.01x_2 = 0.01$, so $x_2 = 1$ and $x_1 = 1$. Solution $(1, 1)$.
+  </Step>
+  <Step title="Nudge $b$ to $(2,\ 2.02)$">
+    Subtracting now gives $0.01x_2 = 0.02$, so $x_2 = 2$ and $x_1 = 0$. Solution $(0, 2)$.
+  </Step>
+  <Step title="Compare">
+    Changing one number in $b$ by $0.01$ (about $0.35\%$ of the size of $b$) moved the answer from $(1, 1)$ to $(0, 2)$, a $100\%$ change. The matrix amplified the relative error about 280 times.
+  </Step>
+</Steps>
+
+
+To measure this sensitivity we need two numbers from the transformation picture. Any invertible 2×2 matrix turns the unit circle into an oval (an ellipse): switch on **Show what A does to the unit circle** in the figure below to see it, and you will meet the oval again in the next lesson's eigenvector hunt and in [SVD and special matrices](#/learn/linear-algebra-deeper/svd-and-special-matrices). The oval's longest half-width (its longest radius) is the largest <Term def="The stretch factors of a matrix: the longest and shortest half-widths of the oval that the unit circle becomes. You will meet them properly in the SVD lesson.">singular value</Term> $\sigma_{\max}$ (the most the matrix stretches any direction), and its shortest half-width is the smallest singular value $\sigma_{\min}$ (the least it stretches any direction). The <Term def="The ratio of the largest to the smallest singular value of a matrix. It measures how much small input errors can be amplified when you solve Ax = b.">condition number</Term> is their ratio:
+
+$$
+\kappa(A) = \frac{\sigma_{\max}}{\sigma_{\min}}.
+$$
+
+- $\kappa$ (the Greek letter kappa) is always at least 1.
+- $\kappa = 1$ means the matrix stretches every direction equally: rotations, reflections and $kI$ with $k \neq 0$ are perfectly conditioned.
+- A singular matrix squashes some direction to nothing, so $\sigma_{\min} = 0$ and $\kappa = \infty$.
+- A **large** $\kappa$ (the matrix is <Term def="Having a large condition number: some directions are stretched far more than others, so solving Ax = b amplifies small errors a lot.">ill-conditioned</Term>) means a small relative error in $b$ can become up to $\kappa$ times bigger in $x$. A rule of thumb: if $\kappa \approx 10^k$, expect to lose about $k$ digits of accuracy.
+
+<ConditionNumberWobble />
+
+For the matrix in the worked example, $\sigma_{\max} \approx 2.005$ and $\sigma_{\min} \approx 0.00499$, so $\kappa \approx 402$: the 280-times amplification we saw is within that worst case.
+
+<KeyIdea>
+
+A matrix can be invertible yet nearly singular. The condition number $\kappa = \sigma_{\max} / \sigma_{\min}$ measures how much it can amplify small input errors: near 1 is safe, huge means the answer is unreliable.
+
+</KeyIdea>
+
+<PastPaperQuestion paper="prelim2026" n={24} />
+
+<Mistake title="Small determinant does not mean ill-conditioned">
+
+$0.1I = \begin{bmatrix} 0.1 & 0 \\ 0 & 0.1 \end{bmatrix}$ has the tiny determinant $0.01$, but it shrinks every direction equally, so $\kappa = 0.1 / 0.1 = 1$: perfectly conditioned. The determinant measures area change; the condition number measures how *unevenly* the matrix stretches.
+
+</Mistake>
+
+In machine learning, ill-conditioning comes from **nearly duplicated features** (two sensors that almost always agree) and from **features on wildly different scales** (income in dollars next to age in years). Then $X^TX$ is nearly singular: fitted weights swing wildly when one data point changes, and gradient descent zig-zags slowly down a long, narrow valley. Three standard fixes:
+
+- **Standardise the features** (same scale for every column), which makes the valley rounder.
+- **Drop or merge** near-duplicate features.
+- **Regularise**, for example with ridge regression, which adds a little to every stretch factor of $X^TX$ and so lifts the smallest one away from 0.
+
+<Reveal label="Going further: why the trouble is squared, and how ridge helps">
+
+The normal equation works with $X^TX$, and $\kappa(X^TX) = \kappa(X)^2$: whatever sensitivity $X$ has is squared. Ridge regression's normal equation uses $X^TX + \lambda I$ in place of $X^TX$ (for a loss written as the sum of squared errors plus $\lambda \sum_j w_j^2$), which adds $\lambda$ to every stretch factor of $X^TX$. For the matrix above used as $X$, $\kappa(X^TX) \approx 160{,}000$, but with $\lambda = 0.1$ it drops to about 41.
+
+</Reveal>
+
+<ExamTip>
+
+Fast rank questions, no calculator:
+- Cross out any row (or column) that is a **combination** of the others you are keeping: a multiple, a sum, a difference, or any mix such as $2 \cdot \text{row } 2 - \text{row } 1$. If none is obvious, use elimination: subtract multiples of one row from the others; the number of non-zero rows left is the rank. For example, $\begin{bmatrix} 1 & 2 & 3 \\ 4 & 5 & 6 \\ 7 & 8 & 9 \end{bmatrix}$ has rank 2, because row 3 $= 2 \cdot$ row 2 $-$ row 1.
+- **rank $\le \min(m, n)$**; only the zero matrix has rank 0; a column times a row, $uv^T$ with $u, v$ non-zero, has rank 1 (every column is a multiple of $u$).
+- Square matrix: full rank $\iff$ $\det \neq 0$ $\iff$ invertible.
+- The **condition number** is about *sensitivity* (how much the output can change when the input changes slightly), not about rank, determinant size or counting entries.
+
+</ExamTip>
+
+## In NumPy
+
+`np.linalg.matrix_rank` counts independent columns, and `np.linalg.cond` returns $\sigma_{\max} / \sigma_{\min}$. Run the code and notice the determinant of `Q`: its third row is the sum of the first two, so the exact determinant is 0, but rounding inside the computer gives a tiny number of about $10^{-15}$ instead (in the browser it prints `3.330669073875456e-15`; the exact digits depend on the machine). That is why you should test rank with `matrix_rank`, which uses a sensible tolerance, and never with `det(A) == 0`.
+
+<PyRunner packages={['numpy']} rows={20} code={`import numpy as np
+
+A = np.array([[1, 2, 3],
+              [2, 4, 6],
+              [1, 0, 1]])
+print("rank of A:", np.linalg.matrix_rank(A))
+
+# row 3 of Q = row 1 + row 2
+Q = np.array([[1, 2, 3],
+              [4, 5, 6],
+              [5, 7, 9]])
+print("det of Q:", np.linalg.det(Q))  # not 0!
+print("rank of Q:", np.linalg.matrix_rank(Q))
+
+B = np.array([[1, 1],
+              [1, 1.01]])
+print("cond(B):", np.linalg.cond(B))
+print(np.linalg.solve(B, [2, 2.01]))  # [1. 1.]
+print(np.linalg.solve(B, [2, 2.02]))  # [0. 2.]`} />
+
+<Takeaways>
+
+- The **span** of some vectors is everything their linear combinations can reach; **independent** vectors have no wasted directions.
+- **Rank** = number of independent columns = number of independent rows = dimension of the outputs. Always $\operatorname{rank}(A) \le \min(m, n)$, and only the zero matrix has rank 0.
+- A square matrix is invertible exactly when it has full rank ($\det \neq 0$); losing rank destroys information.
+- The **condition number** $\kappa = \sigma_{\max} / \sigma_{\min}$ measures sensitivity: nearly dependent columns give a huge $\kappa$ and wobbly solutions, which feature scaling and regularisation help to fix.
+
+</Takeaways>

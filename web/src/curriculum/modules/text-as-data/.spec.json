@@ -1,0 +1,290 @@
+{
+  "slug": "text-as-data",
+  "order": 26,
+  "part": "language-audio",
+  "domain": "ai_ml_dl",
+  "title": "Text as data: tokens, vectors and sequences",
+  "tagline": "Turning words into numbers",
+  "summary": "Tokenisation (word, character, subword BPE), padding and special tokens, bag-of-words and TF-IDF with cosine retrieval (the 2025 Final RAG task), word embeddings, a text-classification pipeline, and recurrent networks (RNN, LSTM) as the pre-Transformer approach.",
+  "prerequisites": [
+    "training-deep-networks",
+    "data-and-features"
+  ],
+  "syllabus": [
+    "IOAI 1D7 tokenization and vocabulary building, padding for variable-length sequences",
+    "IOAI 2B2 Data Embeddings (text)",
+    "IOAI 4A1 Text Classification",
+    "NOAI 2025 Final Q3: TF-IDF and cosine similarity retrieval",
+    "NOAI Prelim: Word2Vec, RNNs, LSTMs, subword tokenisation"
+  ],
+  "paper_subtopics": [
+    "nlp-transformers",
+    "sequence-models",
+    "data-preprocessing"
+  ],
+  "lessons": [
+    {
+      "slug": "tokenisation",
+      "title": "Tokenisation, vocabularies and padding",
+      "summary": "Splitting text into word, character or subword tokens, special tokens, and padding with attention masks.",
+      "minutes": 18,
+      "objectives": [
+        "You can compare word, character and subword tokenisation",
+        "You can explain how BPE builds subwords by merging frequent pairs",
+        "You can explain [CLS], [SEP], [PAD], [UNK] and attention masks"
+      ],
+      "concepts": [
+        {
+          "name": "Three ways to cut text",
+          "explain": "Word tokenisation splits on spaces but cannot handle unseen words; character tokenisation never sees unknown symbols but makes sequences very long. Subword tokenisation (BPE, WordPiece) keeps common words whole and splits rare ones into pieces like 'token' + 'isation', balancing vocabulary size and sequence length.",
+          "analogy": "Packing a sentence into boxes: one box per word (some odd items will not fit), one per letter (too many boxes), or standard-size boxes that combine small items.",
+          "visual": {
+            "component": "TokeniserCompare",
+            "kind": "interactive",
+            "shows": "A text box with a sentence (including Singlish words like 'shiok' and a long word) and three token strips for word, character and a small BPE vocabulary, with token counts and [UNK] markers.",
+            "interaction": "Edit the sentence; change the BPE vocabulary size; see unknown words disappear as subwords take over.",
+            "aha": "Subwords give an open vocabulary with manageable sequence lengths."
+          }
+        },
+        {
+          "name": "How BPE learns merges",
+          "explain": "Byte-pair encoding starts from characters and repeatedly merges the most frequent adjacent pair in the training corpus into a new token, recording each merge. After enough merges, frequent words become single tokens while rare words remain split.",
+          "analogy": "Inventing shorthand while taking notes: the combinations you write most often get their own symbol first.",
+          "visual": {
+            "component": "BPEMergeStepper",
+            "kind": "stepper",
+            "shows": "A tiny corpus with word counts, a pair-frequency table, and the vocabulary growing by one merge per step, with words re-tokenised after each merge.",
+            "interaction": "Step through merges; edit the corpus; tokenise a new word with the learned merges.",
+            "aha": "BPE is a simple greedy frequency-counting algorithm."
+          }
+        },
+        {
+          "name": "Padding and attention masks",
+          "explain": "Batches need sequences of equal length, so shorter ones are padded with [PAD] tokens and long ones truncated. An attention mask of 1s and 0s tells the model which positions are real so padding is ignored. BERT-style models also add [CLS] at the start and [SEP] between or after segments. Generative models also wrap sequences in <BOS> and <EOS> tokens. When truncating, cut the content first and then add <EOS>; truncating after adding it silently removes the end marker. Label positions that are padding are set to −100 so the loss ignores them, while the input keeps the pad id.",
+          "analogy": "Filling empty seats on a bus with reserved cards so the count is equal, while telling the conductor not to collect fares from them.",
+          "visual": {
+            "component": "PaddingMaskGrid",
+            "kind": "interactive",
+            "shows": "A MatrixGrid of token ids for a batch of 4 sentences of different lengths, the padded positions shaded, and the corresponding attention-mask grid.",
+            "interaction": "Edit sentences; set max_length; toggle truncation and padding side.",
+            "aha": "Padding makes batching possible, and the mask stops it from polluting the model."
+          }
+        }
+      ],
+      "code": "runnable",
+      "checkpoint_focus": [
+        "Out-of-vocabulary problem",
+        "BPE merges",
+        "Special tokens",
+        "Padding + attention mask",
+        "Truncation",
+        "<BOS>/<EOS> and truncation order; label −100 for padding"
+      ]
+    },
+    {
+      "slug": "bag-of-words-and-tfidf",
+      "title": "Bag of words, TF-IDF and cosine retrieval",
+      "summary": "Representing documents as word-count vectors, down-weighting common words with TF-IDF, and retrieving the most similar document with cosine similarity.",
+      "minutes": 22,
+      "objectives": [
+        "You can build count vectors for small documents",
+        "You can compute TF-IDF weights",
+        "You can rank documents against a query by cosine similarity",
+        "You can implement this retrieval in NumPy as in the 2025 Final"
+      ],
+      "concepts": [
+        {
+          "name": "TF-IDF weights",
+          "explain": "A bag-of-words vector counts each vocabulary word in a document, ignoring order. TF-IDF multiplies each count (term frequency) by the inverse document frequency, log(N/df), which is large for words found in few documents and small for words like 'the' found everywhere. Documents become vectors that highlight their distinctive words.",
+          "analogy": "In a class of 40 essays, 'the' tells you nothing, but 'Merlion' in only two essays tells you a lot about those two.",
+          "visual": {
+            "component": "TFIDFTable",
+            "kind": "interactive",
+            "shows": "Four short documents, a term-by-document table of counts, document frequencies, IDF values and the final TF-IDF weights as a heat map.",
+            "interaction": "Edit documents or add one; toggle IDF on and off; switch between IDF variants (plain, smoothed).",
+            "aha": "TF-IDF automatically down-weights words that appear everywhere."
+          }
+        },
+        {
+          "name": "Ranking documents by cosine similarity",
+          "explain": "Represent the query the same way as the documents, compute the cosine similarity between the query vector and each document vector, and return the top-scoring documents. This is the retrieval half of a simple RAG system.",
+          "analogy": "A librarian who, given your question, pulls out the books that share the most distinctive keywords with it.",
+          "visual": {
+            "component": "CosineSearch",
+            "kind": "interactive",
+            "shows": "A query box, the query's TF-IDF vector, similarity bars for each document, and the top-k results highlighted.",
+            "interaction": "Type queries; change k; toggle TF-IDF versus raw counts and compare rankings.",
+            "aha": "Retrieval is just vectors plus cosine similarity, which you can build from scratch with NumPy."
+          }
+        }
+      ],
+      "code": "runnable",
+      "checkpoint_focus": [
+        "Term frequency and document frequency",
+        "IDF = log(N/df) (variants)",
+        "Common words get low weight",
+        "Cosine similarity ranking"
+      ]
+    },
+    {
+      "slug": "word-embeddings",
+      "title": "Word embeddings",
+      "summary": "Dense vectors that place similar words near each other, how Word2Vec learns them from context, and embedding layers as lookup tables.",
+      "minutes": 20,
+      "objectives": [
+        "You can contrast one-hot vectors with dense embeddings",
+        "You can explain the distributional hypothesis and Word2Vec's skip-gram/CBOW",
+        "You can explain an embedding layer as a lookup (one-hot × matrix)",
+        "You can perform analogy arithmetic on vectors"
+      ],
+      "concepts": [
+        {
+          "name": "The embedding space",
+          "explain": "One-hot vectors make every word equally different from every other. Embeddings give each word a short dense vector (e.g. 300 numbers) learned so that words used in similar contexts get similar vectors. Directions can capture relationships, so king − man + woman lands near queen. Images and audio clips can be embedded the same way. Cosine similarity between two embeddings is the standard measure of semantic similarity.",
+          "analogy": "A map of hawker dishes where noodle dishes cluster together and 'soup versus dry' is a consistent direction.",
+          "visual": {
+            "component": "EmbeddingSpace2D",
+            "kind": "interactive",
+            "shows": "A 2D projection of a small set of word vectors (precomputed), with clusters (food, transport, places) and an analogy tool drawing vector arrows.",
+            "interaction": "Hover words to see nearest neighbours by cosine similarity; pick three words for an analogy and see the predicted fourth.",
+            "aha": "Meaning becomes geometry: similarity is distance and relationships are directions."
+          }
+        },
+        {
+          "name": "Learning from context windows",
+          "explain": "Word2Vec's skip-gram trains a small network to predict surrounding words from a centre word (CBOW does the reverse). Words that appear in similar contexts get pushed towards similar vectors. The 'labels' come from the text itself, so it is self-supervised.",
+          "analogy": "'You shall know a word by the company it keeps': people who always hang out at the basketball court are probably basketball players.",
+          "visual": {
+            "component": "SkipGramWindow",
+            "kind": "interactive",
+            "shows": "A sentence with a sliding centre word and a context window, and the list of (centre, context) training pairs it generates.",
+            "interaction": "Move the centre word; slide the window size; switch to CBOW to see the reversed pairs.",
+            "aha": "Plain text supplies millions of free training pairs."
+          }
+        },
+        {
+          "name": "An embedding layer is a lookup table",
+          "explain": "nn.Embedding(vocab_size, dim) is a matrix with one row per token. Looking up token id 5 just returns row 5, which equals multiplying a one-hot vector by the matrix. The rows are learned by backprop like any other weights.",
+          "analogy": "A locker bank: the token id is the locker number and the embedding is what is inside.",
+          "visual": {
+            "component": "EmbeddingLookup",
+            "kind": "interactive",
+            "shows": "A token-id sequence, the embedding matrix as a MatrixGrid with the selected rows highlighted, and the output (T, dim) matrix; a toggle shows the equivalent one-hot multiplication.",
+            "interaction": "Edit token ids; change vocab size and dimension and see the parameter count.",
+            "aha": "Embedding lookup is row selection, which is why it is fast and learnable."
+          }
+        }
+      ],
+      "code": "runnable",
+      "checkpoint_focus": [
+        "One-hot vectors are orthogonal and huge",
+        "Context windows and skip-gram pairs",
+        "Embedding lookup = row selection",
+        "Analogy arithmetic",
+        "Embeddings for images and audio too"
+      ]
+    },
+    {
+      "slug": "text-classification",
+      "title": "Text classification",
+      "summary": "The pipeline from raw text to a label, from bag-of-words with logistic regression to averaged embeddings and fine-tuned encoders.",
+      "minutes": 18,
+      "objectives": [
+        "You can describe the stages of a text-classification pipeline",
+        "You can interpret word weights in a linear text classifier",
+        "You can choose an approach for a given data size",
+        "You can evaluate with macro-F1 on imbalanced classes"
+      ],
+      "concepts": [
+        {
+          "name": "The pipeline end to end",
+          "explain": "Text classification turns raw text into tokens, tokens into a vector (TF-IDF, averaged embeddings or a pretrained encoder's [CLS] vector) and the vector into a label with a classifier. Simple TF-IDF plus logistic regression is a strong baseline; fine-tuning a pretrained encoder like BERT is usually best when you have enough data.",
+          "analogy": "Sorting letters at a post office: read the address (tokenise), encode it into a postcode (vectorise), and drop it into the right bin (classify).",
+          "visual": {
+            "component": "TextClassifierPipeline",
+            "kind": "interactive",
+            "shows": "A review text flowing through tokens, a feature vector, per-word contributions and a final probability bar for positive or negative sentiment.",
+            "interaction": "Type a review; watch each stage update; switch the vectoriser between TF-IDF and averaged embeddings.",
+            "aha": "Every text classifier is a vectoriser plus a classifier; better vectors make the classifier's job easier."
+          }
+        },
+        {
+          "name": "Word contributions and their limits",
+          "explain": "In a linear bag-of-words model each word has one weight, so you can see exactly which words push towards each class. But bag-of-words ignores order, so 'not good' and 'good, not bad' are confused; sequence models and Transformers fix this.",
+          "analogy": "Judging a movie review by counting happy and sad words, without noticing the word 'not'.",
+          "visual": {
+            "component": "WordWeightBars",
+            "kind": "interactive",
+            "shows": "Bars for the most positive and most negative word weights in a trained toy model, and a test sentence with each word coloured by its contribution.",
+            "interaction": "Type sentences with negation or sarcasm; see where the linear model goes wrong.",
+            "aha": "Interpretable models are easy to inspect, and their mistakes show why word order matters."
+          }
+        }
+      ],
+      "code": "runnable",
+      "checkpoint_focus": [
+        "Tokenise → vectorise → classify",
+        "Linear model weights per word",
+        "Averaged embeddings lose word order",
+        "Fine-tuning a pretrained encoder for best accuracy"
+      ]
+    },
+    {
+      "slug": "rnns-and-lstms",
+      "title": "Recurrent networks and LSTMs",
+      "summary": "Reading sequences one step at a time with a hidden state, vanishing gradients through time, LSTM gates, and the seq2seq bottleneck that motivated attention.",
+      "minutes": 20,
+      "objectives": [
+        "You can describe how an RNN updates its hidden state",
+        "You can explain vanishing gradients through time",
+        "You can describe what LSTM gates do",
+        "You can explain the encoder-decoder bottleneck"
+      ],
+      "concepts": [
+        {
+          "name": "Unrolling an RNN",
+          "explain": "An RNN reads one token at a time and updates a hidden state vector that summarises everything so far: h_t = tanh(W_x x_t + W_h h_{t−1} + b). The same weights are reused at every step, so it handles any length, but information from early tokens fades and gradients vanish over long sequences.",
+          "analogy": "Listening to a long story while only allowed to keep a single sticky note of notes, rewritten after each sentence.",
+          "visual": {
+            "component": "RNNUnroller",
+            "kind": "stepper",
+            "shows": "A sentence's tokens along a time axis with the hidden-state vector shown as a coloured bar after each step, and a heat line showing how much the first word still influences the state.",
+            "interaction": "Step through tokens; lengthen the sentence; toggle between RNN and LSTM to compare memory of the first word.",
+            "aha": "Sequential processing compresses everything into one vector and forgets early information."
+          }
+        },
+        {
+          "name": "LSTM gates",
+          "explain": "An LSTM adds a separate cell state that flows along with only small changes, controlled by gates: the forget gate decides what to erase, the input gate what to write and the output gate what to reveal. Because the cell state can pass through unchanged, gradients survive longer. This is why LSTMs (and GRUs, a simpler two-gate variant) capture long-term dependencies that plain RNNs forget; Transformers go further by attending directly to any earlier position.",
+          "analogy": "A notebook with three rules: what to cross out, what new notes to add, and what to read aloud now.",
+          "visual": {
+            "component": "LSTMGateSliders",
+            "kind": "interactive",
+            "shows": "An LSTM cell diagram with the cell-state conveyor belt, three gate valves and the values flowing through for one step.",
+            "interaction": "Slide each gate's value between 0 and 1 and see what the cell keeps, adds and outputs over several steps.",
+            "aha": "Gates let the network choose what to remember, which fixes plain RNNs' short memory."
+          }
+        },
+        {
+          "name": "The seq2seq bottleneck",
+          "explain": "In early translation models an encoder RNN squeezed a whole source sentence into one fixed-size vector, which a decoder RNN then unpacked. Long sentences lost detail in that single vector. Letting the decoder look back at all encoder states (attention) removed the bottleneck.",
+          "analogy": "Summarising a whole lecture into one tweet before writing the full notes from it.",
+          "visual": {
+            "component": "Seq2SeqBottleneck",
+            "kind": "interactive",
+            "shows": "An encoder chain feeding a single context vector into a decoder, and a translation quality curve against sentence length, with and without attention.",
+            "interaction": "Slide the sentence length and the context vector size; toggle attention.",
+            "aha": "The fixed-size summary is the weak link, and attention was invented to bypass it."
+          }
+        }
+      ],
+      "code": "torch-shown",
+      "checkpoint_focus": [
+        "h_t = tanh(W_x x_t + W_h h_{t−1} + b)",
+        "Same weights every step",
+        "LSTM forget/input/output gates and cell state",
+        "Fixed-size context vector bottleneck"
+      ]
+    }
+  ]
+}

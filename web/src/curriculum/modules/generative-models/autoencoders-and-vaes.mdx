@@ -1,0 +1,297 @@
+import AutoencoderBottleneck from './visuals/autoencoders-and-vaes/AutoencoderBottleneck'
+import AnomalyDetector from './visuals/autoencoders-and-vaes/AnomalyDetector'
+import LatentInterpolator from './visuals/autoencoders-and-vaes/LatentInterpolator'
+import ReparamKL from './visuals/autoencoders-and-vaes/ReparamKL'
+
+Here is a strange-sounding job for a neural network: take a picture, squeeze it down to a handful of numbers, then rebuild the picture from those numbers alone. The network that does this is called an **autoencoder**, and the squeezing forces it to discover what the pictures have in common. That turns out to be useful for cleaning up noisy images, for catching inputs that look wrong, and, after one clever change, for **generating** brand-new data. The image generator Stable Diffusion uses one: every image it makes is finished by an autoencoder's decoder.
+
+<Analogy title="Describing a face over the phone">
+
+Your friend has to sketch your cousin, whom she has never seen, and you may only use ten words over the phone. You will not waste words on "two eyes, one nose": every face has those. You will say what is *special*: "round face, thick eyebrows, short spiky hair, big smile". Ten words force you to keep only what matters, and your friend fills in the rest from what she knows faces look like. You are the encoder, the ten words are the bottleneck, and your friend is the decoder.
+
+</Analogy>
+
+## Encoder, bottleneck, decoder
+
+An autoencoder is two networks joined in the middle.
+
+- The <Term def="The first half of an autoencoder: a network that turns the input into a short list of numbers, the latent code.">encoder</Term> turns the input $x$ (for the digit images in this lesson, $8 \times 8 = 64$ pixel values) into a short list of $k$ numbers, $z = \text{enc}(x)$.
+- That short list is the <Term def="The short vector in the middle of an autoencoder that summarises the input. Also called the code, latent vector or embedding; the space of all possible codes is the latent space.">latent code</Term> $z$. The narrow layer that holds it is the **bottleneck**, and $k$ is the bottleneck size.
+- The <Term def="The second half of an autoencoder: a network that turns a latent code back into something shaped like the input.">decoder</Term> turns the code back into a full-size output, the <Term def="The autoencoder's attempt to rebuild its input, written x-hat.">reconstruction</Term> $\hat x = \text{dec}(z)$.
+
+"Latent" means *hidden*: nobody tells the network what the $k$ numbers should mean. Training only asks that $\hat x$ comes out close to $x$, usually measured by the **mean squared error**:
+
+$$
+L = \frac{1}{n}\sum_{i=1}^{n} \left(x_i - \hat x_i\right)^2
+$$
+
+Here $n$ is the number of pixels (64), $x_i$ is pixel $i$ of the input and $\hat x_i$ is the same pixel in the reconstruction. Squaring makes every difference positive and punishes big mistakes most; dividing by $n$ gives the average. Notice that the target is the input itself, so **no labels are needed**. Autoencoders learn from unlabelled data, which is why they count as unsupervised (or <Term def="Learning where the training targets come from the data itself, e.g. rebuild the input, or predict the next word, so no human labelling is needed.">self-supervised</Term>) learning.
+
+<Steps title="Reconstruction error of a 4-pixel image">
+  <Step title="Line up input and output">
+    Input $x = [1,\ 0,\ 0.5,\ 1]$. Reconstruction $\hat x = [0.9,\ 0.2,\ 0.5,\ 0.6]$.
+  </Step>
+  <Step title="Subtract, pixel by pixel">
+    $x - \hat x = [0.1,\ -0.2,\ 0,\ 0.4]$.
+  </Step>
+  <Step title="Square">
+    $[0.01,\ 0.04,\ 0,\ 0.16]$. The one badly rebuilt pixel (0.4 off) contributes the most.
+  </Step>
+  <Step title="Average">
+    $(0.01 + 0.04 + 0 + 0.16)/4 = 0.21/4 = 0.0525$.
+  </Step>
+</Steps>
+
+Why not just make the bottleneck as wide as the input? Then the network could simply copy each pixel through, get zero error and learn nothing. An <Term def="An autoencoder whose bottleneck is smaller than its input (k < n), so it cannot simply copy and must compress.">undercomplete</Term> autoencoder, with $k$ smaller than the input, has no room to copy. It must find a compact description that works for all the training images at once. See how much the size of the squeeze matters, on real handwritten digits that the network never saw during training:
+
+<AutoencoderBottleneck mode="squeeze" />
+
+Squeezing 64 numbers into 8 still gives recognisable digits, because handwritten digits are far from random: neighbouring pixels move together and strokes follow a few typical shapes. The bottleneck keeps those shared patterns and throws away the rest. Squeeze too hard and even the shared patterns do not fit: at $k = 1$ the 7 comes back looking like a 9, the 3 like a 2 and the 2 like an 8: one number can only say roughly which typical shape to draw.
+
+<KeyIdea>
+
+An autoencoder is an **encoder** ($x \to z$), a **bottleneck** (the short latent code $z$) and a **decoder** ($z \to \hat x$), trained to make $\hat x$ match $x$. The bottleneck size decides what it is forced to remember: smaller means more compression, more general features and bigger reconstruction errors.
+
+</KeyIdea>
+
+If the encoder and decoder are both linear (no activation functions) and the loss is the squared error, the best an autoencoder can do is to keep the same $k$-dimensional subspace (flat slice of the space) that [PCA](#/learn/unsupervised-learning/pca) finds: the directions of greatest spread. Non-linear activations let an autoencoder bend and curve its summary, so you can think of it as a **non-linear PCA**: a learned form of <Term def="Representing each example with fewer numbers while keeping as much of the useful information as possible.">dimensionality reduction</Term>.
+
+<QuickCheck
+  q="An autoencoder takes 28 × 28 greyscale images and has a bottleneck of 32 numbers. How many times fewer numbers does the code have than the image?"
+  options={['24.5', '752', '0.04', '28']}
+  answer={0}
+  explain="The image has $28 \times 28 = 784$ numbers and the code has 32, so the code is $784 / 32 = 24.5$ times smaller. 752 is the difference $784 - 32$, not the ratio; 0.04 is the ratio upside down ($32/784$, the share of numbers kept); and 28 is only the side length of the image."
+/>
+
+<Mistake title="“A bigger bottleneck is always better because the error is lower”">
+
+Lower reconstruction error is not the goal in itself. With $k = 64$ the digits above come back nearly perfectly, but the network was barely made to compress, so its code is not a useful summary. Also compare the error on *training* digits with the error on *test* digits: a big network can memorise its training images and still rebuild new ones poorly.
+
+</Mistake>
+
+## Two everyday jobs: denoising and anomaly detection
+
+### Cleaning up noise
+
+A <Term def="An autoencoder trained to map a corrupted input (e.g. with added noise) back to the clean original.">denoising autoencoder</Term> is trained with a twist: the *input* is a noisy copy of an image, but the *target* is still the clean original. The only way to succeed is to learn what real digits look like, so that whatever does not fit (the speckle) gets dropped.
+
+<AutoencoderBottleneck mode="denoise" />
+
+The plain autoencoder makes things worse because nothing in its training ever looked like that noise. The denoising one cuts the error to about a third at the higher noise levels. The same recipe, trained on photos, removes grain from images and hiss from audio.
+
+### Catching the odd one out
+
+Train an autoencoder only on **normal** data. It learns to rebuild normal examples well, but it has never seen anything else, so an unusual input comes back badly mangled: a large reconstruction error. Choosing a threshold turns that error into an alarm. This is <Term def="Finding examples that are very different from the normal data, such as faulty parts, fraud or a failing machine.">anomaly detection</Term>, which you met with PCA's reconstruction error in [t-SNE, UMAP and anomaly detection](#/learn/unsupervised-learning/tsne-umap-and-anomalies), and it is used to find faulty parts on a production line, fraudulent card payments and failing machines.
+
+<AnomalyDetector />
+
+The threshold is a trade-off. A common choice is a high percentile of the errors on normal validation data, for example the 99th percentile (the error that 99% of normal examples stay below). Here, a threshold of 0.04 flags every odd input and only 2 of the 297 real digits (one of them is the scruffy 4 in the gallery). Lower it to 0.02 and 29 real digits raise false alarms; raise it to 0.075 or more and the upside-down 7 (error 0.075) slips through.
+
+The key point is that the detector **only needs normal examples to train**. That matters because anomalies are rare, varied and often unknown in advance: you cannot collect a labelled example of every possible fault. The one-class SVM from [t-SNE, UMAP and anomaly detection](#/learn/unsupervised-learning/tsne-umap-and-anomalies) works on the same principle.
+
+## Can an autoencoder invent new digits?
+
+You have a decoder that turns codes into digits. To make a *new* digit, just pick a code nobody has used and decode it: the noise-to-data recipe $x_\text{new} = G(z)$ from the [previous lesson](#/learn/generative-models/generative-vs-discriminative), with the decoder as $G$. But which code? In a plain autoencoder, nothing in the training decides where codes should go. The encoder can scatter them over any range, in long thin arms, with big empty gaps in between. The decoder was only ever trained on codes from real digits, so a code from a gap can decode to something that is not a digit at all.
+
+<Analogy title="A library with no shelving rules">
+
+Picture a library where each book is shelved wherever the first librarian happened to put it. The books are all there, but walk to a random spot and you are likely to find an empty corridor. A well-run library keeps similar books on neighbouring shelves and leaves no gaps, so any shelf you visit holds something sensible, and walking along a shelf takes you smoothly from one topic to the next. A variational autoencoder is the well-run library.
+
+</Analogy>
+
+Here are two real 2-D latent spaces, both trained on the same digits: a plain autoencoder and a **variational autoencoder** (VAE).
+
+<LatentInterpolator />
+
+The plain autoencoder's codes are strung out in spiky arms over tens of units ($z_2$ runs from about $-24$ to $+19$), and about a quarter of the map decodes to something unlike any real digit. The path from a 4 to a 6 cuts across an empty gap and passes through two junk images. The middle of the map, where $\mathcal N(0, I)$ samples land, is crowded with 0s, 2s and 6s, so sampling gives little variety. The VAE's codes sit in a compact, gap-free disc (90% of them inside the outer dashed circle): the same 4-to-6 path morphs smoothly, and random samples decode to believable digits of every kind. The next section explains what the VAE does differently.
+
+## The variational autoencoder: three changes
+
+A <Term def="An autoencoder whose encoder outputs a probability distribution (a mean and a spread) for the code, trained with a reconstruction loss plus a KL penalty that pulls the codes towards a standard normal distribution, so it can generate new data.">variational autoencoder</Term> keeps the encoder–decoder shape and changes three things.
+
+**1. The encoder outputs a cloud, not a point.** For each of the $k$ latent numbers, the encoder outputs a mean $\mu$ (the centre) and a standard deviation $\sigma$ (the spread). Together they describe a bell curve $\mathcal N(\mu, \sigma^2)$ of codes that all stand for this input.
+
+**2. The code is sampled from that cloud.** During training, the code is
+
+$$
+z = \mu + \sigma \cdot \varepsilon, \qquad \varepsilon \sim \mathcal N(0, 1)
+$$
+
+Read it as: take a random number $\varepsilon$ from the standard bell curve, stretch it by $\sigma$, and shift it by $\mu$. The result is a random draw from $\mathcal N(\mu, \sigma^2)$ (the z-score formula run backwards, from [Distributions](#/learn/probability-and-statistics/distributions-and-clt)). This is called the <Term def="Writing a random sample as z = μ + σ·ε, with ε drawn from a fixed N(0, 1), so that z is an ordinary, differentiable function of μ and σ and backpropagation can train the encoder.">reparameterisation trick</Term>. Why bother writing it this way? Backpropagation needs to know how the loss changes when $\mu$ and $\sigma$ change, and "draw a random number from $\mathcal N(\mu, \sigma^2)$" has no derivative. In $z = \mu + \sigma\varepsilon$ the randomness comes in from the side, as an input $\varepsilon$ that nothing needs to learn, while $z$ depends on $\mu$ and $\sigma$ through plain arithmetic: $\partial z / \partial \mu = 1$ and $\partial z / \partial \sigma = \varepsilon$.
+
+**3. The loss gets a second term.**
+
+$$
+\begin{aligned}
+\text{loss} = {} & \text{reconstruction error} \\
+& + \mathrm{KL}\big(\mathcal N(\mu, \sigma^2)\,\|\,\mathcal N(0, 1)\big)
+\end{aligned}
+$$
+
+The first term asks the decoder to rebuild $x$ well, exactly as in a plain autoencoder. The second, the <Term def="Kullback–Leibler divergence: a measure of how different one probability distribution is from another. It is never negative and is zero only when the two are identical.">KL divergence</Term>, measures how far each input's cloud is from the standard normal $\mathcal N(0, 1)$, the <Term def="In a VAE, the distribution that codes are pulled towards and new codes are sampled from, normally N(0, I). Like the class prior P(y) in the previous lesson, it is what the model assumes before seeing any input.">prior</Term>. For one latent number it has a neat formula:
+
+$$
+\mathrm{KL} = \tfrac12\left(\mu^2 + \sigma^2 - 1 - \ln \sigma^2\right)
+$$
+
+with one such term for each of the $k$ latent numbers, added up. Read it piece by piece. $\mu^2$ charges for a centre far from 0. $\sigma^2 - 1 - \ln\sigma^2$ is 0 when $\sigma = 1$ and grows when $\sigma$ is either smaller or larger. As $\sigma$ shrinks towards 0 it keeps growing without limit (because $\ln \sigma^2$ heads to $-\infty$), slowly but surely: with $\mu = 0$ the KL is about 1.8 at $\sigma = 0.1$ and 4.1 at $\sigma = 0.01$. A VAE can therefore never afford a perfectly sharp code, and the KL is zero only for $\mu = 0, \sigma = 1$. (The logs here are natural logs, so KL is measured in nats rather than bits.)
+
+<ReparamKL />
+
+The VAE loss (reconstruction + KL) has a name you may meet in harder papers: up to constants, it is the negative of the **ELBO** (evidence lower bound), so minimising it maximises a lower bound on how probable the model finds the training data.
+
+The two loss terms pull in opposite directions, and the balance is what makes the latent space smooth.
+
+- The **reconstruction** term wants every input to have its own sharp, separate code (tiny $\sigma$, centres far apart), so the decoder can tell inputs apart. Alone, that is just a plain autoencoder, gaps and all.
+- The **KL** term wants every cloud to be exactly $\mathcal N(0, 1)$. Alone, every input would get the same code and the decoder could only output one blurry average digit.
+- Together, the clouds stay **near the origin** and **wide enough to overlap**. There are no gaps left between them, and every point near the origin is a code the decoder has been trained on.
+
+<Steps title="By hand: one latent number">
+  <Step title="Sample a code">
+    The encoder outputs $\mu = 2$ and $\sigma = 0.5$, and the random draw is $\varepsilon = -1$. Then $z = \mu + \sigma\varepsilon = 2 + 0.5 \times (-1) = 1.5$.
+  </Step>
+  <Step title="KL when σ = 1">
+    With $\mu = 2,\ \sigma = 1$: $\ln 1 = 0$, so $\mathrm{KL} = \tfrac12(4 + 1 - 1 - 0) = 2$. The whole price is for sitting 2 units away from 0.
+  </Step>
+  <Step title="KL at the prior">
+    With $\mu = 0,\ \sigma = 1$: $\mathrm{KL} = \tfrac12(0 + 1 - 1 - 0) = 0$. This cloud *is* the prior.
+  </Step>
+</Steps>
+
+<QuickCheck
+  q="A VAE encoder outputs $\mu = 1$ and $\sigma = 0.5$ for one latent number, and the random draw is $\varepsilon = 2$. What is the code $z$?"
+  options={['2', '1.5', '2.5', '3.5']}
+  answer={0}
+  explain="$z = \mu + \sigma\varepsilon = 1 + 0.5 \times 2 = 2$. The tempting 2.5 comes from $\mu\sigma + \varepsilon = 0.5 + 2$: the noise must be scaled by $\sigma$, then shifted by $\mu$."
+/>
+
+**Generating with a VAE** is now easy: draw $z$ from $\mathcal N(0, I)$ (each latent number from the standard bell curve), then run only the decoder. Because the codes of real data were pulled towards exactly that distribution, a random $z$ lands in a region the decoder knows. Decoding the points along a straight line between two codes gives a smooth morph from one image to another, called <Term def="Decoding the points along a path between two latent codes, giving a gradual morph from one output to the other.">interpolation</Term>.
+
+<KeyIdea>
+
+A **VAE**'s encoder outputs a mean $\mu$ and spread $\sigma$; the code is sampled as $z = \mu + \sigma\varepsilon$ with $\varepsilon \sim \mathcal N(0,1)$ (the **reparameterisation trick**, which keeps training differentiable); and the loss is **reconstruction + KL**, which pulls every code towards $\mathcal N(0, 1)$. The result is a smooth, gap-free latent space that you can **sample from** and **walk through**.
+
+</KeyIdea>
+
+<Mistake title="Dropping either half of the loss">
+
+Without the KL term, a VAE drifts back into a plain autoencoder: the clouds shrink to points, and the gaps come back. With too much KL weight, every input gets almost the same cloud and the decoder outputs the same blurry average for everything. Also, VAE images tend to look **blurrier** than those from GANs or diffusion models: when the decoder is unsure, a squared-error-style loss rewards it for outputting the average of the possibilities.
+
+</Mistake>
+
+One more property of KL that exams like to test: it is **not symmetric**. $\mathrm{KL}(p\,\|\,q)$ averages over the first distribution $p$, so swapping the two usually changes the answer. That is why the VAE loss always names the order: the encoder's cloud first, the prior second. (The [entropy and KL lesson](#/learn/classification/likelihood-and-entropy) works through an example.)
+
+<PastPaperQuestion paper="prelim2026" n={65} />
+
+## Where VAEs live today
+
+The most famous VAE today is inside **Stable Diffusion**. Its encoder compresses a $512 \times 512$ colour image ($3 \times 512 \times 512 = 786{,}432$ numbers) into a $4 \times 64 \times 64$ latent (4 channels of $64 \times 64$, so $16{,}384$ numbers), 48 times fewer. The slow, step-by-step diffusion process runs in that small latent space, and the VAE decoder turns the final latent back into pixels. You will meet the rest of that pipeline in [Diffusion models](#/learn/generative-models/diffusion-models).
+
+## In code
+
+Here is a complete VAE in PyTorch, trained on the same 8 × 8 digits with a 2-number latent code. It cannot run in the browser, so its real output is shown below it. Two details to spot: the encoder outputs `logvar` $= \ln\sigma^2$ rather than $\sigma$, because a network can output any number but $\sigma$ must be positive, and `torch.exp(0.5 * logvar)` turns it back into $\sigma$. And the KL line is the formula above, summed over the latent numbers, using $\sigma^2$ = `logvar.exp()`.
+
+```python
+import torch, torch.nn as nn, torch.nn.functional as F
+from sklearn.datasets import load_digits
+
+torch.manual_seed(0)
+# 1797 images of 64 pixels each, scaled to 0..1
+X = torch.tensor(load_digits().data / 16.0, dtype=torch.float32)
+
+class VAE(nn.Module):
+    def __init__(self, k=2):
+        super().__init__()
+        self.enc = nn.Sequential(nn.Linear(64, 128), nn.ReLU())
+        self.mu = nn.Linear(128, k)          # mean of each latent number
+        self.logvar = nn.Linear(128, k)      # log of the variance, log(sigma^2)
+        self.dec = nn.Sequential(nn.Linear(k, 128), nn.ReLU(),
+                                 nn.Linear(128, 64), nn.Sigmoid())
+
+    def forward(self, x):
+        h = self.enc(x)
+        mu, logvar = self.mu(h), self.logvar(h)
+        sigma = torch.exp(0.5 * logvar)      # sigma = sqrt(variance), always > 0
+        eps = torch.randn_like(sigma)        # the randomness, from N(0, 1)
+        z = mu + sigma * eps                 # the reparameterisation trick
+        return self.dec(z), mu, logvar
+
+def vae_loss(x_hat, x, mu, logvar):
+    recon = F.binary_cross_entropy(x_hat, x, reduction='sum') / len(x)
+    kl = 0.5 * torch.sum(mu**2 + logvar.exp() - 1 - logvar) / len(x)
+    return recon + kl, recon, kl
+
+model = VAE()
+opt = torch.optim.Adam(model.parameters(), lr=3e-3)
+for epoch in range(1, 501):
+    x_hat, mu, logvar = model(X)
+    loss, recon, kl = vae_loss(x_hat, X, mu, logvar)
+    opt.zero_grad()
+    loss.backward()
+    opt.step()
+    if epoch in (1, 100, 500):
+        print(f"epoch {epoch:3d}: loss {loss.item():5.2f} = "
+              f"recon {recon.item():5.2f} + KL {kl.item():4.2f}")
+
+# Generate: draw z from N(0, I) and decode it. No encoder needed.
+with torch.no_grad():
+    z = torch.randn(4, 2)
+    new = model.dec(z)
+print(new.shape)
+for img in new[:2]:                      # draw two: '#' = dark ink, '+' = faint
+    for row in img.reshape(8, 8):
+        print("".join("#" if v > 0.5 else "+" if v > 0.2 else "." for v in row))
+    print()
+```
+
+```text
+epoch   1: loss 45.90 = recon 45.87 + KL 0.02
+epoch 100: loss 26.87 = recon 26.33 + KL 0.55
+epoch 500: loss 24.71 = recon 22.44 + KL 2.27
+torch.Size([4, 64])
+..####+.
+.+###+..
+.+#+....
+..##+...
+..+##...
+...##+..
+..+##...
+..##+...
+
+..+##+..
+..####..
+.+#++#..
+..####..
+..+++#+.
+.....#+.
+..#++#+.
+..+###..
+```
+
+The reconstruction term falls as training goes on while the KL term rises from almost 0: at the start every cloud is close to $\mathcal N(0, 1)$, and the encoder gradually "pays" some KL to keep different digits apart. (The reconstruction term here is binary cross-entropy, summed over the 64 pixels, which treats each pixel value as a probability of ink; mean squared error also works.) Drawn as pictures, the two samples look like this (brighter = more ink):
+
+<Columns min={150}>
+
+<MatrixGrid label="sample 1" data={[[0.0,0.17,0.8,0.93,0.95,0.85,0.28,0.0],[0.0,0.44,0.96,0.77,0.5,0.41,0.13,0.0],[0.0,0.44,0.83,0.32,0.13,0.04,0.01,0.0],[0.0,0.2,0.81,0.8,0.41,0.04,0.0,0.0],[0.0,0.02,0.43,0.74,0.7,0.15,0.02,0.0],[0.0,0.0,0.07,0.5,0.74,0.21,0.02,0.0],[0.0,0.04,0.43,0.74,0.75,0.1,0.0,0.0],[0.0,0.16,0.89,0.93,0.31,0.01,0.0,0.0]]} heat={[0, 1]} format={() => ''} cellSize={15} brackets={false} ariaLabel="First generated 8 by 8 digit, a scrappy 5" />
+
+<MatrixGrid label="sample 2" data={[[0.0,0.01,0.42,0.8,0.78,0.45,0.06,0.0],[0.0,0.14,0.84,0.63,0.6,0.71,0.14,0.0],[0.0,0.22,0.7,0.29,0.43,0.69,0.14,0.0],[0.0,0.15,0.57,0.61,0.72,0.65,0.13,0.0],[0.0,0.05,0.25,0.31,0.43,0.7,0.24,0.0],[0.0,0.04,0.18,0.08,0.17,0.76,0.34,0.0],[0.0,0.06,0.51,0.34,0.45,0.84,0.25,0.0],[0.0,0.01,0.43,0.87,0.87,0.54,0.06,0.0]]} heat={[0, 1]} format={() => ''} cellSize={15} brackets={false} ariaLabel="Second generated 8 by 8 digit, a 9" />
+
+</Columns>
+
+The second is a believable 9, made from just two random numbers. The first is a scrappy 5: with only two latent numbers and 500 training steps, not every sample is perfect.
+
+<ExamTip>
+
+The traps NOAI sets here: autoencoders need **no labels** (the input is its own target), so they are unsupervised, not supervised. A **bigger** bottleneck is not better: it lets the network copy instead of compress. For anomaly detection, train on **normal data only** and flag a **high** reconstruction error. A VAE's encoder outputs **$\mu$ and $\sigma$**, not a single code, and the **KL** term (not the reconstruction loss) is what makes the latent space smooth enough to sample from.
+
+</ExamTip>
+
+<Takeaways>
+
+- An autoencoder squeezes $x$ through a small **latent code** $z$ and rebuilds $\hat x$, minimising a reconstruction loss such as $\frac1n\sum (x_i - \hat x_i)^2$; the input is its own target, so no labels are needed.
+- The **bottleneck size** sets the compression: too small loses detail, too large lets the network copy. A linear autoencoder learns the same subspace as PCA.
+- **Denoising**: train on noisy inputs with clean targets. **Anomaly detection**: train on normal data only, then flag inputs whose reconstruction error is above a threshold.
+- A **VAE** encodes each input as $\mathcal N(\mu, \sigma^2)$, samples $z = \mu + \sigma\varepsilon$ (reparameterisation trick), and adds a **KL** term $\tfrac12(\mu^2 + \sigma^2 - 1 - \ln\sigma^2)$ that pulls codes towards $\mathcal N(0, 1)$.
+- The result is a smooth, gap-free latent space: sample $z \sim \mathcal N(0, I)$ and decode to **generate**, or decode along a line to **interpolate**.
+
+</Takeaways>

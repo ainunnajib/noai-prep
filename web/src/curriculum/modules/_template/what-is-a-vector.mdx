@@ -1,0 +1,69 @@
+import VectorPlayground from './visuals/what-is-a-vector/VectorPlayground'
+
+AI models see everything (photos, sentences, exam scores) as lists of numbers. A **vector** is the name for such a list.
+
+<Analogy>
+Giving directions in an HDB estate: "walk 3 blocks east, then 4 blocks north". Those two numbers, `[3, 4]`, are a vector. You can write them down as a list, or draw them as one arrow from where you start to where you end up.
+</Analogy>
+
+## Two ways to see one vector
+
+As a list: $v = [3, 4]$. As an arrow: start at the origin, go 3 across and 4 up. Both mean exactly the same thing.
+
+<VectorPlayground />
+
+<KeyIdea>
+A vector is a list of numbers, and you can draw it as an arrow. Its **length** (the L2 norm) is $\lVert v \rVert = \sqrt{v_1^2 + v_2^2 + \dots}$.
+</KeyIdea>
+
+## Working out the length by hand
+
+<Steps title="Length of v = [3, 4]">
+  <Step title="Square each part">
+    $3^2 = 9$ and $4^2 = 16$.
+  </Step>
+  <Step title="Add them up">
+    $9 + 16 = 25$.
+  </Step>
+  <Step title="Take the square root">
+    $\sqrt{25} = 5$. So $\lVert v \rVert = 5$.
+  </Step>
+</Steps>
+
+<Mistake>
+Adding the parts without squaring ($3 + 4 = 7$) gives a different quantity, the L1 norm. Exam options often include it as a trap.
+</Mistake>
+
+## In Python
+
+```python
+import numpy as np
+
+v = np.array([3, 4])
+print(np.linalg.norm(v))   # 5.0
+```
+
+<PyRunner packages={['numpy']} code={`import numpy as np
+
+v = np.array([3, 4])
+print("length:", np.linalg.norm(v))
+print("L1 norm:", np.abs(v).sum())`} />
+
+<QuickCheck
+  q="What is the length of $[5, 12]$?"
+  options={['13', '17', '60', '169']}
+  answer={0}
+  explain="$\sqrt{25 + 144} = \sqrt{169} = 13$. Remember the 5-12-13 right triangle."
+/>
+
+<ExamTip>
+Memorise the common Pythagorean triples (3-4-5, 5-12-13, 8-15-17, 6-8-10). With no calculator and 36 seconds per question, spotting them saves time.
+</ExamTip>
+
+<PastPaperQuestion paper="prelim2026" n={2} />
+
+<Takeaways>
+- A vector is a list of numbers, drawn as an arrow.
+- Length (L2 norm) $= \sqrt{\text{sum of squares}}$.
+- `np.linalg.norm(v)` computes it in NumPy.
+</Takeaways>

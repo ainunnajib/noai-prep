@@ -1,0 +1,248 @@
+{
+  "slug": "pandas-and-plotting",
+  "order": 10,
+  "part": "toolkit",
+  "domain": "computing",
+  "title": "pandas and plotting",
+  "tagline": "Tables you can question",
+  "summary": "Loading and inspecting tables with pandas, selecting rows and columns with loc, iloc and boolean filters, cleaning missing values, types and duplicates, grouping, merging and adding columns, and choosing and drawing the right plot with matplotlib and seaborn.",
+  "prerequisites": [
+    "numpy",
+    "probability-and-statistics"
+  ],
+  "syllabus": [
+    "NOAI Computing: Pandas",
+    "IOAI 1A2 NumPy and Pandas for Data Handling",
+    "IOAI 1A3 Matplotlib and Seaborn for Visualization",
+    "Series and DataFrames, head/info/describe, loc vs iloc, boolean filtering",
+    "groupby (split-apply-combine), merge/join, map and apply",
+    "Cleaning: isna, dropna, fillna, ffill, interpolate, astype, drop_duplicates"
+  ],
+  "paper_subtopics": [
+    "pandas",
+    "data-preprocessing"
+  ],
+  "lessons": [
+    {
+      "slug": "dataframes-and-selection",
+      "title": "DataFrames: inspect, select and filter",
+      "summary": "Load a table, get a quick picture of it, and pull out exactly the rows and columns you need.",
+      "minutes": 20,
+      "objectives": [
+        "You can describe a DataFrame as labelled columns (Series) sharing an index",
+        "You can inspect data with head, info, describe and value_counts",
+        "You can select with loc and iloc and filter rows with combined conditions"
+      ],
+      "concepts": [
+        {
+          "name": "Series and DataFrames",
+          "explain": "A Series is one labelled column of values, and a DataFrame is a table of Series that share an index. Each column has its own dtype. Underneath, each column is a NumPy array.",
+          "analogy": "Like an Excel sheet where every column has a header and every row has a row number.",
+          "visual": {
+            "component": "DataFrameAnatomy",
+            "kind": "diagram",
+            "shows": "A small HDB resale DataFrame with its index, column labels, dtypes and a single column (Series) outlined.",
+            "interaction": "Click each outlined part for a definition and the code that accesses it.",
+            "aha": "A DataFrame is a set of named NumPy columns with row labels."
+          }
+        },
+        {
+          "name": "Inspecting data: head, info, describe",
+          "explain": "df.head() shows the first rows, df.info() shows dtypes and non-null counts, and df.describe() gives summary statistics. Inspecting first is how you spot missing values, wrong types and odd ranges early.",
+          "analogy": "Like checking the ingredients before cooking: read the labels before you start.",
+          "visual": {
+            "component": "InspectorTabs",
+            "kind": "interactive",
+            "shows": "Tabs showing the real outputs of head, info, describe and shape on an HDB resale sample.",
+            "interaction": "Switch tabs and click any odd value (for example a null count of less than n) to see what it means.",
+            "aha": "Thirty seconds of inspection reveals most data problems."
+          }
+        },
+        {
+          "name": "Columns, loc and iloc",
+          "explain": "df['total price'] selects a column, and brackets are required when the name has a space. df.loc[rows, cols] selects by label, and df.iloc[rows, cols] selects by integer position. Mixing them up is a common bug.",
+          "analogy": "loc is finding a friend by name and iloc is finding them by seat number.",
+          "visual": {
+            "component": "LocIlocHighlighter",
+            "kind": "interactive",
+            "shows": "A DataFrame with non-default index labels, highlighting the cells chosen by a typed loc or iloc expression.",
+            "interaction": "Type loc and iloc expressions and compare the results when the labels and positions differ.",
+            "aha": "Labels and positions only match by coincidence, so be explicit."
+          }
+        },
+        {
+          "name": "Boolean filtering",
+          "explain": "df[df['town'] == 'Tampines'] keeps the matching rows. Combine conditions with & and |, putting each one in brackets. It works the same way as NumPy masks.",
+          "analogy": "Like filtering property listings on a website by town and price.",
+          "visual": {
+            "component": "FilterBuilder",
+            "kind": "interactive",
+            "shows": "A table whose rows fade out as filter chips are added, with the generated Pandas code shown below.",
+            "interaction": "Add, remove and edit condition chips, such as town == Tampines and price < 600k, and see the row count update.",
+            "aha": "Filtering is a boolean mask over rows, the same idea as in NumPy."
+          }
+        }
+      ],
+      "code": "runnable",
+      "checkpoint_focus": [
+        "loc (labels, inclusive end) vs iloc (positions, exclusive end)",
+        "Combining conditions with & and | in brackets",
+        "describe() and info() outputs"
+      ]
+    },
+    {
+      "slug": "cleaning-data",
+      "title": "Cleaning data: missing values, types and duplicates",
+      "summary": "Finding and handling missing values with isna, dropna, fillna, ffill and interpolate, fixing column types, and removing duplicates before any model sees the data.",
+      "minutes": 16,
+      "objectives": [
+        "You can count missing values per column with df.isna().sum()",
+        "You can choose between dropna, fillna, ffill and interpolate and predict the resulting shape",
+        "You can fix column types with astype and pd.to_numeric and remove duplicate rows"
+      ],
+      "concepts": [
+        {
+          "name": "Finding missing values",
+          "explain": "pandas marks missing entries as NaN (or None, or NaT for dates). df.isna() gives a True/False table, so df.isna().sum() counts the missing values in each column and df.isna().mean() gives the fraction. df.info() also shows non-null counts. Missing values spread silently: any arithmetic with NaN gives NaN, and scikit-learn models such as LinearRegression refuse to fit.",
+          "analogy": "Checking a class register for blank boxes before working out the attendance rate.",
+          "visual": {
+            "component": "MissingMap",
+            "kind": "interactive",
+            "shows": "A 12-row DataFrame of HDB resale records with missing cells shown in grey, a missingness heat map beside it, and per-column bars of df.isna().sum().",
+            "interaction": "Click cells to blank or fill them; switch the bars between count and fraction; hover a bar to see the code that produced it.",
+            "aha": "Look at the pattern of missing values before choosing a fix: a column that is 80% empty needs a different decision from a few scattered gaps."
+          }
+        },
+        {
+          "name": "dropna, fillna, ffill and interpolate",
+          "explain": "df.dropna() removes every row that has any missing value (complete-case analysis), and df.dropna(axis=1) removes columns instead. df.fillna(0) replaces NaN with a constant, and df['col'].fillna(df['col'].median()) uses the column's median. df.ffill() carries the last known value forward and df.interpolate() fills between neighbours, both suited to time series. Each returns a new DataFrame unless you assign it back.",
+          "analogy": "Three ways to handle a missing homework mark: leave the student out of the average, give them the class median, or estimate it from their marks just before and after.",
+          "visual": {
+            "component": "NaNFixer",
+            "kind": "interactive",
+            "shows": "The same small DataFrame (including a time-ordered temperature column) before and after a chosen method, with changed cells highlighted and the new shape and column means printed.",
+            "interaction": "Pick dropna, dropna(axis=1), fillna(0), fillna(median), ffill or interpolate; watch how many rows are lost and how the means shift.",
+            "aha": "Every NaN fix trades losing data against inventing it, and the change in shape tells you which one you chose."
+          }
+        },
+        {
+          "name": "Types, duplicates and quick checks",
+          "explain": "Columns read from CSV files often arrive with the wrong type, such as prices stored as the text '450,000'. df.dtypes shows the types; astype(float) or pd.to_numeric(col, errors='coerce') converts them, turning bad entries into NaN. df.duplicated().sum() counts repeated rows and drop_duplicates() removes them. value_counts() and sort_values() are fast sanity checks on categories and extreme values.",
+          "analogy": "Checking that every price tag in a shop is a number rather than a smudge, and that no item is counted twice at stocktake.",
+          "visual": {
+            "component": "DtypeDoctor",
+            "kind": "stepper",
+            "shows": "A messy CSV preview (numbers stored as text with commas, a duplicated row, an 'unknown' entry) and the cleaning steps applied one at a time, with df.dtypes and df.shape shown after each step.",
+            "interaction": "Step through the cleaning recipe; skip a step and see which later operation (a mean, a groupby) fails or gives a wrong answer.",
+            "aha": "Many \"model bugs\" in tabular data are really type or duplicate problems that a ten-second check would catch."
+          }
+        }
+      ],
+      "code": "runnable",
+      "checkpoint_focus": [
+        "df.isna().sum()",
+        "dropna versus fillna versus ffill/interpolate",
+        "Shape after dropna",
+        "astype, pd.to_numeric and drop_duplicates"
+      ]
+    },
+    {
+      "slug": "groupby-merge",
+      "title": "groupby, aggregation and merging",
+      "summary": "Split-apply-combine summaries and joining tables on keys.",
+      "minutes": 15,
+      "objectives": [
+        "You can predict the output of df.groupby('category').mean()",
+        "You can choose the right join type for a merge",
+        "You can create new columns with vectorised operations and map/apply"
+      ],
+      "concepts": [
+        {
+          "name": "Split, apply, combine",
+          "explain": "df.groupby('category').mean() splits the rows into groups by category, computes the mean of each numeric column within each group, and combines the results into a table indexed by category.",
+          "analogy": "Like collecting CCA fees by class: sort the forms into class piles, total each pile, then list the totals.",
+          "visual": {
+            "component": "GroupByAnimation",
+            "kind": "animation",
+            "shows": "Rows coloured by category sliding into groups, being reduced to one summary row each, then stacking into the result.",
+            "interaction": "Choose the grouping column and aggregation (mean, sum, count); play the animation.",
+            "aha": "groupby is split, then apply a function, then combine."
+          }
+        },
+        {
+          "name": "Merging tables",
+          "explain": "pd.merge(a, b, on='id', how='left') joins tables on a key. inner keeps only matching keys, left keeps all rows of a, outer keeps everything. Duplicate keys multiply rows, a common surprise.",
+          "analogy": "Like matching a class list with a CCA list by student ID.",
+          "visual": {
+            "component": "JoinVenn",
+            "kind": "interactive",
+            "shows": "Two small tables, a Venn diagram of their keys and the merged result.",
+            "interaction": "Pick inner/left/right/outer; the result rows and the shaded Venn region update.",
+            "aha": "The join type decides which unmatched rows survive."
+          }
+        },
+        {
+          "name": "New columns, map and apply",
+          "explain": "Arithmetic on columns is vectorised: df['bmi'] = df['kg'] / df['m']**2. map replaces values using a dict; apply runs a function per row or column, and is slower than vectorised operations.",
+          "analogy": "Like adding a formula column in a spreadsheet that fills every row at once.",
+          "visual": {
+            "component": "ColumnBuilder",
+            "kind": "interactive",
+            "shows": "A table with a formula bar for creating a new column and a timing comparison of vectorised vs apply.",
+            "interaction": "Type a formula or choose map/apply; the new column fills in.",
+            "aha": "Prefer vectorised column operations; apply is a fallback."
+          }
+        }
+      ],
+      "code": "runnable",
+      "checkpoint_focus": [
+        "df.groupby('category').mean() meaning",
+        "Join types",
+        "Vectorised column ops"
+      ]
+    },
+    {
+      "slug": "plotting-data",
+      "title": "Plotting data with matplotlib and seaborn",
+      "summary": "Choose the plot that answers your question, then draw it with the figure-axes recipe.",
+      "minutes": 16,
+      "objectives": [
+        "You can choose a histogram, scatter, line, bar or box plot to answer a given question",
+        "You can build a matplotlib figure with labelled axes",
+        "You can draw grouped statistical plots with seaborn"
+      ],
+      "concepts": [
+        {
+          "name": "Pick the plot for the question",
+          "explain": "Histograms show a single variable's distribution, scatter plots show the relationship between two numeric variables, line plots show change over time or training curves, and bar charts compare categories. Matplotlib draws them and Seaborn adds convenient statistical plots.",
+          "analogy": "Choosing between a weather map, a temperature graph and a rainfall bar chart depends on the question you want answered.",
+          "visual": {
+            "component": "PlotChooser",
+            "kind": "interactive",
+            "shows": "A question card (e.g. 'Is price related to floor area?') and four thumbnail plots of the same dataset; the right one expands with its Matplotlib code.",
+            "interaction": "Click the plot you think answers the question; cycle through question cards.",
+            "aha": "The question decides the plot; looking at data before modelling catches problems early."
+          }
+        },
+        {
+          "name": "Figures, axes and the plotting recipe",
+          "explain": "Matplotlib draws on a figure that holds one or more axes (individual plots). The recipe is always the same: fig, ax = plt.subplots(), then call ax.plot for lines, ax.scatter for points, ax.hist for distributions or ax.bar for categories, and finish with labels and a title. Seaborn wraps this recipe for common statistical plots, such as sns.histplot or sns.boxplot with hue to split by a category, and works directly on DataFrame columns.",
+          "analogy": "Like setting up an easel (the figure), clipping on sheets of paper (axes) and then choosing the right brush for each drawing.",
+          "visual": {
+            "component": "PlotRecipeBuilder",
+            "kind": "interactive",
+            "shows": "A small DataFrame of HDB flats beside a live figure; a code panel shows the matplotlib or seaborn lines that produce it, with the figure, axes, labels and legend outlined.",
+            "interaction": "Pick a plot type, the x and y columns and an optional hue; toggle between matplotlib and seaborn code; add a second subplot and watch the figure gain another axes.",
+            "aha": "Every plot is figure → axes → plotting call → labels; seaborn just writes the boilerplate for you."
+          }
+        }
+      ],
+      "code": "runnable",
+      "checkpoint_focus": [
+        "Which plot for which question",
+        "plt.subplots, ax.plot/scatter/hist",
+        "seaborn with hue"
+      ]
+    }
+  ]
+}

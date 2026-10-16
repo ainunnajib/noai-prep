@@ -1,0 +1,296 @@
+import LogExpMirror from './visuals/logarithms/LogExpMirror'
+import HalvingCounter from './visuals/logarithms/HalvingCounter'
+import LogRuler from './visuals/logarithms/LogRuler'
+import ProductToSum from './visuals/logarithms/ProductToSum'
+import NegLogCost from './visuals/logarithms/NegLogCost'
+
+Binary search takes about $\log_2 n$ steps. The loss behind almost every classifier is $-\ln p$. Models are trained by maximising a *log*-likelihood. Logarithms are everywhere in AI, and the NOAI Prelim expects you to handle them in your head, without a calculator. The good news: a log is just a question about powers, and three rules do almost all the work.
+
+<Analogy title="Folding a sheet of paper">
+
+Fold a sheet of A4 paper in half: 2 layers. Fold again: 4 layers. Again: 8 layers. The powers of 2 count the **layers**. Now someone hands you a folded wad that is 8 layers thick and asks "how many folds?". The answer, 3, is a **logarithm**: $\log_2 8 = 3$. A logarithm counts the folds.
+
+</Analogy>
+
+## A log answers "which power?"
+
+In the last lesson, [Powers, scientific notation and e](#/learn/maths-foundations/powers-and-exponentials), you worked forwards: base 2, power 3, so $2^3 = 8$. A logarithm runs the same question backwards. You know the base and the answer, and you ask for the power:
+
+$$
+\log_b x = y \quad \text{means exactly} \quad b^y = x
+$$
+
+- $b$ is the <Term def="The number that gets multiplied by itself. In 2³ = 8 the base is 2.">base</Term>. In practice it is 2, 10 or $e \approx 2.718$. It must be positive and not 1.
+- $x$ is the number you are given. It must be positive.
+- $y = \log_b x$ is the <Term def="The power you must raise the base to in order to get a number. log₂ 8 = 3 because 2³ = 8.">logarithm</Term>: the power that turns $b$ into $x$. Read $\log_2 8$ aloud as "log base 2 of 8".
+
+So, by asking "the base to the power *what* gives this number?":
+
+- $\log_2 8 = 3$ because $2^3 = 8$.
+- $\log_{10} 1000 = 3$ because $10^3 = 1000$. For powers of 10, the log counts the zeros.
+- $\log_3 81 = 4$ because $3^4 = 81$.
+- $\log_2 \tfrac{1}{4} = -2$ because $2^{-2} = \tfrac{1}{4}$.
+
+A log **undoes** an exponential, the way subtracting 5 undoes adding 5: $\log_b(b^y) = y$ and $b^{\log_b x} = x$. On a graph, "undoing" means swapping the two coordinates of every point, which is a reflection in the line $y = x$.
+
+<LogExpMirror />
+
+Four facts can be read straight off the mirror:
+
+- **$\log 1 = 0$ in every base**, because $b^0 = 1$. The exponential passes through $(0, 1)$, so the log passes through $(1, 0)$.
+- **$\log_b b = 1$**, because $b^1 = b$. So $\log_2 2 = 1$, $\log_{10} 10 = 1$ and $\ln e = 1$.
+- **Numbers between 0 and 1 have negative logs**: $\log_2 0.5 = -1$ and $\log_{10} 0.01 = -2$. Probabilities live between 0 and 1, so their logs are negative. Hold on to that.
+- **$\log 0$ does not exist.** No power of 2 equals 0: $2^y$ gets closer and closer to 0 as $y$ becomes very negative, but never reaches it. So the log curve plunges towards $-\infty$ as $x$ approaches 0, and negative numbers have no log at all. This is why ML code often writes `np.log(p + 1e-8)`: a predicted probability of exactly 0 would otherwise give `-inf` and wreck the loss. The tiny added number is called <Term def="A tiny positive number such as 1e-8 (0.00000001), added to avoid dividing by zero or taking the log of zero.">epsilon (ε)</Term>.
+
+You will use the first fact again when you work with text. TF-IDF, a classic way to score how important a word is in a document, in its basic form multiplies by $\log \dfrac{N}{\text{df}}$, where $N$ is the number of documents and df is the number of them that contain the word. A word found in every document, such as "the", scores $\log 1 = 0$ and so counts for nothing.
+
+### Three bases you will meet
+
+| Log | Base | Where it appears |
+|---|---|---|
+| $\ln x$ | $e$ | ML maths: losses, likelihoods, softmax |
+| $\log_2 x$ | 2 | computing: bits, binary search, $O(\log n)$ |
+| $\log_{10} x$ | 10 | counting digits, orders of magnitude |
+
+In NumPy the three are `np.log` (that is ln), `np.log2` and `np.log10`. ML papers often write plain "log" and mean ln.
+
+$\ln$ is the <Term def="The logarithm with base e ≈ 2.718, written ln. It is the default log in maths and machine learning.">natural log</Term>, the one that undoes $e^x$ from [Powers, scientific notation and e](#/learn/maths-foundations/powers-and-exponentials). The bases differ only by a constant factor: $\log_2 x = \dfrac{\ln x}{\ln 2}$, about $1.44 \times \ln x$. In general, to change from one base to another, divide by the log of the base:
+
+$$
+\log_b x = \frac{\ln x}{\ln b}
+$$
+
+For example $\log_4 8 = \dfrac{\ln 8}{\ln 4} = \dfrac{3 \ln 2}{2 \ln 2} = 1.5$, and $\log_2 10 = \dfrac{\ln 10}{\ln 2} \approx \dfrac{2.303}{0.693} \approx 3.32$. (Any base works on top and bottom, as long as both use the same one: $\log_b x = \dfrac{\log_{10} x}{\log_{10} b}$ too.)
+
+So every log curve has the same shape, just stretched. That is why computer scientists, who describe how the number of steps grows using <Term def="A way of saying how the number of steps an algorithm takes grows as its input gets bigger, ignoring constant factors. O(log n) means the steps grow like log n.">Big-O notation</Term>, never bother to say which base: they just write $O(\log n)$.
+
+<Mistake title="`np.log` is ln, not log base 10">
+
+On a calculator the "log" button is base 10, but in Python `np.log(10)` gives `2.302585…`, not 1. Use `np.log10` or `np.log2` when you want those bases.
+
+</Mistake>
+
+<KeyIdea>
+
+$\log_b x$ is the power you raise $b$ to in order to get $x$. A log undoes an exponential, so it turns "times $b$" into "plus 1". $\log 1 = 0$, logs of numbers between 0 and 1 are negative, and $\log 0$ does not exist.
+
+</KeyIdea>
+
+<Steps title="Five logs in your head">
+  <Step title="$\log_2 32$">
+    Ask "2 to the what is 32?". Count the doublings: 2, 4, 8, 16, 32 is $2^5$. So $\log_2 32 = 5$.
+  </Step>
+  <Step title="$\log_{10} 0.001$">
+    $0.001 = \tfrac{1}{1000} = 10^{-3}$. So $\log_{10} 0.001 = -3$: a number below 1 has a negative log.
+  </Step>
+  <Step title="$\ln 1$">
+    $e^0 = 1$, so $\ln 1 = 0$. The same is true in every base.
+  </Step>
+  <Step title="$\ln(e^5)$">
+    The log undoes the exponential, so $\ln(e^5) = 5$. No arithmetic needed.
+  </Step>
+  <Step title="$\log_4 2$">
+    $4^{1/2} = \sqrt{4} = 2$, so $\log_4 2 = \tfrac{1}{2}$. Logs need not be whole numbers.
+  </Step>
+</Steps>
+
+<QuickCheck
+  id="mf-logs-qc1"
+  q="Which of these is negative?"
+  options={['$\\log_2 0.5$', '$\\log_{10} 1$', '$\\ln 2$', '$\\log_2 3$']}
+  answer={0}
+  explain="$\log_2 0.5 = -1$ because $2^{-1} = 0.5$: every number between 0 and 1 has a negative log. $\log_{10} 1 = 0$ is zero, not negative, and $\ln 2 \approx 0.693$ and $\log_2 3 \approx 1.58$ are positive because 2 and 3 are bigger than 1."
+/>
+
+## Counting halvings: where $\log_2 n$ comes from
+
+Run the folding backwards. Start with $n$ and keep halving until you reach 1 or less. The number of halvings is $\log_2 n$ (rounded up when $n$ is not a power of 2): $8 \to 4 \to 2 \to 1$ takes 3 halvings, and $\log_2 8 = 3$, while 1000 takes 10, because $2^{10} = 1024$ is the first power of 2 above 1000.
+
+Code that halves whole numbers with `n // 2` until `n` reaches 1, like the loop in [Big-O: how cost grows](#/learn/algorithms-and-complexity/big-o), throws the remainders away, so it stops one step earlier when $n$ is not a power of 2: 9 steps for 1000 (500, 250, 125, 62, 31, 15, 7, 3, 1), which is $\log_2 n$ rounded down. Both counts are "about $\log_2 n$", which is all Big-O needs.
+
+<HalvingCounter />
+
+This is exactly how <Term def="Searching a sorted list by checking the middle item and throwing away the half that cannot contain the target, again and again.">binary search</Term> works: each comparison throws away half of what is left. Finding a name among 1,000,000 sorted names takes at most 20 comparisons, because $2^{20} \approx 1{,}000{,}000$. That is what $O(\log n)$ means: when the input grows a thousand times bigger, the work grows by only about 10 steps.
+
+<ExamTip>
+
+Memorise $2^{10} = 1024 \approx 10^3$. It converts between powers of 2 and powers of 10 instantly: $\log_2 1000 \approx 10$, $\log_2 10^6 \approx 20$, $\log_2 10^9 \approx 30$. Twenty yes/no questions are enough to pick one item out of a million.
+
+</ExamTip>
+
+## Log rules turn products into sums
+
+Logs are exponents, so they obey the exponent rules from [Powers, scientific notation and e](#/learn/maths-foundations/powers-and-exponentials). Suppose $x = 2^m$ and $y = 2^k$, so that $\log_2 x = m$ and $\log_2 y = k$. Multiplying adds the exponents: $xy = 2^m \times 2^k = 2^{m+k}$. Therefore $\log_2(xy) = m + k = \log_2 x + \log_2 y$. Dividing subtracts exponents and raising to a power multiplies them, which gives the other two rules:
+
+$$
+\begin{aligned}
+\log(xy) &= \log x + \log y &&\text{product rule} \\
+\log\!\left(\tfrac{x}{y}\right) &= \log x - \log y &&\text{quotient rule} \\
+\log(x^k) &= k \log x &&\text{power rule}
+\end{aligned}
+$$
+
+They hold in any base, as long as every log in the equation uses the same one. In words: **multiplying inside the log is adding outside; dividing inside is subtracting outside; a power inside comes out in front as a multiplier.**
+
+<LogRuler />
+
+This is also why plots of learning rates and loss curves often use a **log axis**: on it, $10^{-1}$, $10^{-2}$ and $10^{-3}$ are equally spaced, so a sweep over learning rates from 0.0001 to 1 fits neatly on one chart.
+
+<Steps title="Using the rules">
+  <Step title="Product rule">
+    $\log_{10} 4 + \log_{10} 25 = \log_{10}(4 \times 25) = \log_{10} 100 = 2$. Neither log is easy alone, but their sum is.
+  </Step>
+  <Step title="Quotient rule">
+    $\log_2 24 - \log_2 3 = \log_2 \tfrac{24}{3} = \log_2 8 = 3$.
+  </Step>
+  <Step title="Power rule">
+    $\log_2(8^5) = 5 \log_2 8 = 5 \times 3 = 15$. Check: $8^5 = (2^3)^5 = 2^{15}$.
+  </Step>
+  <Step title="Reciprocals">
+    $\ln \tfrac{1}{K} = \ln 1 - \ln K = 0 - \ln K = -\ln K$. So $\ln \tfrac{1}{10} = -\ln 10$. This one appears in exam questions about losses.
+  </Step>
+  <Step title="One anchor gives many">
+    Given $\log_{10} 2 \approx 0.301$: $\log_{10} 5 = \log_{10} \tfrac{10}{2} = 1 - 0.301 = 0.699$, and $\log_{10} 8 = 3 \times 0.301 = 0.903$.
+  </Step>
+</Steps>
+
+<Mistake title="Logs do not split sums">
+
+$\log(x + y)$ is **not** $\log x + \log y$; the rule is about products. Check with numbers: $\log_{10}(10 + 10) = \log_{10} 20 \approx 1.301$, but $\log_{10} 10 + \log_{10} 10 = 2$, which is $\log_{10} 100$. Likewise $\log x \times \log y$ is not $\log(xy)$, and $\dfrac{\log x}{\log y}$ is not $\log \dfrac{x}{y}$.
+
+</Mistake>
+
+<QuickCheck
+  id="mf-logs-qc2"
+  q="Given $\log_{10} 2 \approx 0.301$ and $\log_{10} 3 \approx 0.477$, what is $\log_{10} 6$?"
+  options={['0.778', '0.144', '0.176', '0.903']}
+  answer={0}
+  explain="$6 = 2 \times 3$, so the product rule gives $\log_{10} 6 = 0.301 + 0.477 = 0.778$. Multiplying the logs ($0.301 \times 0.477 \approx 0.144$) is the classic slip, $0.477 - 0.301 = 0.176$ is $\log_{10} 1.5$, the quotient rule instead, and $3 \times 0.301 = 0.903$ is $\log_{10} 8 = \log_{10} 2^3$: the power rule used on a product."
+/>
+
+## Why machine learning adds log-probabilities
+
+For <Term def="Events where knowing that one happened does not change the chance of the other, such as two separate coin flips.">independent</Term> events, probabilities multiply: the chance of two heads in two coin flips is $\tfrac12 \times \tfrac12 = \tfrac14$.
+
+Now imagine a model that gives the correct label probability 0.9 for each of 1,000 independent training examples. The probability of the whole dataset under the model, called the <Term def="The probability the model gives to all of the observed data together. Training tries to make it as large as possible.">likelihood</Term>, is
+
+$$
+\underbrace{0.9 \times 0.9 \times \dots \times 0.9}_{1000 \text{ times}} = 0.9^{1000} \approx 1.7 \times 10^{-46},
+$$
+
+a decimal point followed by 45 zeros and then 17. PyTorch stores numbers as <Term def="A 32-bit floating-point number, PyTorch's default number format. Its smallest positive value is about 1.4 × 10⁻⁴⁵.">float32</Term> by default, and the smallest positive float32 is about $1.4 \times 10^{-45}$. So the product is stored as exactly 0, an <Term def="When a calculation produces a number too close to 0 for the number format, so it is rounded to exactly 0.">underflow</Term>. Every model would then score a likelihood of 0, and training could no longer tell a good model from a bad one.
+
+Take logs and the product becomes a sum:
+
+$$
+\begin{aligned}
+\ln\left(0.9^{1000}\right) &= 1000 \times \ln 0.9 \\
+&\approx 1000 \times (-0.1054) \approx -105.4
+\end{aligned}
+$$
+
+That is an ordinary number that any computer stores easily.
+
+<ProductToSum />
+
+So ML works with the <Term def="The natural log of the likelihood: the sum of the log-probabilities of every example.">log-likelihood</Term>, $\ln p_1 + \ln p_2 + \dots + \ln p_m$, for three reasons:
+
+1. **No underflow.** Adding a thousand numbers around $-0.1$ is harmless; multiplying a thousand numbers below 1 is not.
+2. **Same winner.** $\ln$ always goes up when its input goes up, so the parameters that give the biggest likelihood also give the biggest log-likelihood. Nothing about the answer changes.
+3. **Sums are friendlier.** A sum over examples can be averaged over a mini-batch, and (as you will see in calculus) it is far easier to differentiate than a long product.
+
+Training software prefers to *minimise*, so it flips the sign and minimises the **negative log-likelihood**, which is exactly the cross-entropy loss of the next section.
+
+Here is the underflow in PyTorch. (PyTorch cannot run in your browser, so this is the real output from running it locally.)
+
+```python
+import torch
+
+# 1000 independent events, each 0.9
+p = torch.full((1000,), 0.9)
+# multiply them all
+print(p.prod())
+# add their logs instead
+print(p.log().sum())
+```
+
+```text
+tensor(0.)
+tensor(-105.3605)
+```
+
+Plain Python uses 64-bit floats (float64), which reach down to about $10^{-308}$ (and, with lost precision, about $5 \times 10^{-324}$). That only delays the problem. Run this:
+
+<PyRunner code={`import math
+
+# float64 can still hold this...
+print(0.9 ** 1000)
+# ...but this underflows to 0.0
+print(0.9 ** 10000)
+# the log-likelihood is fine
+print(10000 * math.log(0.9))`} />
+
+Expected output:
+
+```text
+1.7478712517226947e-46
+0.0
+-1053.6051565782627
+```
+
+## Anchor values and the cost $-\ln p$
+
+With no calculator, a handful of memorised values go a long way. Two are worth learning by heart: $\ln 2 \approx 0.693$ ("about 0.7") and $\ln 10 \approx 2.303$ ("about 2.3"). Add $\ln 1 = 0$, $\ln e = 1$, $\log_{10} 2 \approx 0.301$ and $\log_2 10 \approx 3.32$ (because $2^{10} \approx 10^3$, so $\log_2 10 \approx \tfrac{10}{3}$), and the rules stretch them to many more: $\ln 4 = 2 \ln 2 \approx 1.386$, $\ln 5 = \ln 10 - \ln 2 \approx 1.609$, $\ln 100 = 2 \ln 10 \approx 4.605$ and $\ln 0.5 = -\ln 2 \approx -0.693$.
+
+The figure below collects the anchors (with a quiz mode to test yourself). The most important log in ML is $-\ln p$. When a classifier gives the **correct** answer probability $p$, the <Term def="The standard classification loss. For one example it is −ln(probability the model gave to the correct class).">cross-entropy loss</Term> for that example is $-\ln p$. The minus sign is there because $\ln p$ is negative for $0 < p < 1$; flipping it makes the cost positive.
+
+<NegLogCost />
+
+Reading the curve:
+
+- $p = 1$ (certain and right): cost $-\ln 1 = 0$.
+- $p = 0.5$ (a coin flip): cost $\ln 2 \approx 0.693$.
+- $p = 0.1$: cost $\ln 10 \approx 2.303$.
+- As $p \to 0$ (certain and wrong) the cost grows without limit. A model that is confidently wrong is punished far more than one that is unsure.
+
+<Steps title="One confident mistake dominates">
+  <Step title="Three predictions">
+    A model gives the true class probabilities 0.9, 0.5 and 0.01 on three examples.
+  </Step>
+  <Step title="Cost of each">
+    $-\ln 0.9 \approx 0.105$, $\;-\ln 0.5 \approx 0.693$, $\;-\ln 0.01 = 2 \ln 10 \approx 4.605$.
+  </Step>
+  <Step title="Average loss">
+    $(0.105 + 0.693 + 4.605) / 3 \approx 1.80$. The single confident mistake contributes over 85% of the loss.
+  </Step>
+</Steps>
+
+A model that has learned nothing spreads its bets evenly: with $K$ classes it gives each one probability $\tfrac{1}{K}$, so its loss is $-\ln \tfrac{1}{K} = \ln K$. For 10 classes (the digits 0 to 9) that is $\ln 10 \approx 2.303$; for 2 classes it is $\ln 2 \approx 0.693$; for 100 classes it is $\ln 100 \approx 4.605$. If the very first loss of your training run is far from $\ln K$, suspect a bug.
+
+For two classes, labels are written $y = 1$ or $y = 0$, and the model's predicted probability of class 1 is written $\hat{y}$ ("y-hat"; the hat marks a prediction, as in [Fitting a line by hand](#/learn/ai-first-look/fit-a-line-by-hand)). The next lesson, [Reading formulas: Σ, subscripts and hats](#/learn/maths-foundations/sigma-notation-and-subscripts), covers hats and the other marks. The cost is then $-\ln \hat{y}$ when $y = 1$ and $-\ln(1 - \hat{y})$ when $y = 0$. One formula covers both cases, because one of its two terms is always multiplied by 0:
+
+$$
+L = -\big[\, y \ln \hat{y} + (1 - y) \ln(1 - \hat{y}) \,\big]
+$$
+
+<PastPaperQuestion paper="prelim2026" n={61} />
+
+With $K$ classes, the true answer can be written as a list of probabilities (1 on the correct class, 0 on the others), and the model's output is another list that adds up to 1. A list like this is called a <Term def="A list of probabilities, one for each possible outcome, each at least 0 and together adding up to 1.">probability distribution</Term>, and cross-entropy measures how far the predicted one is from the true one. With the 1 on the correct class, it reduces to $-\ln p$.
+
+<PastPaperQuestion paper="prelim2026" n={183} />
+
+<ExamTip>
+
+"Initial loss" questions are free marks: a uniform guess over $K$ classes has cross-entropy $\ln K$ (2.303 for 10 classes, 0.693 for 2). Also watch the base. The <Term def="A measure of how unpredictable an outcome is. Measured in bits when you use log₂ (a fair coin flip is 1 bit).">entropy</Term> of a fair coin is 1 **bit** with $\log_2$ but $\ln 2 \approx 0.693$ with $\ln$, so if the options contain both 1 and 0.693, check which log the question uses.
+
+</ExamTip>
+
+<Takeaways>
+
+- $\log_b x = y$ means $b^y = x$: a log asks "which power?". So $\log_2 8 = 3$, $\log_{10} 1000 = 3$ and $\ln 1 = 0$.
+- $\log_2 n$ counts how many times you can halve $n$; that is where $O(\log n)$ and binary search's 20 steps for a million come from.
+- $\log(xy) = \log x + \log y$, $\log(x/y) = \log x - \log y$ and $\log(x^k) = k \log x$. Logs do not split sums.
+- Products of many probabilities underflow to 0, so ML adds log-probabilities and minimises the negative log-likelihood.
+- Memorise $\ln 2 \approx 0.693$ and $\ln 10 \approx 2.303$. The cost $-\ln p$ is 0 for a sure right answer and huge for a confident wrong one, and a uniform guess over $K$ classes costs $\ln K$.
+
+</Takeaways>

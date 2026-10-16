@@ -1,0 +1,235 @@
+import ListVsArrayMemory from './visuals/why-numpy/ListVsArrayMemory'
+import SpeedRace from './visuals/why-numpy/SpeedRace'
+import RefCounter from './visuals/why-numpy/RefCounter'
+import GILTurnstile from './visuals/why-numpy/GILTurnstile'
+
+export const TIMING_CODE = `import time
+import numpy as np
+
+# keep n at 100_000 or more:
+# the browser's clock is coarse
+n = 1_000_000
+# 0.0, 1.0, 2.0, ..., 999999.0
+arr = np.arange(n, dtype=float)
+# the same numbers, as a list
+data = arr.tolist()
+
+t0 = time.perf_counter()
+out = []
+for x in data:
+    out.append(x * 2)
+t1 = time.perf_counter()
+loop_ms = (t1 - t0) * 1000
+
+# NumPy is so quick that we time
+# 20 runs and divide
+reps = 20
+t2 = time.perf_counter()
+for _ in range(reps):
+    out2 = arr * 2
+t3 = time.perf_counter()
+numpy_ms = (t3 - t2) * 1000 / reps
+
+# max() avoids dividing by 0
+safe_ms = max(numpy_ms, 1e-6)
+ratio = loop_ms / safe_ms
+print(f"Loop:  {loop_ms:.1f} ms")
+print(f"NumPy: {numpy_ms:.2f} ms")
+print(f"Speed-up: {ratio:.0f}x")`
+
+Every AI model is, underneath, millions of multiplications and additions. Plain Python is far too slow for that, so almost all AI code in Python stands on one library: **NumPy** (*Numerical Python*). The NOAI Final asks you to build algorithms such as k-means (an algorithm that groups similar points, built in [NumPy patterns for from-scratch ML](#/learn/numpy/from-scratch-patterns)) *from scratch* with NumPy, and the Prelim asks *why* it is fast. This lesson opens the bonnet: how numbers sit in memory, what "vectorised" means, and two pieces of Python machinery (garbage collection and the GIL) that exam questions love.
+
+<Analogy title="A bus versus a hawker centre">
+
+Imagine gathering 50 friends for a photo. If they sit on a bus in numbered seats, one after another, you just walk down the aisle: that is a **NumPy array**. If they are scattered around a busy hawker centre and you only have a list of their table numbers, you must walk to each table in turn: that is a **Python list**. Same 50 people, far more walking.
+
+</Analogy>
+
+## A Python list is a list of pointers
+
+When you write `nums = [7, 2, 9, 4, 1, 6]`, Python does not store six plain numbers side by side. Each number is a separate Python <Term def="A bundle in memory that Python makes for every value: the value plus its type and a count of what refers to it.">object</Term>, stored wherever there is free space, and the list holds only a <Term def="A memory address: a number saying where in memory something is stored.">pointer</Term> to each. A whole-number object takes 28 <Term def="The basic unit of memory: 8 bits, enough for a whole number from 0 to 255.">bytes</Term>, though the value 7 needs one, because it also carries its type and bookkeeping. (Python shares one object between all uses of a small number like 7, but the list still stores only pointers.)
+
+A NumPy array stores the raw numbers themselves, **all of the same type**, packed side by side in **one unbroken block** of memory. The type is the <Term def="Data type: the kind of number every element of an array holds, such as int64 (8-byte whole numbers) or float32 (4-byte decimals).">dtype</Term>, and it fixes how many bytes each number takes: `int8` uses 1 byte, `float32` uses 4, and `int64` or `float64` use 8.
+
+<ListVsArrayMemory />
+
+Two things in that picture make NumPy fast. First, the processor never chases pointers: the numbers are <Term def="Stored next to each other in one unbroken block of memory, with no gaps.">contiguous</Term>, so it reads them in one smooth sweep, which is what memory is best at. Second, every element has the same dtype, so NumPy never stops to ask "what type is this one?": it decides once, for the whole array.
+
+## Stride: how NumPy finds any element
+
+If all the numbers sit in one block and each takes the same number of bytes, NumPy can find any element by arithmetic instead of following pointers. The number of bytes to jump to the next element is the <Term def="The number of bytes to jump in memory to reach the next element along one axis. A 2-D table has two: one for the next row, one for the next column.">stride</Term>.
+
+In a 1-D array of 8-byte numbers (`int64` or `float64`), each element starts 8 bytes after the one before, so the stride is 8 and `a[5]` starts $5 \times 8 = 40$ bytes after the start of the block.
+
+An array can also be a table. `a.reshape(2, 3)` regroups our six numbers into 2 rows of 3: its **shape** is `(2, 3)`, rows first. Each direction is an **axis**: **axis 0** runs down the rows and **axis 1** across the columns ([Arrays, shape and dtype](#/learn/numpy/arrays-and-shapes) covers both properly).
+
+<MatrixGrid data={[[7, 2, 9], [4, 1, 6]]} cellSize={38} label="shape (2, 3): axis 0 runs down (2 rows), axis 1 runs across (3 columns)" ariaLabel="A 2 by 3 table holding 7, 2, 9 in row 0 and 4, 1, 6 in row 1" />
+
+In memory the table is still one strip: row 0, then row 1. For shape $(R, C)$, stored row after row, with $s$ bytes per element:
+
+$$
+\begin{aligned}
+\text{offset of } a[i, j] &= i \times \text{stride}_0 \\
+&\quad + j \times \text{stride}_1
+\end{aligned}
+$$
+
+$$
+\text{stride}_0 = C \times s, \qquad \text{stride}_1 = s
+$$
+
+- $i$ is the row and $j$ the column, both counted from 0. The offset is how many bytes after the start of the block the element begins.
+- $\text{stride}_0 = C \times s$: one row down skips a whole row of $C$ elements.
+- $\text{stride}_1 = s$: one column right skips one element.
+
+NumPy keeps them as `a.strides`. For a fresh 1-D array the stride equals the **itemsize** (bytes per element), but a view that skips elements has a bigger one: `a[::2]` (every second element) of an `int64` array has stride $2 \times 8 = 16$.
+
+<KeyIdea>
+
+A NumPy array is one contiguous block of same-type numbers. The **stride** is the step size in bytes along each axis, so NumPy reaches any element with a little arithmetic instead of chasing pointers.
+
+</KeyIdea>
+
+<Steps title="Find a[1, 2] in a float64 array of shape (2, 3)">
+  <Step title="Itemsize">
+    `float64` means 64 bits, and $64 \div 8 = 8$ bytes per number, so $s = 8$.
+  </Step>
+  <Step title="Column stride">
+    One step along a row skips one number: $\text{stride}_1 = s = 8$ bytes.
+  </Step>
+  <Step title="Row stride">
+    One step down skips a whole row of $C = 3$ numbers: $\text{stride}_0 = 3 \times 8 = 24$ bytes. So `a.strides` is `(24, 8)`.
+  </Step>
+  <Step title="Offset">
+    $1 \times 24 + 2 \times 8 = 24 + 16 = 40$. The element `a[1, 2]` starts 40 bytes after the start of the block.
+  </Step>
+  <Step title="Check by counting">
+    Reading row by row, `a[1, 2]` is element number $1 \times 3 + 2 = 5$ (counting from 0), and $5 \times 8 = 40$. ✓
+  </Step>
+</Steps>
+
+You can ask NumPy for all of this directly. The code uses three things the next two lessons teach properly: `np.array([...])` turns a list into an array, `a[::2]` takes every second element (a slice, as with Python lists), and `a.astype(np.int8)` makes a copy with another dtype.
+
+```python
+import numpy as np
+a = np.array([7, 2, 9, 4, 1, 6])
+print(a.dtype, a.itemsize)
+print(a.strides, a.nbytes)
+print(a[::2], a[::2].strides)
+
+b = a.reshape(2, 3)
+print(b)
+print(b.strides)
+
+c = a.astype(np.int8)
+print(c.dtype, c.itemsize)
+print(c.strides, c.nbytes)
+```
+
+```text
+int64 8
+(8,) 48
+[7 9 1] (16,)
+[[7 2 9]
+ [4 1 6]]
+(24, 8)
+int8 1
+(1,) 6
+```
+
+`nbytes` is the size of the whole block ($6 \times 8 = 48$); the `int8` copy needs only $6 \times 1 = 6$ bytes. Notice that `reshape(2, 3)` gave strides `(24, 8)` without moving a single byte: only the way NumPy *reads* the block changed.
+
+<QuickCheck
+  q="An int32 array (4 bytes per number) has shape (3, 5). What is its `strides`?"
+  options={['(20, 4)', '(5, 1)', '(4, 20)', '(12, 4)']}
+  answer={0}
+  explain="One column step skips one number: 4 bytes. One row step skips a whole row of 5 numbers: $5 \times 4 = 20$ bytes. Strides are measured in bytes, not in elements, so (5, 1) is wrong."
+/>
+
+## Vectorisation: let the loop run in C
+
+Here are two ways to double a million numbers:
+
+```python
+# Plain Python: one at a time
+out = []
+for x in data:
+    out.append(x * 2)
+
+# NumPy: the whole array at once
+out = arr * 2
+```
+
+Writing `arr * 2` is called <Term def="Writing one operation on a whole array (like arr * 2) instead of a Python loop over its elements.">vectorisation</Term>. There is still a loop over the million numbers, but it runs inside NumPy's <Term def="Written in the C language and translated ahead of time into machine instructions that the processor runs directly.">compiled C code</Term>, not in the Python <Term def="The program that carries out your Python code line by line while it runs: flexible, but every step has overhead.">interpreter</Term>. On every pass the interpreter must check the type of `x`, look up what `*` means for it, and create a new object for the answer. NumPy pays those costs once for the whole array.
+
+<SpeedRace />
+
+Time it yourself. This runs real Python in your browser (a little slower than a normal computer, but the gap is just as clear):
+
+<PyRunner packages={['numpy']} code={TIMING_CODE} />
+
+<KeyIdea>
+
+**Vectorisation** means replacing Python loops over numbers with whole-array operations. NumPy is fast because the numbers sit in **one contiguous block** (no pointer chasing) and the loop runs in **compiled C** (no type checks or new objects per number).
+
+</KeyIdea>
+
+<Mistake title="Using NumPy but still looping">
+
+Writing `for x in arr:` over a NumPy array gives you none of the speed. Python wraps each number in a new object as it hands it to you, so this loop is usually even *slower* than over a plain list. NumPy only helps when you hand it the whole array: `arr * 2`, `arr.sum()`, `arr > 0`.
+
+</Mistake>
+
+<PastPaperQuestion paper="prelim2026" n={104} />
+
+## Under the hood: how Python cleans up memory
+
+You met this in [Names, references and surprises](#/learn/python-toolkit/references-mutability): CPython frees an object as soon as its **reference count** reaches 0, and a **cyclic garbage collector** (the `gc` module) runs now and then to free groups of objects that only point at each other.
+
+Together these are Python's <Term def="Automatic memory clean-up: finding objects the program can no longer use and freeing their memory.">garbage collection</Term>.
+
+<RefCounter />
+
+## The GIL: one thread at a time
+
+A <Term def="One independent sequence of instructions inside a program; a program's threads share its memory.">thread</Term> is one line of work inside a running program, and a program can start several. You might hope four threads on a four-core laptop finish four times faster. In standard Python they often do not, because of the **Global Interpreter Lock (GIL)**: a lock a thread must hold to run Python <Term def="The simple instructions Python translates your code into before running it.">bytecode</Term>, and only one thread can hold it at a time.
+
+<Analogy title="A single MRT turnstile">
+
+A crowd can queue at the gantry, but only one person passes at a time, so a longer queue does not get everyone through faster. People who are not passing through (waiting for a friend, or buying a ticket) do not need the gantry at all.
+
+</Analogy>
+
+So the GIL matters only for <Term def="Work limited by how fast the processor can calculate, like adding up millions of numbers.">CPU-bound</Term> work in pure Python. Threads still help with <Term def="Work that spends most of its time waiting for something outside the processor, such as a download or a disk.">I/O-bound</Term> work, because a thread releases the GIL while it waits. NumPy's C code also releases the GIL during many heavy calculations, so threads that each call NumPy can overlap; but that is *not* why one NumPy call beats a Python loop. For CPU-bound pure-Python work, use **multiprocessing**: separate <Term def="A separately running program with its own memory; in Python, with its own interpreter and GIL.">processes</Term>, each with its own interpreter and GIL, which really do run in parallel.
+
+<GILTurnstile />
+
+<Note>
+
+Python 3.13 onwards also offers an optional "free-threaded" build with no GIL, but the standard Python you and Google Colab normally use still has one, and exam questions mean standard Python.
+
+</Note>
+
+<PastPaperQuestion paper="prelim2026" n={89} />
+
+<ExamTip title="Match the keyword to the answer">
+
+These are quick one-liners in the Prelim, so learn the exact pairing:
+
+- *Why is NumPy faster than lists?* Contiguous memory + C implementation + vectorisation. "Uses the GPU automatically" is a trap: NumPy runs on the CPU.
+- *Vectorisation?* Using whole-array operations instead of Python loops. Not "converting scalars to vectors".
+- *Stride?* Bytes to jump to the next element along each axis. Not the step in `arange`, and not just the dtype size: `np.arange(10)[::2]` has stride 16.
+- *GIL?* Only one thread runs Python bytecode at a time, which prevents true multi-threading for CPU-bound tasks.
+- *Garbage collection?* Reference counting + a cyclic garbage collector. Not "manual", and not "mark-and-sweep only".
+
+</ExamTip>
+
+<Takeaways>
+
+- A Python list stores pointers to separate objects scattered in memory; a NumPy array stores raw same-dtype numbers in one contiguous block.
+- The **stride** is the number of bytes to jump to the next element along an axis; for shape $(R, C)$ with $s$-byte items the strides are $(C \times s,\ s)$.
+- **Vectorisation** (whole-array expressions like `arr * 2`) moves the loop into compiled C and is typically tens of times faster than a Python loop.
+- Python frees memory by **reference counting** plus a **cyclic garbage collector** for reference cycles.
+- The **GIL** lets only one thread run Python bytecode at a time: threads help I/O-bound work, and multiprocessing helps CPU-bound pure-Python work.
+
+</Takeaways>

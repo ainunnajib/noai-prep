@@ -1,0 +1,200 @@
+import HallucinationConfidence from './visuals/limits-and-responsible-ai/HallucinationConfidence'
+import FluencyVsTruth from './visuals/limits-and-responsible-ai/FluencyVsTruth'
+import BiasAmplifier from './visuals/limits-and-responsible-ai/BiasAmplifier'
+import PromptInjectionDemo from './visuals/limits-and-responsible-ai/PromptInjectionDemo'
+
+LLMs write fluent, confident text about almost anything, which is exactly what makes them risky: they can be fluently *wrong*, unfair in ways that are hard to see, and hijacked by text hidden in what they read. This lesson explains **why** each problem happens, so you can predict it, and how the risks are reduced and governed in Singapore and beyond.
+
+<Analogy title="The student who never leaves a blank">
+
+In the NOAI prelim a wrong answer costs nothing, so on a question you cannot do, a guess beats a blank. Picture a student trained for years under that rule on millions of questions: superb at writing a confident-looking answer to anything, and almost never writing "I don't know". That student is an LLM.
+
+</Analogy>
+
+## Why LLMs make things up
+
+A <Term def="Fluent, confident output from an AI model that is false or not supported by any source, such as an invented fact, quote or reference.">hallucination</Term> is fluent, confident output that is false. In 2023 two New York lawyers were fined US$5,000 for a court brief citing six cases that ChatGPT had invented, complete with fake quotations.
+
+Recall from [Decoding](#/learn/large-language-models/decoding-and-sampling) that an LLM turns everything so far into probabilities for the next token, picks one, appends it and repeats. Nothing in this loop looks anything up or checks it: a year in an answer is just another token, chosen because it is **probable**.
+
+<HallucinationConfidence />
+
+<KeyIdea>
+
+An LLM produces text that is **probable**, not text that is **verified**. When a fact was learnt well, probable and true coincide. When it was not, the most probable continuation is still a fluent sentence, with a guess in the gap.
+
+</KeyIdea>
+
+Plot the three questions together and their replies *sound* almost equally sure, because most of their tokens are ordinary, predictable words, but they are not equally likely to be *true*.
+
+<FluencyVsTruth />
+
+Three things push a model towards guessing:
+
+1. **Rare or missing knowledge.** Facts seen thousands of times are learnt well; rare ones blur with similar ones (like the MRT years above). Anything after the model's <Term def="The date at which a model's training data ends. The model knows nothing about later events unless they are given to it in the prompt.">knowledge cut-off</Term> is simply unknown.
+2. **Training rewards guessing and confidence.** Most tests that score models give no credit for "I don't know", so, like a prelim candidate, the model learns that a guess beats a blank (an argument OpenAI made in 2025). Preference training adds to this: people like confident answers.
+3. **Sampling, with no going back.** Above temperature 0 the model sometimes picks a less likely token, and it never revises: once a wrong token is out, the next tokens are chosen to *agree* with it, so one wrong year grows into a whole invented story.
+
+Small error rates also add up, so the longer the answer, the more it needs checking:
+
+<QuickCheck
+  q="A model writes a summary with 5 separate facts. Each is right with probability 0.9, independently of the others. Roughly what share of such summaries get all five facts right?"
+  options={['About 59%', 'About 41%', 'About 50%', 'About 90%']}
+  answer={0}
+  explain="All five right: $0.9^5$. Square twice, then multiply once more: $0.9^2 = 0.81$, $0.81^2 = 0.6561$, $0.6561 \times 0.9 \approx 0.59$. So about 4 in 10 summaries contain at least one error: 41% is the chance of some error, not of none. Taking $5 \times 10\%$ away from 100% gives 50%, but the chances of independent events multiply; 90% is the chance for a single fact."
+/>
+
+### Reducing hallucination
+
+- **Ground the answer**: retrieve trustworthy documents, put them in the prompt and tell the model to answer only from them. This is <Term def="Retrieval-augmented generation: search a document store for passages relevant to the question and add them to the prompt, so the model answers from evidence instead of memory.">retrieval-augmented generation (RAG)</Term>, built in [the RAG pipeline](#/learn/prompting-and-rag/rag-pipeline); switch on the source in the visual to see why it works.
+- **Ask for sources and check them**, and **allow "I don't know"** explicitly in the prompt.
+- **Use tools** for what token prediction is bad at: a calculator for arithmetic, a search engine for recent events.
+- **Keep a human in the loop** for anything that matters, such as medicine or law.
+
+<Mistake title="Myth: temperature 0 stops hallucination">
+
+Temperature 0 always picks the most likely token. That removes *random* slips, but if the top guess is wrong it repeats it every time: ask about the made-up prize and it says "2016" with total consistency. Low temperature makes a model **predictable**, not **truthful**.
+
+</Mistake>
+
+<QuickCheck
+  q="A school's chatbot keeps inventing details of this year's exam timetable. Which fix tackles the cause most directly?"
+  options={['Retrieve the official timetable and tell the bot to answer only from it', 'Raise the temperature so the bot considers more possible answers each time', 'Switch to a bigger model that was pretrained on even more web text', 'Tell the bot to answer in a more confident and formal tone of voice']}
+  answer={0}
+  explain="The model never saw this year's timetable, so it guesses. Grounding gives it the facts. A bigger web-trained model still has never seen the timetable, a higher temperature makes guesses *more* random, and a confident tone only makes wrong answers more convincing."
+/>
+
+## Bias in, bias out
+
+In this lesson <Term def="Systematic errors that treat some group of people worse than others, for example lower approval rates or higher error rates for one group. Not the same as the bias term b of a neuron.">bias</Term> means unfair, systematic differences in how a model treats groups of people. It enters in three ways:
+
+- **Historical bias**: the labels record past human decisions, unfair ones included. Amazon scrapped an experimental CV-screening tool (reported in 2018) that, trained on ten years of CVs mostly from men, learnt to downgrade CVs containing the word "women's".
+- **Representation bias**: some groups are rare in the data, so the model works worse for them. The 2018 *Gender Shades* study found commercial face-analysis systems misclassified the gender of darker-skinned women up to 34.7% of the time, against at most 0.8% for lighter-skinned men.
+- **Proxies**: deleting a sensitive column does not delete the information. Postcode, school, hobbies or word choice (that word "women's") can stand in for it.
+
+LLMs inherit all three from web text: they repeat stereotypes and work best in the languages most common online.
+
+<BiasAmplifier />
+
+At the same score, past reviewers approved B applicants less often, so the quickest way to lower the loss is to raise B's bar (to about 61 instead of about 51 at the default setting) for every applicant, every time: a qualified B applicant scoring 55 used to have a 50:50 chance; now they are always rejected. A tendency in the data has become a hard rule.
+
+<KeyIdea>
+
+A model learns whatever predicts its labels, unfair patterns included. **Fairness must be measured per group**: one overall accuracy number can hide a large gap.
+
+</KeyIdea>
+
+<Steps title="How 90% accuracy can hide a 70% group">
+  <Step title="Group A: 80 applicants">
+    40 qualified, 40 not. The model approves 38 of the 40 qualified and correctly rejects 38 of the 40 unqualified, so it gets $38 + 38 = 76$ right: $76/80 = 95\%$.
+  </Step>
+  <Step title="Group B: 20 applicants">
+    10 qualified, 10 not. The model rejects all 10 unqualified ones but approves only 4 of the qualified ones, so it gets $10 + 4 = 14$ right: $14/20 = 70\%$.
+  </Step>
+  <Step title="Overall">
+    $\dfrac{76 + 14}{100} = 90\%$. The headline looks good because B is only a fifth of the data.
+  </Step>
+  <Step title="Look per group">
+    Qualified applicants rejected: A $2/40 = 5\%$, B $6/10 = 60\%$. Approval rate: A $40/80 = 50\%$ (38 qualified plus 2 unqualified), B $4/20 = 20\%$. Same ability, very different treatment.
+  </Step>
+</Steps>
+
+Two common fairness checks come from these numbers. <Term def="A fairness check: each group is approved (or receives the positive prediction) at a similar rate.">Demographic parity</Term> compares approval rates (50% against 20%). <Term def="A fairness check: people who truly qualify are approved at a similar rate in each group, i.e. similar recall per group.">Equal opportunity</Term> compares how often *qualified* people are approved (95% against 40%). They can disagree, and choosing between them is a human decision about values.
+
+<PastPaperQuestion paper="prelim2026" n={263} />
+
+That is the same trap in another form: one big number dominated by the common case. To reduce bias, **audit the data** (who is in it, how were the labels made?), **report metrics per group** (see [confusion matrices](#/learn/model-evaluation/confusion-matrix-and-metrics)), look for proxies, keep people reviewing high-stakes decisions, and **reweight** the training data so that group no longer predicts approval (the toggle in the visual above).
+
+<Mistake title="Two traps">
+
+- *"We deleted the gender column, so the model can't be biased."* Proxies still carry the information, and the labels still carry the past decisions.
+- *"Bias" means three different things in this course*: the bias term $b$ in $wx + b$, the statistical bias of the bias–variance trade-off, and the unfair bias of this lesson. Read the question to see which one is meant.
+
+</Mistake>
+
+## Prompt injection: when data becomes orders
+
+<Analogy title="The forged memo">
+
+A forged memo slipped into a manager's inbox says "Urgent: transfer the money to this account now. Signed, the CEO." An assistant who obeys every memo they read is easy to exploit, however clever.
+
+</Analogy>
+
+<Term def="An attack that hides instructions inside content a model reads (a web page, email, document or tool result) so that the model follows them instead of its developer's or user's instructions.">Prompt injection</Term> hides instructions in content an LLM reads. A user typing the attack directly ("ignore your rules and…") is often called a <Term def="A prompt written by the user to trick a model into breaking the rules its developer set, such as its safety rules.">jailbreak</Term>. The more dangerous kind is **indirect**: the instruction sits in a web page, email or document the model reads *for* you, so you never see it.
+
+Why is it hard to stop? An ordinary program keeps instructions (the code) apart from data. An LLM receives everything as **one stream of tokens** and was trained to follow instructions found in text, so there is no reliable "this part is only data" switch, and attackers can phrase an instruction in endless ways.
+
+A related attack, <Term def="Slipping crafted examples into a model's training or fine-tuning data so that the trained model misbehaves on purpose, for example on a secret trigger phrase.">data poisoning</Term>, strikes earlier: crafted examples slipped into the training or fine-tuning data make the trained model itself misbehave, whereas prompt injection needs only something the model reads.
+
+<PromptInjectionDemo />
+
+Since no filter catches everything, the defence is **layers**, designed so that a fooled model cannot do much harm:
+
+- **Least privilege**: give the assistant only the tools and data it needs (a summariser needs no "send" button).
+- **Human confirmation** before anything with side effects: sending, paying, deleting, posting.
+- **Mark untrusted text** as data and tell the model never to obey it (helps, but not enough alone).
+- **Detect and monitor**: scan inputs and outputs, log the assistant's actions, and attack your own system first.
+
+<KeyIdea>
+
+Anything an LLM reads can act like an instruction. Treat retrieved and third-party text as untrusted, and limit what the model is allowed to do.
+
+</KeyIdea>
+
+<QuickCheck
+  q="An AI assistant can read web pages and make purchases with the user's saved card. Which change best limits the damage from prompt injection?"
+  options={['Make the user confirm each purchase, and give the assistant only the tools it needs', 'Add a line to the system instructions telling the model never to obey any malicious instructions', 'Set the temperature to 0 so that the assistant behaves the same way every time', 'Use a model with a longer context window so it can see the whole web page at once']}
+  answer={0}
+  explain="Confirmation and least privilege still protect the user when the model is fooled. A polite request in the system instructions is just more tokens that an attacker's text can argue against; temperature 0 makes the model *consistently* obey the injected text; a longer context window lets it read *more* of the attacker's page."
+/>
+
+## Privacy and misuse
+
+<Note title="Two more risks to know">
+
+- **Privacy.** Models can memorise rare strings: in 2021 researchers extracted names, phone numbers and email addresses memorised by GPT-2. What you type into a public chatbot may be stored and used for training, so never paste in personal data, passwords or confidential work. In Singapore, the Personal Data Protection Act (PDPA) governs how organisations use personal data.
+- **Misuse.** Generative AI makes convincing fakes cheap: <Term def="Realistic fake video, images or audio of a real person, generated or edited with AI.">deepfake</Term> videos and cloned voices for scams, fake news at scale, flawless phishing emails. Responses include safety training, watermarking AI-made content, and checking an unexpected "urgent" request through a second channel.
+
+</Note>
+
+## Responsible AI and how it is governed
+
+Organisations turn these lessons into principles:
+
+| Principle | The question it asks |
+|---|---|
+| Transparency and explainability | Do people know AI is involved, and can a decision be explained? |
+| Fairness | Does it work equally well for different groups? |
+| Accountability | Who answers for it when it goes wrong? |
+| Safety and robustness | Does it behave reliably, even under attack? (<Term def="Deliberately attacking your own AI system (with tricky, harmful or adversarial inputs) to find failures before real attackers or users do.">red-teaming</Term>) |
+| Privacy and data governance | Is personal data handled lawfully and carefully? |
+| Human oversight | Can a person step in on high-stakes decisions? |
+
+**Singapore's approach** is practical guidance plus testing tools, mostly voluntary:
+
+- The **Model AI Governance Framework** (IMDA and PDPC; 2019, second edition 2020) rests on two principles: decisions made with AI should be **explainable, transparent and fair**, and AI systems should be **human-centric**. The more severe or likely the harm, the more a person should be in the loop.
+- Its **generative AI** edition (2024) adds nine dimensions, from accountability and content provenance to security and incident reporting.
+- **AI Verify** (2022, open-sourced 2023) is a testing toolkit for checking AI systems against principles such as transparency, fairness and robustness.
+
+By contrast, the **EU AI Act** (in force from August 2024) is binding law that bans uses such as social scoring and strictly regulates high-risk uses such as hiring.
+
+<ExamTip>
+
+Match the keyword to the idea:
+
+- "fluent but false", "invents references" → **hallucination** (prediction, not verification). Best fix: **grounding/RAG** plus checking; low temperature does not fix it.
+- "hidden instructions in a web page or email" → **indirect prompt injection**; "user tricks the model into ignoring its rules" → **jailbreak**; "bad examples slipped into training data" → **data poisoning**.
+- "model repeats past discrimination" → **historical bias**; "removing the column didn't help" → **proxies**; "high overall accuracy" → check **per-group** metrics.
+- Singapore → **Model AI Governance Framework** (explainable, transparent, fair; human-centric), **AI Verify** (testing toolkit), **PDPA** (personal data).
+
+</ExamTip>
+
+<Takeaways>
+
+- LLMs **hallucinate** because they generate probable text, not verified text. Ground answers in sources and check them.
+- Models learn **bias** from historical labels, unrepresentative data and proxies, and can harden it into rules. Measure results **per group**.
+- **Prompt injection** works because instructions and data share one token stream; defend in layers.
+- Guard **privacy** and watch for **misuse** such as deepfakes.
+- Responsible AI means transparency, fairness, accountability, safety, privacy and human oversight; Singapore's **Model AI Governance Framework** and **AI Verify** put these into practice.
+
+</Takeaways>

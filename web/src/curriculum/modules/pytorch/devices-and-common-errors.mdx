@@ -1,0 +1,333 @@
+import DeviceMismatch from './visuals/devices-and-common-errors/DeviceMismatch'
+import ErrorDecoder from './visuals/devices-and-common-errors/ErrorDecoder'
+import GPUMemoryBudget from './visuals/devices-and-common-errors/GPUMemoryBudget'
+import FreezePanel from './visuals/devices-and-common-errors/FreezePanel'
+
+Deep learning runs on GPUs because they are much faster at the one thing neural networks do all day: multiplying big matrices. But PyTorch never moves anything to the GPU for you, GPU memory is small and fixed, and pretrained models must be partly locked before you fine-tune them. Get any of these wrong and you meet the errors this lesson is about.
+
+## CPU, GPU and devices
+
+Your computer's <Term def="Central processing unit: the computer's main chip. A few very fast cores that are good at doing different jobs one after another.">CPU</Term> has a few powerful cores. A <Term def="Graphics processing unit: a chip with thousands of small cores that all do simple arithmetic at the same time. Originally for drawing graphics; perfect for matrix multiplication.">GPU</Term> has thousands of simple cores that all do multiply-and-add at the same time, which is exactly what a matrix product needs. PyTorch talks to NVIDIA GPUs through <Term def="NVIDIA's software platform for running general computations on its GPUs. In PyTorch, 'cuda' is the name of the GPU device.">CUDA</Term>, so the GPU device is called `'cuda'` (the first GPU is `'cuda:0'`).
+
+The CPU and the GPU each have their **own memory**: ordinary RAM for the CPU, and <Term def="Video RAM: the GPU's own memory. It is separate from the computer's main memory and is usually much smaller (for example 16 GB).">VRAM</Term> for the GPU. Every tensor lives in exactly one of them, recorded in its **device**:
+
+```python
+x = torch.randn(4, 3)
+print(x.device)          # cpu: new tensors start on the CPU
+```
+
+An operation can only combine tensors that live on the same device. PyTorch will not quietly copy one across, because copying between RAM and VRAM is slow and it wants you to decide when it happens. (The one exception is a single number: a Python float, or a 0-dim CPU tensor such as `torch.tensor(0.5)`, can be combined with a GPU tensor.)
+
+<Analogy title="Everyone in the same Zoom room">
+
+A group project meeting only works if everyone joins the same Zoom room. If the model is in room "cuda:0" and your data is still in room "cpu", nobody can talk, however good the data is. Moving the data is easy, as long as you remember to send everyone the link.
+
+</Analogy>
+
+<DeviceMismatch />
+
+The fix is a pattern you should be able to write from memory. Pick the device once, then move the model once and every batch as it arrives:
+
+```python
+import torch
+import torch.nn as nn
+
+device = 'cuda' if torch.cuda.is_available() else 'cpu'
+print("Using", device)
+
+model = nn.Linear(3, 2).to(device)     # moves the weights (in place)
+x = torch.randn(4, 3).to(device)       # returns a moved copy: reassign it!
+out = model(x)
+print(model.weight.device, x.device, out.device)
+```
+
+```text
+Using cpu
+cpu cpu cpu
+```
+
+This was run on a laptop with no GPU, so `device` became `'cpu'` and the same code still works. On a GPU machine it prints `Using cuda` and `cuda:0 cuda:0 cuda:0`. That is why it is called **device-agnostic**: it never hard-codes `'cuda'`.
+
+Two more tools you will see. `x.device` tells you where a tensor lives, and `x.is_cuda` is `True` when it is on a GPU. `.cuda()` and `.cpu()` are shortcuts for `.to('cuda')` and `.to('cpu')`: they behave the same way (on a tensor they return a moved copy), but `.to(device)` keeps the code device-agnostic.
+
+Hard-coding `'cuda'` fails on a machine without a GPU. On a CPU-only install of PyTorch, for example:
+
+```python
+torch.ones(2).to('cuda')
+```
+
+```text
+AssertionError: Torch not compiled with CUDA enabled
+```
+
+(A PyTorch built for GPUs, run on a machine without one, raises a `RuntimeError` about a missing NVIDIA driver or GPU instead.)
+
+In the training loop, the move goes inside the loop, because the DataLoader produces batches on the CPU:
+
+```python
+for inputs, targets in train_loader:
+    inputs, targets = inputs.to(device), targets.to(device)
+    ...  # the five lines
+```
+
+### `.to()` on a tensor returns a new tensor
+
+This is the most common device bug in exam questions. For a **module**, `model.to(device)` changes the model in place. For a **tensor**, `x.to(device)` leaves `x` alone and *returns* a moved copy, which you must keep. The same rule holds when `.to()` changes the dtype, so we can show it on any computer:
+
+```python
+x = torch.ones(2)
+x.to(torch.float64)            # returns a NEW tensor... which is thrown away
+print(x.dtype)
+x = x.to(torch.float64)        # keep the result
+print(x.dtype)
+
+model = nn.Linear(2, 1)
+model.to(torch.float64)        # a module is changed in place
+print(model.weight.dtype)
+```
+
+```text
+torch.float32
+torch.float64
+torch.float64
+```
+
+<Mistake title="Three ways tensors end up on the wrong device">
+
+- `inputs.to(device)` on a line of its own: the result is thrown away, so `inputs` is still on the CPU.
+- Creating a new tensor inside `forward`, e.g. `mask = torch.zeros(n)`: new tensors start on the CPU. Write `torch.zeros(n, device=x.device)`.
+- Calling `.numpy()` on a GPU tensor, for plotting or scikit-learn: NumPy only knows CPU memory. Use `t.detach().cpu().numpy()`. (A single number is easier: `loss.item()` works from any device.)
+
+</Mistake>
+
+<QuickCheck
+  q="A student writes `model.to(device)` and `inputs.to(device)` on separate lines (no `=`) before the training loop, on a GPU machine. What happens at `outputs = model(inputs)`?"
+  options={[
+    'It runs on the GPU, because both `.to(device)` calls moved their objects in place',
+    'A device error: the model is on the GPU, but `inputs` is still on the CPU',
+    'A device error: `inputs` is on the GPU, but the model is still on the CPU',
+    'It runs on the CPU, because both moved copies were thrown away unused',
+  ]}
+  answer={1}
+  explain="`model.to(device)` changes a module in place, so the weights are on `cuda:0`. `inputs.to(device)` returns a moved copy that was never stored, so `inputs` is still on the CPU, and the forward pass raises `Expected all tensors to be on the same device`. It is the tensor, not the model, that must be reassigned: `inputs = inputs.to(device)`."
+/>
+
+## Reading PyTorch error messages
+
+PyTorch's error messages look frightening but follow a pattern. Almost every one names **two things that disagree**: two shapes, two dtypes or two devices. Your job is to work out where each came from.
+
+<Steps title="How to debug a PyTorch error">
+  <Step title="Read the last line of the traceback">
+    The exception type and message are at the bottom. The line just above shows which line of *your* code was running.
+  </Step>
+  <Step title="Name the family">
+    Shapes (`shapes cannot be multiplied`, `expected input ... to have 3 channels`), dtypes (`must have the same dtype`, `expected ... Long`), devices (`same device`, `cuda:0`), or autograd (`requires grad`).
+  </Step>
+  <Step title="Find the two values that disagree">
+    In `(4x20 and 10x5)` the inner numbers 20 and 10 should be equal. In `Long and Float` one tensor is an integer tensor.
+  </Step>
+  <Step title="Fix it where the value was made">
+    Print `x.shape`, `x.dtype`, `x.device` just before the failing line. Fix the line that *created* the wrong value (the layer size, the tensor creation, the missing `.to`), rather than patching the symptom.
+  </Step>
+</Steps>
+
+<ErrorDecoder />
+
+A cheat sheet of the messages you will meet most:
+
+- **Shape.** `mat1 and mat2 shapes cannot be multiplied (AxB and CxD)`: make the layer's `in_features` equal B, or flatten the input first. `expected input[...] to have 3 channels, but got 28 channels`: images must be $(N, C, H, W)$, so `x.permute(0, 3, 1, 2)`.
+- **dtype.** `must have the same dtype, but got Long and Float`: `x = x.float()`. `expected target dtype to be Long`: class labels must be integers, `y = y.long()`.
+- **Device.** `Expected all tensors to be on the same device`: `.to(device)` and reassign. `can't convert cuda:0 device type tensor to numpy`: `.cpu()` first.
+- **Conv layers word it differently.** `Input type (…) and weight type (…) should be the same`: `double` against `float` is a dtype bug; `cuda` in only one of the two names is a device bug.
+- **Autograd.** `Can't call numpy() on Tensor that requires grad`: `.detach()` first.
+
+The device message's wording depends on the operation and the PyTorch version (another common form is `...but found at least two devices, cuda:0 and cpu!`), but for most operations it contains *Expected all tensors to be on the same device*.
+
+Not every shape bug crashes. Comparing predictions of shape `(4, 1)` with targets of shape `(4,)` broadcasts them to a `(4, 4)` grid of differences, and the loss is quietly wrong. PyTorch only warns:
+
+```python
+loss = nn.MSELoss()(torch.randn(4, 1), torch.randn(4))
+```
+
+```text
+UserWarning: Using a target size (torch.Size([4])) that is different to the input size (torch.Size([4, 1])). This will likely lead to incorrect results due to broadcasting. Please ensure they have the same size.
+```
+
+<ExamTip>
+
+For `mat1 and mat2 shapes cannot be multiplied (AxB and CxD)` in an `nn.Linear`, A is the number of rows (the batch size, or batch × sequence length for a 3-D input, because all leading dims are multiplied together), B is what your data actually has, and C is the layer's `in_features` (D is `out_features`). The fix is almost always "make B and C equal", usually by changing `in_features` to B, often after a `flatten`. This is pure reading, no calculation: a quick win in the Prelim.
+
+</ExamTip>
+
+## What fills GPU memory
+
+When the GPU runs out of memory, PyTorch stops with `torch.OutOfMemoryError: CUDA out of memory. Tried to allocate ...` (the numbers depend on the machine). To fix it you need to know what is taking the space. During a training step the GPU holds four things:
+
+- **Weights**: one number per parameter. In FP32 (32-bit floats) each number takes 4 bytes.
+- **Gradients**: one `.grad` number per trainable parameter, another 4 bytes each.
+- **Optimiser state**: plain SGD stores nothing extra. SGD with momentum (which steps along a running average of recent gradients) stores one extra number per weight, and **Adam stores two** (8 bytes per weight). Both are explained in [momentum and Adam](#/learn/training-deep-networks/momentum-and-adam).
+- **Activations**: the outputs of every layer, which autograd keeps from the forward pass because `backward()` needs them. They grow with the **batch size**, and with the input size (longer texts, bigger images).
+
+<Analogy title="Packing a 16 GB suitcase">
+
+Your clothes (the weights, their gradients and the optimiser's notes) take the same space on every trip. Souvenirs (the activations) grow with the number of shops you visit (the batch size). When the suitcase will not close, the first fix is to visit fewer shops per trip, not to throw out clothes.
+
+</Analogy>
+
+With $P$ parameters (all trainable), Adam, FP32, batch size $B$ and $A$ bytes of saved activations per example:
+
+$$
+M \approx \underbrace{4P}_{\text{weights}} + \underbrace{4P}_{\text{grads}} + \underbrace{8P}_{\text{Adam}} + \underbrace{B A}_{\text{activations}}
+$$
+
+that is, $M \approx 16P + BA$ bytes, where $M$ is the memory needed.
+
+<Steps title="Does a 110-million-parameter model fit in 16 GB?">
+  <Step title="The fixed part: 16 bytes per parameter">
+    $16 \times 110\,\text{million} = 1760$ million bytes $= 1.76$ GB. Small.
+  </Step>
+  <Step title="Activations at batch 32">
+    For a model like this reading long texts (512 tokens, or word pieces, each), the saved activations are roughly $0.7$ GB per example in FP32, so $32 \times 0.7 = 22.4$ GB.
+  </Step>
+  <Step title="Total">
+    $1.76 + 22.4 \approx 24.2$ GB, more than 16 GB: out of memory. The activations, not the weights, are the problem.
+  </Step>
+  <Step title="Batch 16 instead">
+    $16 \times 0.7 = 11.2$ GB, total $\approx 13$ GB: fits. Gradient accumulation over 2 micro-batches keeps the effective batch at 32.
+  </Step>
+</Steps>
+
+<GPUMemoryBudget />
+
+<KeyIdea>
+
+Weights, gradients and optimiser state cost a fixed **16 bytes per parameter** with Adam in FP32; activations cost **batch size × per-example activations** and often dominate. So the batch size is the first lever to pull.
+
+</KeyIdea>
+
+The fixes for an out-of-memory error, roughly in the order to try them:
+
+1. **Smaller batch**, plus gradient accumulation if you want the same effective batch size.
+2. **Mixed precision** (`torch.autocast`): most of the maths and the saved activations use 16-bit numbers, about halving activation memory and speeding up modern GPUs. PyTorch keeps an FP32 copy of the weights, so the 16 bytes per parameter stay.
+3. **`torch.no_grad()` for evaluation**: no graph and no saved activations at all.
+4. **Freeze layers** you are not training: no gradients or optimiser state for them, and no saved activations below the first trainable layer.
+5. **Shorter inputs or a smaller model**: shorter texts or smaller images shrink $A$.
+
+Mixed precision takes a few extra lines in the loop. With FP16, a *loss scaler* multiplies the loss up before `backward()`, so that tiny gradients do not round to zero in 16 bits, and divides them back down before the step:
+
+```python
+scaler = torch.amp.GradScaler('cuda')
+for inputs, targets in train_loader:
+    inputs, targets = inputs.to(device), targets.to(device)
+    optimizer.zero_grad()
+    with torch.autocast(device_type='cuda', dtype=torch.float16):
+        loss = criterion(model(inputs), targets)    # forward pass in 16-bit
+    scaler.scale(loss).backward()                   # backward on the scaled-up loss
+    scaler.step(optimizer)                          # unscale the gradients, then step
+    scaler.update()
+```
+
+With `dtype=torch.bfloat16`, a 16-bit format with the same range as FP32, no scaler is needed.
+
+Two things that do *not* help: switching to a "bigger" optimiser (Adam needs more than SGD), and `torch.cuda.empty_cache()`, which only hands back memory PyTorch has cached but is not using.
+
+<PastPaperQuestion paper="prelim2026" n={128} />
+
+<ExamTip>
+
+IOAI's programming tasks run on a GPU (competition GPUs typically have around 16 GB of memory), and NOAI papers ask about exactly these errors and their fixes. A handy rule: **Adam + FP32 training costs about 16 bytes per parameter before activations.** So a 1-billion-parameter model needs about 16 GB just for weights, gradients and Adam, which leaves no room for activations on a 16 GB GPU even at batch size 1. That is why large models are fine-tuned with tricks such as freezing most of the network.
+
+</ExamTip>
+
+## Freezing layers for transfer learning
+
+<Term def="Reusing a model trained on a big dataset (for example ImageNet) as the starting point for a new task, instead of training from random weights.">Transfer learning</Term> starts from a pretrained network, replaces its last layer (the "head") with a new one for your classes, and trains mainly the head. To stop the pretrained layers changing, you **freeze** them: set `requires_grad = False` on their parameters. Autograd then computes no gradients for them, and the optimiser skips them.
+
+<Analogy title="Laminating the pages you trust">
+
+You borrow a senior's excellent notes. You laminate the pages you trust so nothing can change them, and write only in a fresh section at the back. Freezing laminates the pretrained layers; the new head is the section you write in. One catch: your pen (the optimiser) only writes on the pages you handed it at the start.
+
+</Analogy>
+
+The optimiser only ever updates the parameter tensors it was **given when it was created**. So two things must agree: which parameters require gradients, and which parameters the optimiser holds.
+
+<FreezePanel />
+
+Here is that silent bug in real PyTorch. The optimiser is built from the trainable parameters while layer 0 is frozen; later layer 0 is unfrozen, but the old optimiser is kept:
+
+```python
+torch.manual_seed(0)
+model = nn.Sequential(nn.Linear(4, 8), nn.ReLU(), nn.Linear(8, 3))
+model[0].requires_grad_(False)                    # freeze the first layer
+trainable = [p for p in model.parameters() if p.requires_grad]
+optimizer = torch.optim.SGD(trainable, lr=0.1)
+
+def train_step():
+    before = [p.clone() for p in model.parameters()]
+    optimizer.zero_grad()
+    loss = model(torch.randn(16, 4)).pow(2).mean()
+    loss.backward()
+    optimizer.step()
+    for (name, p), b in zip(model.named_parameters(), before):
+        print(name, "requires_grad:", p.requires_grad,
+              "grad:", p.grad is not None, "changed:", not torch.equal(p, b))
+
+train_step()
+print("--- unfreeze layer 0 but keep the old optimiser ---")
+model[0].requires_grad_(True)
+train_step()
+```
+
+```text
+0.weight requires_grad: False grad: False changed: False
+0.bias requires_grad: False grad: False changed: False
+2.weight requires_grad: True grad: True changed: True
+2.bias requires_grad: True grad: True changed: True
+--- unfreeze layer 0 but keep the old optimiser ---
+0.weight requires_grad: True grad: True changed: False
+0.bias requires_grad: True grad: True changed: False
+2.weight requires_grad: True grad: True changed: True
+2.bias requires_grad: True grad: True changed: True
+```
+
+After unfreezing, layer 0 gets gradients (`grad: True`) but never changes, and no error is raised. The fix is to rebuild the optimiser, or to add the new parameters with `optimizer.add_param_group({'params': model[0].parameters()})`. The same trap appears when you replace `model.fc` with a new layer *after* creating the optimiser: the new head is not in it.
+
+<Note title="A slip in this paper question">
+
+In the code as printed, the optimiser is created *after* `model.fc` is replaced, which would train the new head normally. Answer from the symptom (`fc.weight` never changes), as the examiners intended.
+
+</Note>
+
+<PastPaperQuestion paper="final2026" n={14} />
+
+<Mistake title="Frozen does not mean 'eval mode'">
+
+`requires_grad = False` stops the *weights* changing, but a frozen BatchNorm layer in train mode still updates its running averages on every batch. If the pretrained statistics should stay fixed too, also put those layers in eval mode (`model.backbone.eval()` after each `model.train()`).
+
+</Mistake>
+
+<PastPaperQuestion paper="prelim2026" n={121} />
+
+<QuickCheck
+  q="You freeze a pretrained backbone, replace the classifier head, and train with `Adam(model.parameters(), lr=1e-3)`. What happens to the frozen backbone weights?"
+  options={[
+    'They stay fixed: their `.grad` is `None`, so `step()` skips them',
+    'They change slowly, because Adam updates every parameter it was given',
+    'PyTorch raises an error, because the optimiser was given frozen parameters',
+    'They are reset to random values, because they have no gradients',
+  ]}
+  answer={0}
+  explain="Passing all parameters is allowed. Frozen ones never get a `.grad` (it stays `None`), and optimisers skip parameters whose `.grad` is `None`. Passing only the trainable parameters is tidier and makes the intent explicit; Adam would not store state for the frozen ones anyway, because it only creates state for parameters that receive a gradient. The real danger is the opposite case: a trainable parameter that the optimiser does not hold."
+/>
+
+Your PyTorch toolkit is now complete. [The next module](#/learn/training-deep-networks/sgd-and-mini-batches) explains the choices inside the loop: batch size, optimisers such as Adam, initialisation, regularisation and learning-rate schedules.
+
+<Takeaways>
+
+- Every tensor lives on one device, and an operation needs all its inputs on the **same** device. Use `device = 'cuda' if torch.cuda.is_available() else 'cpu'`, then `model.to(device)` once and `x = x.to(device)` for every batch.
+- `.to()` changes a **module** in place but **returns a new tensor**: always reassign tensors. Use `.detach().cpu().numpy()` to get results out.
+- Read errors from the last line: find the two shapes, dtypes or devices that disagree and fix the line that made them.
+- GPU memory ≈ 16 bytes per parameter (Adam, FP32) + batch size × activations per example. For out-of-memory: smaller batch (with accumulation), mixed precision, `no_grad` for evaluation, freezing.
+- Freeze with `requires_grad_(False)`; give the optimiser the trainable parameters, and rebuild it (or `add_param_group`) after unfreezing or replacing a layer.
+
+</Takeaways>

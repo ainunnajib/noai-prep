@@ -1,0 +1,224 @@
+{
+  "slug": "ml-fundamentals",
+  "order": 11,
+  "part": "classical-ml",
+  "domain": "ai_ml_dl",
+  "title": "Machine learning foundations",
+  "tagline": "Models, data, generalisation and overfitting",
+  "summary": "The scikit-learn fit/predict recipe on real data, why we hold out validation and test data, underfitting, overfitting and the bias-variance trade-off, learning curves, the curse of dimensionality, and how reinforcement learning differs from learning from labels.",
+  "prerequisites": [
+    "ai-first-look",
+    "pandas-and-plotting"
+  ],
+  "syllabus": [
+    "NOAI AI/ML/DL: Classical ML",
+    "IOAI 1A4 Scikit-learn for ML",
+    "IOAI 1D2 Underfitting, Overfitting",
+    "Train/validation/test splits; bias-variance trade-off; learning curves",
+    "Curse of dimensionality",
+    "Reinforcement learning: agent, environment, reward, exploration vs exploitation"
+  ],
+  "paper_subtopics": [
+    "ml-fundamentals",
+    "model-evaluation",
+    "reinforcement-learning"
+  ],
+  "lessons": [
+    {
+      "slug": "first-sklearn-model",
+      "title": "Your first scikit-learn model",
+      "summary": "The vocabulary of ML (features, labels, parameters, hyperparameters) and the fit/predict recipe that every scikit-learn model follows.",
+      "minutes": 15,
+      "objectives": [
+        "You can name the features, label, parameters and hyperparameters in a problem",
+        "You can train and use a model with the scikit-learn fit/predict pattern"
+      ],
+      "concepts": [
+        {
+          "name": "Features, labels, parameters, hyperparameters",
+          "explain": "Features are the inputs (area, storey, town) and the label is the answer we want to predict (price). Parameters are learned from the data (weights), while hyperparameters are choices we make before training (learning rate, tree depth, k in k-NN).",
+          "analogy": "In baking, ingredients are features, the cake's rating is the label, how much sugar the recipe ends up using is a parameter, and oven temperature you choose upfront is a hyperparameter.",
+          "visual": {
+            "component": "RoleSorter",
+            "kind": "interactive",
+            "shows": "A small table of HDB data and a set of chips (area, price, w, learning rate, max_depth, storey) to sort into four bins.",
+            "interaction": "Drag chips into Feature, Label, Parameter or Hyperparameter; get feedback with a one-line reason.",
+            "aha": "Parameters are learned, hyperparameters are chosen, a distinction that MCQs probe directly."
+          }
+        },
+        {
+          "name": "The scikit-learn recipe",
+          "explain": "Almost every scikit-learn model follows the same pattern: create it with hyperparameters, call fit(X_train, y_train) to learn parameters, then predict(X_new) or score(X_test, y_test). Transformers like StandardScaler use fit and transform instead.",
+          "analogy": "Like every Singapore food court: order (create), pay (fit), collect (predict); different stalls, same process.",
+          "visual": {
+            "component": "SklearnRecipe",
+            "kind": "stepper",
+            "shows": "Code for LinearRegression, KNeighborsClassifier and DecisionTreeClassifier aligned line by line, with the model object's state (unfitted, fitted parameters) shown after each step.",
+            "interaction": "Step through create, fit, predict, score; switch models to see the same steps.",
+            "aha": "Learn the pattern once and you can use any classical model."
+          }
+        }
+      ],
+      "code": "runnable",
+      "checkpoint_focus": [
+        "Features vs labels vs parameters",
+        "Training minimises loss",
+        "Parameters vs hyperparameters",
+        "fit/predict/score API"
+      ]
+    },
+    {
+      "slug": "generalisation-and-overfitting",
+      "title": "Generalisation, overfitting and bias-variance",
+      "summary": "Why we split data three ways, how model complexity trades underfitting against overfitting, and how learning curves tell you which problem you have.",
+      "minutes": 24,
+      "objectives": [
+        "You can explain the roles of training, validation and test sets",
+        "You can recognise underfitting and overfitting from train and validation errors",
+        "You can explain bias and variance and read a learning curve"
+      ],
+      "concepts": [
+        {
+          "name": "Train, validation and test splits",
+          "explain": "The training set fits the parameters, the validation set chooses hyperparameters and models, and the test set gives one final honest score. If you repeatedly tune on the test set, it quietly becomes a validation set and the score becomes too optimistic.",
+          "analogy": "Practice papers (train), a school prelim to decide what to revise (validation), and the real O-level (test), which you only sit once.",
+          "visual": {
+            "component": "SplitPipeline",
+            "kind": "stepper",
+            "shows": "A dataset bar split into three coloured segments, and a flow diagram showing which segment each step (fit, tune, final report) touches.",
+            "interaction": "Slide the split proportions; step through a workflow and click 'peek at test set' to see a warning and an inflated score.",
+            "aha": "The test set is a sealed envelope; open it once at the end."
+          }
+        },
+        {
+          "name": "Model complexity and the U-shaped curve",
+          "explain": "As a model gets more flexible, training error keeps falling, but validation error falls then rises again. Too simple underfits (both errors high); too complex overfits (low training error, high validation error). The best model sits at the bottom of the validation curve.",
+          "analogy": "Tailoring a uniform: too loose fits nobody well, but tailoring it to one student's exact posture on one day fits nobody else.",
+          "visual": {
+            "component": "PolynomialOverfit",
+            "kind": "interactive",
+            "shows": "Noisy points from a smooth curve with a fitted polynomial, and beside it training and validation error plotted against polynomial degree with the current degree marked.",
+            "interaction": "Slide the degree from 1 to 15; resample the noise; add more training points.",
+            "aha": "Validation error is U-shaped in complexity, and more data pushes the overfitting point further out."
+          }
+        },
+        {
+          "name": "Bias and variance",
+          "explain": "Bias is error from wrong assumptions (a straight line for a curved pattern): the model is consistently off. Variance is error from being too sensitive to the particular training set: retrain on new data and the model changes a lot. Simple models have high bias, flexible models high variance.",
+          "analogy": "Darts: bias is consistently hitting the same wrong spot; variance is throws scattered all over the board.",
+          "visual": {
+            "component": "BiasVarianceDartboard",
+            "kind": "interactive",
+            "shows": "A dartboard view and a 'many refits' view: the same model type fitted to 20 resampled datasets, drawn as faint curves around the true curve.",
+            "interaction": "Choose model flexibility; press resample to refit; the dartboard shows the spread (variance) and offset (bias).",
+            "aha": "Simple models miss consistently, flexible models miss differently every time; the total error balances both."
+          }
+        },
+        {
+          "name": "Learning curves diagnose the problem",
+          "explain": "Plotting training and validation error against training-set size shows which problem you have. A large, persistent gap means high variance (more data or regularisation helps). Both curves high and close together means high bias (more data will not help; use a richer model).",
+          "analogy": "If extra practice papers keep improving your mock score, keep practising; if your scores are flat and equally poor everywhere, you need a new study method.",
+          "visual": {
+            "component": "LearningCurveClinic",
+            "kind": "interactive",
+            "shows": "A pair of learning curves for a chosen scenario with the gap shaded, plus remedy buttons.",
+            "interaction": "Pick a scenario (high bias, high variance, good fit); click a remedy (more data, bigger model, regularise) and see the curves respond.",
+            "aha": "The shape of the gap tells you whether to collect data or change the model."
+          }
+        }
+      ],
+      "code": "runnable",
+      "checkpoint_focus": [
+        "Validation for choosing, test for reporting",
+        "U-shaped validation error vs complexity",
+        "High bias vs high variance remedies",
+        "More data helps variance, not bias"
+      ]
+    },
+    {
+      "slug": "curse-of-dimensionality",
+      "title": "The curse of dimensionality",
+      "summary": "Why data becomes sparse and distances become meaningless as the number of features grows.",
+      "minutes": 14,
+      "objectives": [
+        "You can explain why high-dimensional space is mostly empty",
+        "You can explain distance concentration and its effect on k-NN",
+        "You can explain the danger of more features than samples (p > n)"
+      ],
+      "concepts": [
+        {
+          "name": "Space grows faster than data",
+          "explain": "To cover a line with points 0.1 apart needs 10 points; a square needs 100; a 10-dimensional cube needs 10¹⁰. With a fixed dataset, each extra feature makes the data sparser, so models have little data near any new point.",
+          "analogy": "Ten friends easily fill a void deck, but the same ten people in a 50-storey HDB block barely meet anyone.",
+          "visual": {
+            "component": "DimensionFill",
+            "kind": "interactive",
+            "shows": "The fraction of a cube's volume within a small neighbourhood of a point, and the points needed for coverage, for dimensions 1 to 20.",
+            "interaction": "Slide the dimension and neighbourhood size; watch the coverage fraction plunge.",
+            "aha": "Each new feature multiplies the data you need, which is why feature selection and dimensionality reduction matter."
+          }
+        },
+        {
+          "name": "Distances concentrate",
+          "explain": "In high dimensions, the nearest and farthest points from any query end up at almost the same distance, so 'nearest neighbour' loses meaning. Combined with more features than samples (p > n), models can fit noise perfectly and fail to generalise.",
+          "analogy": "If every hawker stall is exactly the same distance from you, 'the nearest stall' is not useful information.",
+          "visual": {
+            "component": "DistanceConcentration",
+            "kind": "interactive",
+            "shows": "A histogram of distances from a query to random points, with the min/max ratio displayed.",
+            "interaction": "Slide the dimension from 2 to 1000; the histogram narrows and the ratio approaches 1.",
+            "aha": "Distance-based methods like k-NN degrade as dimensions grow unless features are reduced or scaled carefully."
+          }
+        }
+      ],
+      "code": "runnable",
+      "checkpoint_focus": [
+        "Data needed grows exponentially with dimension",
+        "Distances become similar",
+        "p > n overfitting"
+      ]
+    },
+    {
+      "slug": "reinforcement-learning",
+      "title": "Reinforcement learning: learning from rewards",
+      "summary": "An agent acting in an environment, learning from rewards rather than labels, and the exploration-exploitation dilemma.",
+      "minutes": 14,
+      "objectives": [
+        "You can name the agent, environment, state, action and reward in an RL problem",
+        "You can explain the exploration-exploitation trade-off"
+      ],
+      "concepts": [
+        {
+          "name": "Reinforcement learning loop",
+          "explain": "In reinforcement learning an agent takes actions in an environment and receives rewards; it learns a policy (which action to take in each state) that maximises total future reward. There is no answer key, only delayed feedback.",
+          "analogy": "Training a dog with treats: it is never told the correct action, it just learns what earns treats.",
+          "visual": {
+            "component": "GridworldAgent",
+            "kind": "animation",
+            "shows": "A small grid maze with a goal tile (+10), a pit tile (-10) and an agent; arrows showing the current best action per tile improve as episodes play.",
+            "interaction": "Play episodes, change the reward values, and toggle exploration on or off.",
+            "aha": "RL learns from rewards over sequences of actions, which makes it different from both supervised and unsupervised learning."
+          }
+        },
+        {
+          "name": "Exploration versus exploitation",
+          "explain": "The agent must balance exploiting the best action it knows with exploring others that might be better. Epsilon-greedy picks a random action with probability epsilon and the best known action otherwise.",
+          "analogy": "Like choosing lunch at a hawker centre: go to your favourite stall again or try a new one that might be better.",
+          "visual": {
+            "component": "BanditBars",
+            "kind": "interactive",
+            "shows": "Bars for the estimated value of 4 slot machines and the true values hidden underneath; total reward counter.",
+            "interaction": "Set epsilon and run 100 pulls; compare total reward for epsilon = 0, 0.1 and 0.5.",
+            "aha": "Some exploration is needed to find the best option; too much wastes reward."
+          }
+        }
+      ],
+      "code": "none",
+      "checkpoint_focus": [
+        "RL vs supervised learning",
+        "Reward, policy and value",
+        "Epsilon-greedy exploration"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,285 @@
+import MatmulCounter from './visuals/cost-of-ml/MatmulCounter'
+import FLOPCounter from './visuals/cost-of-ml/FLOPCounter'
+import AttentionScaling from './visuals/cost-of-ml/AttentionScaling'
+import ComplexityComparator from './visuals/cost-of-ml/ComplexityComparator'
+
+The last lesson measured memory and time on a real GPU; this one predicts the work before you run anything. Before you train or deploy a model, you can predict how much work it will do using nothing more than multiplication. That one number tells you whether a model can answer within 50 milliseconds on a phone, why chatbots struggle with very long documents, and why some optimisers are never used for neural networks. NOAI asks about it directly ("what is the complexity of self-attention?"), and in IOAI tasks with a GPU time limit, a quick count tells you which ideas you can afford to try.
+
+## Count the work, not the seconds
+
+<Analogy title="How long will the cleaners take?">
+
+A school has 30 classrooms with 40 desks each, and wiping a desk takes 20 seconds. Without a stopwatch you know the job takes $30 \times 40 \times 20 = 24{,}000$ seconds, about 6 hours 40 minutes. Add 10 more classrooms and the time grows in proportion. The cost is a **product of sizes**, so you can estimate it before anyone picks up a cloth.
+
+</Analogy>
+
+Machine-learning costs work the same way. Almost every calculation inside a model is a <Term def="Multiply two numbers and add the result to a running total: total += a * b. Also called a MAC (multiply-accumulate). One multiply-add is two FLOPs.">multiply-add</Term>: multiply two numbers and add the result to a running total, `total += a * b`. Work is often counted in <Term def="Floating-point operations: single additions or multiplications of decimal numbers. FLOP/s (FLOPs per second) measures how fast a chip computes.">FLOPs</Term> (and hardware speed in FLOP/s, FLOPs per second), and one multiply-add is two FLOPs (one multiplication, one addition). In this lesson we count multiply-adds and ignore the cheap extras such as adding biases or applying ReLU, which are tiny in comparison.
+
+## Matrix multiplication: m · n · p
+
+You first met this count in [matrix multiplication](#/learn/vectors-and-matrices/matrices-and-multiplication); here it becomes the unit for costing everything else. An $(m \times n)$ matrix $A$ times an $(n \times p)$ matrix $B$ gives an $(m \times p)$ matrix $C$. Each entry of $C$ is one row of $A$ times one column of $B$: multiply $n$ pairs of numbers and add them up, which is $n$ multiply-adds. There are $m \cdot p$ entries, so
+
+$$
+\text{multiply-adds} = \underbrace{m \cdot p}_{\text{cells}} \times \underbrace{n}_{\text{per cell}} = m \cdot n \cdot p
+$$
+
+Here $m$ is the number of rows of $A$ (and of the answer), $p$ is the number of columns of $B$ (and of the answer), and $n$ is the shared inner size: the length of every row-times-column sum. Fill in a product cell by cell and watch the count.
+
+<MatmulCounter />
+
+<KeyIdea>
+
+Multiplying $(m \times n)$ by $(n \times p)$ costs $m \cdot n \cdot p$ multiply-adds: $m \cdot p$ output cells, $n$ multiply-adds each. Two $n \times n$ matrices cost $n^3$, which is $O(n^3)$: double $n$ and the work grows 8 times.
+
+</KeyIdea>
+
+<Steps title="(2 × 3) times (3 × 4), by hand">
+  <Step title="Shape of the answer">
+    The inner sizes match ($3 = 3$), so the product exists and is $2 \times 4$: 8 cells to fill.
+  </Step>
+  <Step title="Work per cell">
+    Each cell is a row of 3 numbers times a column of 3 numbers: 3 multiplications, added up. That is 3 multiply-adds.
+  </Step>
+  <Step title="Total">
+    $8 \times 3 = 24$ multiply-adds, which is $2 \cdot 3 \cdot 4$. Counted as FLOPs it is $2 \times 24 = 48$.
+  </Step>
+  <Step title="Scale it up">
+    Two $1000 \times 1000$ matrices: $1000^3 = 10^9$ multiply-adds. At $2000 \times 2000$: $2^3 = 8$ times as many, $8 \times 10^9$.
+  </Step>
+</Steps>
+
+You can check the rule by counting with three nested loops, which is exactly what the definition of a matrix product says to do:
+
+<PyRunner packages={['numpy']} code={`import numpy as np
+
+def matmul_count(A, B):
+    m, n = A.shape
+    _, p = B.shape
+    C = np.zeros((m, p))
+    count = 0
+    # one multiply-add for every (i, j, k)
+    for i in range(m):
+        for j in range(p):
+            for k in range(n):
+                C[i, j] += A[i, k] * B[k, j]
+                count += 1
+    return C, count
+
+A = np.arange(6).reshape(2, 3)
+B = np.arange(12).reshape(3, 4)
+C, count = matmul_count(A, B)
+print("multiply-adds:", count, " m*n*p =", 2 * 3 * 4)
+print("same as A @ B?", np.allclose(C, A @ B))`} />
+
+<QuickCheck
+  q="How many multiply-adds does the product of a $10 \times 20$ matrix and a $20 \times 30$ matrix take?"
+  options={['6,000', '300', '12,000', '800']}
+  answer={0}
+  explain="The answer is $10 \times 30$, so 300 cells, and each cell sums $20$ products: $300 \times 20 = 6{,}000 = m \cdot n \cdot p$. 300 counts only the output cells, 800 adds the two matrices' sizes ($200 + 600$), and 12,000 is the FLOP count, two per multiply-add."
+/>
+
+<Mistake title="Forgetting the inner size">
+
+The shared size $n$ disappears from the answer's shape, so it is easy to forget it in the cost and answer $m \cdot p$ (the number of output cells). Every one of those cells costs $n$ multiply-adds. Making the inner size 10 times larger makes the product 10 times more expensive even though the answer has exactly the same shape.
+
+</Mistake>
+
+## Every layer is a matrix product
+
+Once you can cost a matrix product, you can cost a whole network, because its layers are matrix products in disguise. (Need a refresher on the layers themselves? See [the convolution operation](#/learn/convolutional-networks/convolution), [padding, stride and channels](#/learn/convolutional-networks/padding-stride-shapes) and [scaled dot-product attention](#/learn/attention-and-transformers/scaled-dot-product-attention).) Remember that a model's <Term def="The numbers a model learns during training: its weights and biases. They must be stored, so they decide the model's size in memory.">parameters</Term> are the numbers it learns and stores; we will see that the parameter count and the amount of work are two different things.
+
+**Dense layer.** A dense (fully connected) layer from $d_{\text{in}}$ inputs to $d_{\text{out}}$ outputs stores a $(d_{\text{in}} \times d_{\text{out}})$ weight matrix $W$. A batch of $B$ examples is a $(B \times d_{\text{in}})$ matrix $X$, and the layer computes $XW$, a $(B \times d_{\text{in}})(d_{\text{in}} \times d_{\text{out}})$ product:
+
+$$
+\begin{aligned}
+\text{multiply-adds} &= B \cdot d_{\text{in}} \cdot d_{\text{out}} \\
+\text{parameters} &= d_{\text{in}}\, d_{\text{out}} + d_{\text{out}}
+\end{aligned}
+$$
+
+A layer from 1024 to 1024 on a batch of 32 costs $32 \times 1024 \times 1024 = 2^5 \times 2^{10} \times 2^{10} = 2^{25} = 33{,}554{,}432$, about 33.5 million multiply-adds, and has $1024 \times 1024 + 1024 = 1{,}049{,}600$ parameters. For one example it does one multiply-add per weight: every weight is used exactly once.
+
+Try the counter now: pick **Dense** and check the 1024 → 1024 example above, then come back to it for the conv and attention layers below.
+
+<FLOPCounter />
+
+**Convolutional layer.** A conv layer slides each $k \times k$ filter over the input. The input has $C_{\text{in}}$ <Term def="The separate layers of numbers stacked at each pixel position: 3 for an RGB image (red, green, blue), and one per filter in the output of a conv layer.">channels</Term>, so each output number is a dot product between a $k \times k \times C_{\text{in}}$ patch and a filter of the same shape: $k^2 C_{\text{in}}$ multiply-adds. The output <Term def="The grid of numbers a conv layer produces: height × width × channels, with one channel per filter.">feature map</Term> has $H_{\text{out}} \times W_{\text{out}}$ positions and $C_{\text{out}}$ channels, one per filter:
+
+$$
+\begin{aligned}
+\text{multiply-adds} &= H_{\text{out}} W_{\text{out}} \cdot k^2 C_{\text{in}} C_{\text{out}} \\
+\text{parameters} &= k^2 C_{\text{in}} C_{\text{out}} + C_{\text{out}}
+\end{aligned}
+$$
+
+Read the formula as (number of output positions) × (number of weights). The same small filters are **re-used at every position**, which is why convolutions are cheap to store but expensive to run. A $3 \times 3$ layer from 64 to 64 channels with a $56 \times 56$ output (a typical ResNet layer) has only 36,928 parameters but costs $56 \cdot 56 \cdot 9 \cdot 64 \cdot 64 = 115{,}605{,}504$, about 116 million multiply-adds per image.
+
+**Self-attention.** On a sequence of $T$ tokens, each a vector of width $d$, the input $X$ is a $(T \times d)$ matrix. Applying the matrix-product rule to each step of attention:
+
+- projecting $X$ into queries, keys and values, plus the output projection: four $(T \times d)(d \times d)$ products, $4Td^2$;
+- the scores $QK^T$: a $(T \times d)(d \times T)$ product, $T^2 d$;
+- the softmax weights times the values: a $(T \times T)(T \times d)$ product, another $T^2 d$.
+
+$$
+\begin{aligned}
+\text{multiply-adds} &= 4Td^2 + 2T^2 d \\
+\text{parameters} &= 4d^2 + 4d
+\end{aligned}
+$$
+
+The parameter count has no $T$ in it: the same weights handle 10 tokens or 10,000. Splitting attention into $h$ heads does not change the totals either, since each head works with $d/h$ dimensions and $h \times T^2 \times d/h = T^2 d$.
+
+
+<KeyIdea>
+
+Parameters measure **memory**; multiply-adds measure **compute**. A dense layer does about one multiply-add per weight per example, a conv layer does (weights × output positions), and attention's weights stay fixed while its work grows with $T^2$.
+
+</KeyIdea>
+
+<Steps title="Costing a small conv layer by hand">
+  <Step title="The layer">
+    An $8 \times 8$ RGB image ($C_{\text{in}} = 3$) goes through 16 filters of size $3 \times 3$, with stride 1 and padding 1.
+  </Step>
+  <Step title="Output size">
+    $\lfloor (8 + 2 \cdot 1 - 3)/1 \rfloor + 1 = 8$, so the output is $8 \times 8 \times 16$: $1{,}024$ numbers.
+  </Step>
+  <Step title="Work per output number">
+    One $3 \times 3 \times 3$ patch times one filter: $27$ multiply-adds.
+  </Step>
+  <Step title="Total">
+    $1{,}024 \times 27 = 27{,}648$ multiply-adds. Parameters: $27 \times 16 + 16 = 448$. Each weight is re-used at all $8 \times 8 = 64$ positions.
+  </Step>
+</Steps>
+
+<QuickCheck
+  q="A conv layer (stride 1, same padding) is given an input image with twice the height and twice the width. What happens to its parameters and its multiply-adds?"
+  options={['Parameters unchanged; multiply-adds ×4', 'Parameters ×2; multiply-adds ×2', 'Parameters ×4; multiply-adds ×4', 'Parameters unchanged; multiply-adds ×2']}
+  answer={0}
+  explain="The filters do not depend on the image size, so the parameters stay the same. The output has twice the height and twice the width, so $2 \times 2 = 4$ times as many positions, and each position costs the same work: 4 times the multiply-adds."
+/>
+
+Recall from [padding, stride and channels](#/learn/convolutional-networks/padding-stride-shapes) that mobile networks such as MobileNet cut the cost of convolutions with a <Term def="A convolution split into two cheap steps: a k×k filter applied to each input channel separately (depthwise), then a 1×1 convolution that mixes the channels (pointwise).">depthwise separable convolution</Term>. Per output position, a standard $3 \times 3$ conv from 64 to 128 channels costs $9 \cdot 64 \cdot 128 = 73{,}728$ multiply-adds. The separable version first filters each of the 64 channels on its own ($9 \cdot 64 = 576$), then mixes channels with a $1 \times 1$ conv ($64 \cdot 128 = 8{,}192$): $8{,}768$ in total, about 8.4 times less work, and the weights shrink by the same factor.
+
+<PastPaperQuestion paper="noai2025" n={14} />
+
+<Reveal label="Going further: count each layer's cost with a PyTorch hook">
+
+In PyTorch you can count each layer's cost with a forward <Term def="A function you attach to a PyTorch layer that runs automatically every time the layer runs, and can look at its inputs and outputs.">hook</Term>, which sees the output shape:
+
+```python
+import torch
+import torch.nn as nn
+
+model = nn.Sequential(
+    nn.Conv2d(3, 16, kernel_size=3, padding=1),   # 32x32x3  -> 32x32x16
+    nn.ReLU(),
+    nn.MaxPool2d(2),                              # -> 16x16x16
+    nn.Conv2d(16, 32, kernel_size=3, padding=1),  # -> 16x16x32
+    nn.ReLU(),
+    nn.Flatten(),                                 # -> 8192 numbers
+    nn.Linear(16 * 16 * 32, 10),                  # -> 10 class scores
+)
+
+def count_macs(layer, x, out):
+    if isinstance(layer, nn.Conv2d):
+        k = layer.kernel_size[0]
+        H, W = out.shape[2], out.shape[3]
+        layer.macs = H * W * k * k * layer.in_channels * layer.out_channels
+    else:  # nn.Linear
+        layer.macs = layer.in_features * layer.out_features
+
+for layer in model:
+    if isinstance(layer, (nn.Conv2d, nn.Linear)):
+        layer.register_forward_hook(count_macs)
+
+model(torch.zeros(1, 3, 32, 32))  # one image
+
+for layer in model:
+    if hasattr(layer, "macs"):
+        params = sum(p.numel() for p in layer.parameters())
+        print(f"{type(layer).__name__:7} params {params:>6,}   MACs {layer.macs:>9,}")
+```
+
+```text
+Conv2d  params    448   MACs   442,368
+Conv2d  params  4,640   MACs 1,179,648
+Linear  params 81,930   MACs    81,920
+```
+
+The pattern from the KeyIdea is right there. The first conv layer has only 448 parameters but does 442,368 multiply-adds (its 432 weights re-used at $32 \times 32 = 1{,}024$ positions). The linear layer holds 94% of the model's parameters but does about one multiply-add per weight, so it is the *cheapest* layer to run.
+
+</Reveal>
+
+<ExamTip>
+
+Two conventions exist: some sources count multiply-adds, others count FLOPs, which are twice as many. If two options differ by exactly a factor of 2, that is why: check which one the question asks for. For quick arithmetic without a calculator, use powers of two: $1024 = 2^{10} \approx 10^3$, so $1024 \times 1024 \approx$ one million.
+
+</ExamTip>
+
+## Attention: the T² problem
+
+[The Transformer block lesson](#/learn/attention-and-transformers/positional-encoding-and-blocks) showed that attention is $O(T^2)$; now we count it exactly. The two parts of attention grow differently. The projections, $4Td^2$, grow in proportion to $T$. The scores and weighted sum, $2T^2 d$, grow with $T^2$. They are equal when $4Td^2 = 2T^2 d$, that is when $T = 2d$. For longer sequences the $T^2$ part takes over, and doubling the context roughly quadruples the cost. Memory suffers too: the $T \times T$ score matrix (one per head) has to be kept for the backward pass.
+
+<AttentionScaling />
+
+For GPT-2 small, $d = 768$, so the crossover is at $T = 1{,}536$ tokens. At $T = 1{,}024$, one attention layer's projections cost about 2.4 billion multiply-adds and its scores and weighted sum about 1.6 billion (GPT-2 small has 12 such layers). Make the context 8 times longer, $T = 8{,}192$ (hypothetically: GPT-2 itself stops at 1,024 tokens): the projections grow 8 times, to about 19 billion, but the $T^2$ part grows $8^2 = 64$ times, to about 103 billion.
+
+<ExamTip>
+
+Asked for the complexity of self-attention, the standard answer is "$O(n^2)$ in the sequence length $n$", more precisely $O(T^2 d)$. Use the scale factor: a context $k$ times longer needs $k^2$ times the attention work. And remember that attention's **parameter count does not depend on $T$**, a favourite distractor.
+
+</ExamTip>
+
+## Training cost versus prediction cost
+
+<Analogy title="Two ways to sit an open-book exam">
+
+One student never studies, so for every question they flip through the whole textbook to find similar examples. Another studies for weeks and then answers each question in seconds. Which strategy costs less time overall depends on how many questions there are.
+
+</Analogy>
+
+Training happens once (or once a week). <Term def="Using a trained model to make predictions on new inputs. Also called prediction. (Serving is how those predictions are delivered to users.)">Inference</Term> happens for every request, perhaps millions of times a day, often within a strict time limit. Deployment therefore usually cares most about the **cost of one prediction** and the **memory** the model needs. Different models split their cost very differently. Here $n$ is the number of training examples, $d$ the number of features, and an <Term def="One full pass through the whole training set during training.">epoch</Term> one pass over the training data:
+
+| Model | Training | One prediction | Kept in memory |
+|---|---|---|---|
+| k-NN | almost nothing: store the data | $O(nd)$: distance to all $n$ stored points | all $n \times d$ numbers |
+| Linear or logistic regression | $O(E\,n\,d)$ for $E$ epochs of gradient descent | $O(d)$: one dot product | $d + 1$ numbers |
+| Decision tree of depth $D$ | about $O(n\,d\,D)$ | $O(D)$: $D$ yes/no questions | the tree's nodes |
+| Forest or boosted ensemble of $M$ such trees | about $M$ times one tree | $O(M D)$: every tree answers | all $M$ trees' nodes |
+| Neural network with $P$ parameters | $O(E\,n\,P)$ | $O(P)$ | $P$ numbers |
+
+k-NN is the extreme case. To classify one new point it must measure the distance to **every one** of the $n$ stored points ($d$ multiply-adds each), and only then pick the $k$ closest. With $n = 1{,}000{,}000$ and $d = 100$ that is $10^8$ operations per prediction, around 0.1 seconds on one CPU core. Logistic regression on the same data answers with 100 multiply-adds, a million times fewer.
+
+<ComplexityComparator />
+
+<KeyIdea>
+
+The cheapest model to train is not always the cheapest to run. k-NN has no training cost but pays $O(nd)$ on every prediction; a linear model pays for training once and then predicts in $O(d)$; a tree predicts in $O(\text{depth})$.
+
+</KeyIdea>
+
+<Mistake title="“k-NN only looks at k points”">
+
+It is tempting to say a k-NN prediction costs $O(kd)$ because only $k$ neighbours vote. But to know **which** $k$ points are nearest, brute-force k-NN must compute the distance to all $n$ of them first: $O(nd)$. The value of $k$ only affects the cheap final vote. Special indexes avoid checking every point: KD-trees and ball trees still find the exact neighbours, but help mainly when there are few features, while approximate nearest-neighbour libraries such as FAISS trade a little exactness for large speed-ups.
+
+</Mistake>
+
+Matrix-product counting also explains when to avoid a closed-form solution. Linear regression can be solved in one shot with the <Term def="The closed-form least-squares solution w = (XᵀX)⁻¹ Xᵀy for linear regression.">normal equation</Term> $w = (X^T X)^{-1} X^T y$. Forming $X^T X$ is a $(d \times n)(n \times d)$ product, $n d^2$ multiply-adds, and solving the resulting $d \times d$ system takes about $d^3$ more (see [multiple regression](#/learn/linear-regression/multiple-and-polynomial)). That is instant for $d = 100$, but for $d = 100{,}000$ the $d^3 = 10^{15}$ term is hopeless, and cheap gradient-descent steps win.
+
+The same $d^3$ wall stops <Term def="An optimiser that uses second derivatives (the Hessian) to take a smarter step: w ← w − H⁻¹ ∇L. Few steps, but each one is very expensive for large models.">Newton's method</Term>. Its update $w \leftarrow w - H^{-1}\nabla L$ uses the <Term def="The P × P table of second derivatives of the loss: one row and one column for every parameter of the model.">Hessian</Term> $H$ (from [curvature and convexity](#/learn/calculus-and-gradient-descent/curvature-convexity)), which for a model with $P$ parameters is a $P \times P$ matrix: $P^2$ numbers to store and about $P^3$ operations to solve with. For $P = 10{,}000$ that is $10^8$ entries (400 MB in 32-bit floats) and about $10^{12}$ operations **every step**, while a gradient-descent update touches each of the $10^4$ parameters just once.
+
+<Note title="Going further: the cost of training a large language model">
+
+A forward pass costs about one multiply-add per parameter per token, and the backward pass about twice that, so training costs about $3$ multiply-adds, or $6$ FLOPs, per parameter per token: $\text{FLOPs} \approx 6ND$ for $N$ parameters (our $P$) and $D$ training tokens (not the tree depth $D$ above). This is the $C \approx 6ND$ from [how LLMs are built](#/learn/large-language-models/how-llms-are-built), now derived from counting. For GPT-3 ($N = 175$ billion, $D = 300$ billion) that is about $3 \times 10^{23}$ FLOPs.
+
+</Note>
+
+<Takeaways>
+
+- Multiplying $(m \times n)$ by $(n \times p)$ costs $m \cdot n \cdot p$ multiply-adds (one multiply-add $= 2$ FLOPs); square $n \times n$ matrices cost $O(n^3)$.
+- Dense layer: $B \cdot d_{\text{in}} \cdot d_{\text{out}}$. Conv layer: $H_{\text{out}} W_{\text{out}} k^2 C_{\text{in}} C_{\text{out}}$. Self-attention: $4Td^2 + 2T^2 d$, so $O(T^2 d)$ for long sequences.
+- Parameters are not compute: conv layers re-use their weights at every position, and attention's weights do not depend on $T$.
+- k-NN is free to train but costs $O(nd)$ per prediction; a linear model predicts in $O(d)$ and a tree in $O(\text{depth})$. Deployment cares most about prediction cost and memory.
+- Newton's method needs a $P \times P$ Hessian: $O(P^2)$ memory and $O(P^3)$ time per step, which is why deep learning uses gradient methods.
+
+</Takeaways>

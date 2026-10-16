@@ -1,0 +1,222 @@
+import SoftLookup from './visuals/attention-intuition/SoftLookup'
+import SentenceAttention from './visuals/attention-intuition/SentenceAttention'
+
+Read this sentence: *The animal didn't cross the street because it was too tired.* What does "it" mean? You knew at once: the animal. Now change one word: *…because it was too wide.* Suddenly "it" is the street. To understand a word, you have to look at the other words around it and decide which ones matter. **Attention** is the mechanism that lets a neural network do exactly that. It is the engine inside every Transformer (BERT, GPT, ChatGPT, and the Vision Transformers that read images), and Task 3 of the 2026 NOAI Final asked students to build it from scratch. This lesson builds it from something you already do every day: looking things up.
+
+You met a first version at the end of [Recurrent networks and LSTMs](#/learn/text-as-data/rnns-and-lstms): instead of squeezing a sentence into one context vector, a translation model's decoder gave every encoder state a softmax weight and took their weighted average. Here we take that idea apart and rebuild it as the building block of the Transformer.
+
+## A lookup you already know
+
+A Python dictionary stores **values** under **keys**, and you fetch a value by asking with a **query**:
+
+```python
+menu = {"chicken rice": 4.5, "laksa": 6.0, "kaya toast": 2.2}
+print(menu["laksa"])         # 6.0
+# KeyError: one typo and you get nothing
+print(menu["chiken rice"])
+```
+
+Every lookup has three roles:
+
+- the <Term def="What you are searching for. In attention it is a vector that describes what the current position is looking for.">query</Term>: what you are asking for ("laksa");
+- the <Term def="The labels that stored items are filed under. In attention each key is a vector that the query is compared with.">keys</Term>: the labels the items are filed under ("chicken rice", "laksa", "kaya toast");
+- the <Term def="The content stored under each key. In attention each value is a vector, and the output is a weighted average of the values.">values</Term>: what is stored under each key (the prices).
+
+A dictionary lookup is **hard**: the query must match one key *exactly*, and then you get that key's value and nothing else. That is a problem for a neural network, for two reasons:
+
+1. A network's "questions" are vectors of numbers, and a vector almost never matches a key exactly.
+2. Networks learn by [gradient descent](#/learn/calculus-and-gradient-descent/gradient-descent), which needs small changes to the input to cause small changes to the output. An all-or-nothing lookup jumps suddenly from one value to another, so its slope is zero almost everywhere and there is nothing to learn from.
+
+<Analogy title="Asking the class group chat">
+
+You post "Anyone know a good chicken rice stall?" in your class group chat. You don't just take one reply. You trust most the friends whose interests match your question (Wei Ling, who reviews hawker food online), give a little weight to the others, and blend their suggestions into one plan. That is attention. Your question is the **query**, each friend's interests are a **key**, and what each friend suggests is their **value**.
+
+</Analogy>
+
+## Making the lookup soft
+
+Attention replaces "find the one matching key" with three smooth steps. Here the query, the keys and the values are all vectors.
+
+<Steps title="Attention for one query">
+  <Step title="1. Score every key">
+    Compare the query $q$ with each key $k_i$ using the dot product: $s_i = q \cdot k_i$. A large score means "this key matches my question well".
+  </Step>
+  <Step title="2. Turn the scores into weights">
+    Apply softmax: $a_i = \dfrac{e^{s_i}}{\sum_j e^{s_j}}$. Every weight is positive, and together they add up to 1.
+  </Step>
+  <Step title="3. Blend the values">
+    The output is the weighted average of the values: $\text{output} = \sum_i a_i v_i$.
+  </Step>
+</Steps>
+
+Written as one formula, for $n$ key–value pairs:
+
+$$
+\text{output} \;=\; \sum_{i=1}^{n} a_i \, v_i, \qquad a_i = \frac{e^{\,q \cdot k_i}}{\sum_{j=1}^{n} e^{\,q \cdot k_j}}
+$$
+
+- $q \cdot k_i$ is the **dot product** from [Dot product and norms](#/learn/vectors-and-matrices/dot-product-and-norms): multiply matching entries and add them up. It is large when the two vectors point the same way and are long, near 0 when they are at right angles, and negative when they point apart.
+- The fraction is **softmax** from [Softmax and multi-class](#/learn/classification/softmax-and-multiclass): raising $e$ to the power of each score makes every number positive, dividing by the total makes the results add up to 1, and a bigger score gets an exponentially bigger share.
+- The $a_i$ are the <Term def="The numbers produced by softmax that say how much each value contributes to the output. They are all positive and add up to 1.">attention weights</Term>: how much attention the query pays to item $i$.
+- $v_i$ is the value vector filed under key $k_i$. The output is a vector with the same length as the values.
+
+<SoftLookup />
+
+Three things to notice in the picture:
+
+- **Close matches dominate, but everything contributes.** The key with the largest dot product with $q$ (one that points along $q$ and is long) gets the biggest weight, yet the output colour is still a mix.
+- **A longer query makes attention sharper.** Doubling $q$ doubles every score, and softmax exaggerates differences, so the weights move towards "all on one key". This is the temperature effect you met with softmax. Near the centre every score is close to 0, so the weights are nearly equal and the output is close to a plain average.
+- **Soft means smooth.** The hard lookup paints a patchwork with sudden jumps at the borders. The soft lookup's output changes gradually as $q$ moves, so gradient descent can learn where $q$ should point.
+
+<KeyIdea>
+
+Attention is a **soft dictionary lookup**: compare the query with every key, turn the scores into weights with softmax, and return the weighted average of the values. Close matches dominate, but every value contributes a little. Because every step is smooth, the network can learn it with gradient descent.
+
+</KeyIdea>
+
+<PastPaperQuestion paper="prelim2026" n={210} />
+
+## A worked example by hand
+
+Back to the group chat. Describe each friend's interests with two numbers, [food, sport], and each friend's suggestion by how strongly they back [Stall A, Stall B], out of 10. Your question is purely about food, so $q = [1, 0]$.
+
+| friend | key $k_i$ (interests) | value $v_i$ (suggestion) |
+|---|---|---|
+| Wei Ling | $[2, 0]$ | $[10, 0]$: all in on Stall A |
+| Arjun | $[1, 1]$ | $[0, 10]$: all in on Stall B |
+| Hafiz | $[0, 2]$ | $[5, 5]$: can't decide |
+
+<Steps title="Attention output for q = [1, 0]">
+  <Step title="Scores">
+    $q \cdot k_1 = 1 \times 2 + 0 \times 0 = 2$, $\;q \cdot k_2 = 1 \times 1 + 0 \times 1 = 1$, $\;q \cdot k_3 = 1 \times 0 + 0 \times 2 = 0$.
+  </Step>
+  <Step title="Exponentiate">
+    $e^2 \approx 7.39$, $\;e^1 \approx 2.72$, $\;e^0 = 1$. The total is $7.39 + 2.72 + 1 = 11.11$.
+  </Step>
+  <Step title="Divide by the total">
+    $7.39 / 11.11 \approx 0.665$, $\;2.72 / 11.11 \approx 0.245$, $\;1 / 11.11 \approx 0.090$. Check: $0.665 + 0.245 + 0.090 = 1$.
+  </Step>
+  <Step title="Blend the values">
+    $0.665 \times [10, 0] + 0.245 \times [0, 10] + 0.090 \times [5, 5] = [6.65, 0] + [0, 2.45] + [0.45, 0.45] = [7.10, 2.90]$.
+  </Step>
+</Steps>
+
+The answer leans strongly towards Stall A, because the friend whose interests best match the question backs it. Arjun's and Hafiz's opinions still count, just a little. Notice that the output, $[7.10, 2.90]$, is not equal to any single friend's suggestion: it is a blend.
+
+<QuickCheck
+  q="Same friends, but now the question is $q = [0, 0]$, which matches nobody in particular. What does attention return?"
+  options={[
+    '$[5, 5]$: all three scores are 0, so each weight is $\\tfrac{1}{3}$ and the output is the plain average',
+    '$[10, 0]$: when no key matches well, softmax falls back to the first key and returns its value unchanged',
+    '$[0, 0]$: a zero query makes every score and every weight 0, so the output is the zero vector',
+    '$[15, 15]$: each weight is $e^0 = 1$, so the three value vectors are simply added together',
+  ]}
+  answer={0}
+  explain="Every score is $0 \cdot k_i = 0$ and $e^0 = 1$, so the weights are $\tfrac{1}{3}$ each (softmax always divides by the total, so they cannot all be 1). The output is $\tfrac{1}{3}([10,0] + [0,10] + [5,5]) = [5, 5]$, the plain average. Weights are never 0 either, because $e^s$ is always positive, and softmax has no rule that favours the first key."
+/>
+
+The same calculation in NumPy. Run it, then try `q = [0, 1]` (a sport question) or a much longer query such as `q = [5, 0]`.
+
+<PyRunner packages={['numpy']} code={`import numpy as np
+
+def softmax(s):
+    # subtracting the max avoids overflow
+    e = np.exp(s - s.max())
+    return e / e.sum()
+
+def attend(q, K, V):
+    scores = K @ q             # one per key
+    weights = softmax(scores)  # add up to 1
+    # weighted average of the rows of V
+    return weights, weights @ V
+
+# the question: food
+q = np.array([1.0, 0.0])
+# keys and values, one per row
+K = np.array([[2.0, 0.0], [1.0, 1.0], [0.0, 2.0]])
+V = np.array([[10.0, 0.0], [0.0, 10.0], [5.0, 5.0]])
+
+w, out = attend(q, K, V)
+print("scores :", K @ q)
+print("weights:", w.round(3), " sum =", round(w.sum(), 3))
+print("output :", out.round(2))
+
+# same direction, twice as long
+w2, out2 = attend(2 * q, K, V)
+print("2q weights:", w2.round(3), " output:", out2.round(2))`} />
+
+You should see weights `[0.665 0.245 0.09 ]` and output `[7.1 2.9]`. Doubling the query sharpens the weights to `[0.867 0.117 0.016]`, and the output moves to `[8.75 1.25]`, much closer to Wei Ling's suggestion.
+
+## Self-attention: every word asks every word
+
+In a language model, each word (strictly, each token) is first turned into a vector called its <Term def="A learned vector of numbers that represents a token. Tokens with similar meanings get similar vectors.">embedding</Term> (see [Word embeddings](#/learn/text-as-data/word-embeddings)). In <Term def="Attention in which the queries, keys and values all come from the same sequence, so every token can look at every other token in it.">self-attention</Term>, every word plays all three roles at once. From its embedding $x$, three learned weight matrices make three different vectors:
+
+$$
+q = x\,W_Q, \qquad k = x\,W_K, \qquad v = x\,W_V
+$$
+
+- $q$, the **query**, says "what am I looking for?" For "it": *a noun that I could be referring to*.
+- $k$, the **key**, says "this is what I advertise": the label that queries are matched against. For "animal": *I'm a noun, and a living thing*.
+- $v$, the **value**, is "what I pass on if you pick me": the information about "animal" that gets copied into "it".
+- $W_Q$, $W_K$ and $W_V$ are matrices of numbers learned during training. The same three matrices are used for every word in every sentence.
+- $x$ is a **row** vector, so the matrix comes second: the row-vector convention from [Backprop step by step](#/learn/backpropagation/backprop-step-by-step). The RNN lesson, [Recurrent networks and LSTMs](#/learn/text-as-data/rnns-and-lstms), wrote $W_x\, x_t$ with column vectors: the same idea with the matrix transposed.
+
+Why three different vectors instead of using $x$ for everything? Because what a word is looking for is not the same as what it advertises, and neither is the same as what it should hand over. Separate matrices let the network learn each role on its own.
+
+Then each word does the soft lookup from above: its query is scored against the keys of **all** the words in the sentence, itself included, and its new vector is the weighted mix of all their values. Every word does this at the same time, in parallel, which is why Transformers train so fast on GPUs, unlike older recurrent networks that read one word at a time.
+
+<Analogy title="A group project meeting">
+
+In a project meeting, every member updates their understanding by listening hardest to the teammates whose work matters most for their own part: whoever writes the conclusion listens most to whoever ran the experiment. Everyone listens at the same time, and everyone leaves with an updated view that blends what they heard.
+
+</Analogy>
+
+<SentenceAttention />
+
+## The same word, a different meaning
+
+A word embedding on its own is a fixed lookup table: "bank" gets exactly the same vector in *the river bank was muddy* and in *the bank approved my loan*. After self-attention, the vector for "bank" is a mix of the values of the words around it, so it absorbs "river" in one sentence and "loan" in the other. Vectors that depend on the surrounding words are called <Term def="Word vectors that change with the surrounding words, so one word gets different vectors in different sentences. Self-attention produces them; models such as BERT output them.">contextual embeddings</Term>, and they are what models like BERT produce. A Transformer stacks many attention layers, so these mixes build on each other: later layers mix vectors that are already mixtures of the whole sentence.
+
+<KeyIdea>
+
+Self-attention turns each word's fixed embedding into a **context-dependent** one: a weighted mix of the values of the whole sentence, where the weights are recomputed from scratch for every new sentence.
+
+</KeyIdea>
+
+<Mistake title="Thinking the attention weights are learned parameters">
+
+The attention weights are **not** stored in the model. Training learns $W_Q$, $W_K$ and $W_V$, which are then fixed. The weights $a_i$ are computed afresh from the input every time the model runs. That is how one model can link "it" to "animal" in one sentence and to "street" in the next.
+
+</Mistake>
+
+<PastPaperQuestion paper="prelim2026" n={211} />
+
+## Self-attention and cross-attention
+
+In self-attention, the queries, keys and values all come from one sequence. In <Term def="Attention in which the queries come from one sequence and the keys and values come from another, so one sequence can look things up in the other.">cross-attention</Term>, the queries come from one sequence and the keys and values from another. A translation model writing French uses cross-attention so that each French word it writes can look back at the English sentence. An image-captioning model lets each word it writes look at patches of the image. The maths is identical; only the source of the vectors changes.
+
+<ExamTip>
+
+Prelim questions on attention are mostly fast recall. Know these cold:
+
+- attention lets a model **focus on the relevant parts of the input**;
+- **query** = what I'm looking for, **key** = what I advertise to be matched on, **value** = what I pass on;
+- the weights come from **softmax**, so they are positive and **add up to 1**;
+- the output is a **weighted average of the values** (not of the keys, and not one single value);
+- self-attention takes Q, K and V from one sequence; cross-attention takes Q from one sequence and K, V from another.
+
+Two no-calculator shortcuts: if all the scores are equal, the output is the plain average of the values; if one score is far bigger than the others, the output is almost exactly that key's value.
+
+</ExamTip>
+
+In the next lesson, [Scaled dot-product attention and masks](#/learn/attention-and-transformers/scaled-dot-product-attention), you will do this for every word at once with two matrix multiplications, the exact form that the NOAI Final asked students to code.
+
+<Takeaways>
+
+- Attention is a **soft lookup**: score the query against every key with a dot product, softmax the scores into weights that add up to 1, and output the weighted average of the values.
+- Close matches dominate but every value contributes; a longer query (bigger scores) makes attention sharper.
+- Unlike a hard dictionary lookup, attention is smooth, so it can be trained with gradient descent.
+- In self-attention, each word makes its own query, key and value with learned matrices $W_Q$, $W_K$, $W_V$; its new vector is a mix of the whole sentence.
+- The weights are recomputed for every input, so the same word gets a different, context-dependent vector in different sentences.
+
+</Takeaways>

@@ -1,0 +1,173 @@
+import TangentZoom from './visuals/derivatives-as-slopes/TangentZoom'
+import TangentGuess from './visuals/derivatives-as-slopes/TangentGuess'
+import DerivativeTracer from './visuals/derivatives-as-slopes/DerivativeTracer'
+
+Every time a model learns, it asks the same question about each of its knobs: *if I nudge this one a tiny bit, does the loss go up or down, and how fast?* The answer is a single number called the **derivative**. This lesson builds it from something you already know, the slope of a straight line, and shows you how to read it off any graph.
+
+<Analogy title="Average speed versus the speedometer">
+
+A Grab ride from Jurong East to Tampines covers about 30 km in 40 minutes, so its **average** speed is $30 \div \tfrac{40}{60} = 45$ km/h. But the car sat at traffic lights and sped along the expressway. The speedometer shows something else: how fast you are going *right now*. The derivative is the speedometer: the rate of change at a single instant, not over a whole trip.
+
+</Analogy>
+
+## Slopes of straight lines: a quick recap
+
+The <Term def="How steep a line is: how much it rises for every 1 unit you move to the right. Rise divided by run.">slope</Term> of a straight line is
+
+$$
+\text{slope} = \frac{\text{rise}}{\text{run}} = \frac{\text{change in } y}{\text{change in } x}.
+$$
+
+For $y = 5x + 3$, every step of 1 to the right goes up by 5, so the slope is 5. The $+3$ only lifts the whole line up; it does not tilt it. A line has **the same slope everywhere**, so "the slope" is one number.
+
+A curve is different. The parabola $y = x^2$ is nearly flat near $x = 0$ and steep near $x = 3$. Its slope changes from place to place, so we need a slope *at a point*.
+
+## From two points to one: secants become tangents
+
+Pick a point $P$ on the curve at $x = a$, and a second point $Q$ a little further along, at $x = a + h$. The straight line through both is called a <Term def="A straight line that cuts a curve at two points. Its slope is the average rate of change between them.">secant</Term>, and its slope is rise over run:
+
+$$
+\text{slope of secant} = \frac{f(a+h) - f(a)}{h}
+$$
+
+- $f(a)$ is the height of the curve at $P$, and $f(a+h)$ is the height at $Q$.
+- The top line, $f(a+h) - f(a)$, is the **rise**: how much the curve goes up from $P$ to $Q$.
+- $h$ is the **run**: how far $Q$ is to the right of $P$ (negative $h$ puts $Q$ to the left).
+
+This is the "average speed" of the curve between $P$ and $Q$. Now slide $Q$ towards $P$ by making $h$ smaller. For $f(x) = x^2$ at $a = 1$:
+
+| $h$ | rise $= (1+h)^2 - 1$ | slope $=$ rise $\div\, h$ |
+|---|---|---|
+| 1 | $4 - 1 = 3$ | 3 |
+| 0.5 | $2.25 - 1 = 1.25$ | 2.5 |
+| 0.1 | $1.21 - 1 = 0.21$ | 2.1 |
+| 0.01 | $1.0201 - 1 = 0.0201$ | 2.01 |
+
+The slopes settle on **2**. The line they settle on just grazes the curve at $P$: it is the <Term def="The straight line that touches a curve at a point and runs in the same direction as the curve there.">tangent</Term> at $P$.
+
+<TangentZoom />
+
+Look at the zoomed panel as $h$ shrinks. Magnified enough, the curve becomes indistinguishable from a straight line, and that line is the tangent. **Every smooth curve looks straight when you zoom in far enough**, and the derivative is the slope of that straight line.
+
+## The definition
+
+The **derivative** of $f$ at $x = a$, written $f'(a)$ ("f prime of a"), is the number the secant slopes approach as $h$ shrinks towards 0:
+
+$$
+f'(a) = \lim_{h \to 0} \frac{f(a+h) - f(a)}{h}
+$$
+
+- $\lim_{h \to 0}$ reads "the <Term def="The value an expression gets closer and closer to as something (here h) approaches a number, even if you are not allowed to plug that number in.">limit</Term> as $h$ goes to 0": make $h$ tinier and tinier and see which value the fraction homes in on.
+- We cannot just put $h = 0$, because the fraction would become $\frac{0}{0}$, which means nothing. The limit sidesteps that: we only ever look at small, non-zero $h$.
+- The fraction is the secant slope from before, so in words: **the derivative is the slope of the tangent**.
+
+Because the run $h$ is shrinking to nothing, $f'(a)$ is an <Term def="The rate of change at one single point (one instant), rather than averaged over an interval.">instantaneous rate of change</Term>: how fast $f$ is changing *at* $a$, the speedometer reading. You will also see it written $\frac{dy}{dx}$ or $\frac{df}{dx}$. The $d$ means "a tiny change in", so $\frac{dy}{dx}$ reads "a tiny change in $y$ divided by the tiny change in $x$ that caused it".
+
+<KeyIdea>
+
+The derivative $f'(a)$ is the slope of the tangent at $x = a$: the limit of rise over run as the run shrinks to 0. It tells you how fast, and in which direction, $f$ is changing at that exact point.
+
+</KeyIdea>
+
+<Steps title="Find the derivative of $x^2$ from the definition">
+  <Step title="Write the secant slope at $x = 3$">
+    $\dfrac{f(3+h) - f(3)}{h} = \dfrac{(3+h)^2 - 9}{h}$.
+  </Step>
+  <Step title="Expand the bracket">
+    $(3+h)^2 = 9 + 6h + h^2$, so the rise is $9 + 6h + h^2 - 9 = 6h + h^2$.
+  </Step>
+  <Step title="Divide by h">
+    $\dfrac{6h + h^2}{h} = 6 + h$. Dividing is fine because $h$ is small but not 0.
+  </Step>
+  <Step title="Let h shrink to 0">
+    $6 + h$ heads to $6$. So $f'(3) = 6$: at $x = 3$ the parabola climbs 6 units per unit to the right.
+  </Step>
+  <Step title="Do it for any x">
+    The same algebra with $x$ in place of 3 gives $\dfrac{2xh + h^2}{h} = 2x + h \to 2x$. So $f'(x) = 2x$. At $x = 1$ that is $2$, matching the table.
+  </Step>
+</Steps>
+
+<PastPaperQuestion paper="prelim2026" n={26} />
+
+What about a straight line such as $f(x) = 5x + 3$? Its rise is $5(a + h) + 3 - (5a + 3) = 5h$, so every secant slope is $5h \div h = 5$, whatever $h$ is. The derivative of $mx + c$ is just $m$, and a constant such as $3$ on its own has derivative $0$: it never changes, so its rate of change is zero.
+
+<PastPaperQuestion paper="prelim2026" n={27} />
+
+## The derivative as a nudge multiplier
+
+Zooming in gives the most useful fact in this module. Near $x = a$ the curve is almost its tangent line, so a small nudge $h$ to the input changes the output by about $f'(a) \times h$:
+
+$$
+f(a + h) \approx f(a) + f'(a)\, h
+$$
+
+Try it with $f(x) = x^2$ at $a = 3$, where $f(3) = 9$ and $f'(3) = 6$. The rule predicts $f(3.01) \approx 9 + 6 \times 0.01 = 9.06$. The true value is $3.01^2 = 9.0601$, out by only $0.0001$.
+
+This is exactly how a model uses derivatives. If the slope of the loss with respect to a weight $w$ is $-4$, then increasing $w$ by $0.01$ changes the loss by about $-4 \times 0.01 = -0.04$: the loss **drops**. So the model knows to increase $w$. The sign says which way to go; the size says how sensitive the loss is.
+
+<QuickCheck
+  id="calculus-and-gradient-descent.derivatives-as-slopes.qc1"
+  q="You know that $f(2) = 5$ and $f'(2) = 3$. What is the best estimate of $f(2.1)$?"
+  options={['8', '5.03', '0.3', '5.3']}
+  answer={3}
+  explain="Near $x = 2$ the curve rises about 3 units per unit of $x$. A nudge of $0.1$ therefore adds about $3 \times 0.1 = 0.3$, giving $5 + 0.3 = 5.3$. Adding the full slope (8) pretends the nudge was a whole unit, 5.03 uses a nudge of 0.01 instead of 0.1, and 0.3 is only the change, not the new value."
+/>
+
+## Reading a slope off a graph
+
+Sometimes all you have is a picture, such as a plotted loss curve, and no formula. To estimate a derivative from a graph:
+
+1. Lay a ruler so it **just touches** the curve at the point, tilted the same way as the curve there. Near the point, the curve should stay on one side of it (except at an inflection point, where the curve switches its bend and the tangent passes through it).
+2. Pick two points on the ruler that are easy to read, as far apart as is convenient.
+3. Divide their rise by their run. Read the units too: if $y$ is in km and $x$ in hours, the slope is in km per hour.
+
+<TangentGuess />
+
+## The derivative is a function too
+
+The slope is different at each $x$, so working it out everywhere gives a new function, $f'(x)$. Its **sign** tells you the shape of $f$:
+
+- $f'(x) > 0$: the curve is **rising** there (uphill as you move right).
+- $f'(x) < 0$: the curve is **falling** (downhill as you move right).
+- $f'(x) = 0$: the tangent is **flat**. This is where peaks and valleys can be.
+
+The **size** $|f'(x)|$ tells you how steep: a slope of $-6$ is a steeper descent than a slope of $-0.5$.
+
+<DerivativeTracer />
+
+Choose **a loss curve** in the visual, press **Sweep**, and watch the slope at each valley. Just before it the slope is negative (going down); just after, positive (going up); exactly at the bottom it is 0. At a peak it goes from positive to 0 to negative. That is why training hunts for zero slope: the lowest loss sits where the derivative crosses zero going upwards.
+
+<Mistake title="Slope is not height">
+
+$f'(x)$ and $f(x)$ answer different questions. At the bottom of a valley the **height** can be anything (the loss curve's valleys sit at heights near 0.4 and 2.2) but the **slope** is 0. And $f'(x) = 0$ does not always mean a peak or a valley: $x^3$ is flat at $x = 0$, yet it keeps rising on both sides, just pausing on a flat shelf. [Curvature: second derivatives, convexity and the Hessian](#/learn/calculus-and-gradient-descent/curvature-convexity), later in this module, shows how to tell these apart.
+
+</Mistake>
+
+<QuickCheck
+  id="calculus-and-gradient-descent.derivatives-as-slopes.qc2"
+  q="A loss curve $L(w)$ has $L'(w) < 0$ for every $w$ below 3, $L'(3) = 0$, and $L'(w) > 0$ for every $w$ above 3. What happens at $w = 3$?"
+  options={['The loss has its highest point (a maximum)', 'The loss equals 0', 'The loss has its lowest point (a minimum)', 'The loss is at its steepest']}
+  answer={2}
+  explain="Falling before 3 and rising after 3 means the curve goes down, flattens and goes back up: a valley, so $w = 3$ is a minimum. A maximum would need the slope to go from positive to negative. $L'(3) = 0$ says the slope is 0, not that the loss itself is 0."
+/>
+
+<ExamTip>
+
+NOAI's calculus questions are quick, no-calculator items. Have these instant answers ready:
+
+- The derivative of a straight line $mx + c$ is its slope $m$; the derivative of a constant is $0$.
+- "Derivative" means "slope of the tangent" and "instantaneous rate of change".
+- Sign of $f'$: positive means increasing, negative means decreasing, zero means a flat point (a candidate minimum or maximum).
+
+When a question asks where a loss is smallest, look for where its derivative is zero **and** changes from negative to positive.
+
+</ExamTip>
+
+<Takeaways>
+
+- The slope of a secant is rise over run between two points: an average rate of change.
+- As the run $h$ shrinks to 0, secants turn into the tangent. Its slope is the derivative: $f'(a) = \lim_{h \to 0} \frac{f(a+h) - f(a)}{h}$.
+- Zoomed in, a smooth curve is almost straight, so $f(a + h) \approx f(a) + f'(a)\,h$: the derivative turns a small nudge into a predicted change.
+- $f' > 0$ rising, $f' < 0$ falling, $f' = 0$ flat; minima sit where $f'$ crosses zero from negative to positive.
+
+</Takeaways>

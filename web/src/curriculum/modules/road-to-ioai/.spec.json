@@ -1,0 +1,274 @@
+{
+  "slug": "road-to-ioai",
+  "order": 39,
+  "part": "exam",
+  "domain": "exam",
+  "title": "Beyond NOAI: the road to IOAI 2027",
+  "tagline": "From finalist to national team",
+  "summary": "What happens after NOAI (NTU selection test, training, camp, IOAI 2027 in Singapore), how IOAI tasks are scored, how practical tasks differ from MCQs, the competition craft of improving a baseline, techniques that keep winning tasks, and a study roadmap mapped to the IOAI syllabus.",
+  "prerequisites": [
+    "final-lab-pytorch"
+  ],
+  "syllabus": [
+    "NTU IOAI Selection Test (8 May 2027) and training (May to June 2027)",
+    "IOAI 2027 Singapore, 4 to 10 July 2027: Individual Contest format and scoring",
+    "IOAI syllabus (all sections, practice items)",
+    "Hugging Face transformers, datasets, peft; torchvision",
+    "Imbalance handling, transfer learning, pseudo-labelling, leaderboard discipline"
+  ],
+  "paper_subtopics": [
+    "ml-system-design",
+    "ml-debugging-diagnosis",
+    "cnn-vision",
+    "nlp-transformers",
+    "llms",
+    "multimodal",
+    "training-regularisation",
+    "model-evaluation"
+  ],
+  "lessons": [
+    {
+      "slug": "after-noai",
+      "title": "After NOAI: NTU selection and the IOAI format",
+      "summary": "The timeline from April to July 2027, what the NTU selection stage looks like, and how the IOAI Individual Contest is run and scored.",
+      "minutes": 18,
+      "objectives": [
+        "You can list the post-NOAI milestones and their dates",
+        "You can describe the NTU selection test style (baseline notebook to improve)",
+        "You can explain IOAI task scoring and medal cut-offs",
+        "You can state eligibility to represent Singapore"
+      ],
+      "concepts": [
+        {
+          "name": "The pathway timeline",
+          "explain": "Results come out in early April 2027. About the top 60 are invited to NTU's selection test on Saturday 8 May, followed by Saturday training sessions, a residential camp on 14 to 18 June and an IOAI home task, before IOAI itself in Singapore on 4 to 10 July 2027. NTU re-ranks students at its stage, so a lower NOAI tier is not the end of the road; a NOAI 2025 Bronze winner placed 2nd in the world at IOAI 2025.",
+          "analogy": "Like being shortlisted for a national sports squad: trials, training camp, then final selection.",
+          "visual": {
+            "component": "IOAIPathwayTimeline",
+            "kind": "interactive",
+            "shows": "A timeline from April to July 2027 with each milestone, its format and who runs it, and a note on team size for 2027 (one national team per country, size unconfirmed).",
+            "interaction": "Click milestones for details and preparation tips; toggle to compare with the 2026 cycle.",
+            "aha": "The NTU stage tests different, more practical skills, so preparation continues after the Final."
+          }
+        },
+        {
+          "name": "How IOAI tasks are scored",
+          "explain": "IOAI tasks give a dataset, a baseline notebook and a metric. Your score for a task is normalised between the baseline's score and a near-optimal reference, then medals go to at least the top 1/12 (gold), top 1/4 (gold or silver) and top 1/2 (any medal) of contestants. Beating the baseline by a clear margin matters more than chasing tiny gains.",
+          "analogy": "Like a grading curve where the starting line is 'what the example solution gets' and the finish line is 'what the experts got'.",
+          "visual": {
+            "component": "ScoreNormalisation",
+            "kind": "interactive",
+            "shows": "A metric axis with the baseline and reference marked, your result as a draggable marker and the resulting 0-100 task score, plus a medal-band bar over a simulated contestant distribution.",
+            "interaction": "Drag your metric; change baseline and reference values; see the task score and medal band.",
+            "aha": "Scores are relative to the baseline and best, so reliable improvements across all tasks win medals."
+          }
+        },
+        {
+          "name": "From MCQs to open-ended tasks",
+          "explain": "NTU tests and IOAI tasks are hands-on notebooks with real datasets: train a classifier, segment images, fine-tune a language model, often scored on a leaderboard metric. Breadth still matters, but iteration speed and practical judgement matter more.",
+          "analogy": "Like moving from a theory test to an actual road test.",
+          "visual": {
+            "component": "FormatComparison",
+            "kind": "diagram",
+            "shows": "Side-by-side comparison of NOAI Prelim, NOAI Final, NTU tests and IOAI tasks (format, time, tools, scoring).",
+            "interaction": "Hover each cell for an example.",
+            "aha": "Each stage is more open-ended than the last."
+          }
+        }
+      ],
+      "code": "none",
+      "checkpoint_focus": [
+        "Selection test for about the top 60 on 8 May 2027",
+        "Training Saturdays and 14–18 Jun camp",
+        "IOAI: 2 contest days, 3 tasks each, scores normalised between baseline and best",
+        "Medals: ≥1/12 gold, ≥1/4 gold+silver, ≥1/2 any",
+        "SC/PR, age ≤ 20 on 1 July"
+      ]
+    },
+    {
+      "slug": "baseline-to-better",
+      "title": "From baseline to better: competition craft",
+      "summary": "Reading a baseline, setting up trustworthy validation, changing one thing at a time, logging experiments and avoiding leaderboard overfitting.",
+      "minutes": 20,
+      "objectives": [
+        "You can set up a validation scheme that matches the test set",
+        "You can run controlled experiments and keep an experiment log",
+        "You can explain public versus private leaderboard overfitting",
+        "You can respect output format requirements exactly"
+      ],
+      "concepts": [
+        {
+          "name": "The experiment log",
+          "explain": "Treat each change (augmentation, learning rate, pretrained backbone, loss) as an experiment with a hypothesis, record its validation score with the configuration and seed, and keep only what helps. Ablations, removing one component at a time, show what really matters.",
+          "analogy": "A science practical: change one variable at a time and record every result.",
+          "visual": {
+            "component": "AblationTable",
+            "kind": "interactive",
+            "shows": "A table of experiments with configurations and scores, a bar chart of improvements, and an ablation view removing each component from the best model.",
+            "interaction": "Add simulated experiments by toggling components; sort by score; run ablations.",
+            "aha": "Disciplined logging turns random tinkering into steady progress."
+          }
+        },
+        {
+          "name": "Leaderboard overfitting",
+          "explain": "If you choose models by repeatedly checking a public leaderboard computed on a small test subset, you can overfit to that subset; the final ranking on the hidden part then drops ('shake-up'). Trust a solid local validation more than small leaderboard gains.",
+          "analogy": "Tuning your essay to please one particular marker, then getting a different marker in the real exam.",
+          "visual": {
+            "component": "LeaderboardShakeup",
+            "kind": "interactive",
+            "shows": "A simulation of many submissions with public and private scores; selecting by best public score is compared with selecting by local validation.",
+            "interaction": "Slide the number of submissions and public subset size; rerun the simulation.",
+            "aha": "The more you probe a small public set, the less its score means."
+          }
+        },
+        {
+          "name": "Past task gallery",
+          "explain": "Singapore selection and camp tasks have included CIFAR-10 classification with ResNet, U-Net segmentation on Pascal VOC, DCGAN and StyleGAN latent editing, named entity recognition, toxic comment detection, cross-lingual tweet affect, cybersecurity and mental-health tabular ML. IOAI tasks span ML, CV, NLP and multimodal problems.",
+          "analogy": "Like a museum of previous competitions to learn from.",
+          "visual": {
+            "component": "TaskGallery",
+            "kind": "interactive",
+            "shows": "Cards for past tasks with domain, skills tested and a link to the lessons and notebooks.",
+            "interaction": "Filter by domain; open a card for a summary and practice suggestions.",
+            "aha": "Past tasks show the practical skills to build next."
+          }
+        }
+      ],
+      "code": "torch-shown",
+      "checkpoint_focus": [
+        "Validation mirrors the test distribution",
+        "One change per experiment, ablations",
+        "Leaderboard overfitting",
+        "Deterministic notebooks and seeds",
+        "Past Singapore selection and camp task types"
+      ]
+    },
+    {
+      "slug": "ioai-task-techniques",
+      "title": "Techniques that keep winning tasks",
+      "summary": "Handling imbalance (weighted loss, focal loss, balanced sampling), transfer learning, pseudo-labels for unlabelled data, cheap clever ideas under constraints, and input gradients for adversarial and saliency tasks.",
+      "minutes": 24,
+      "objectives": [
+        "You can apply class-weighted and focal losses",
+        "You can explain pseudo-labelling with a confidence threshold",
+        "You can use embeddings plus simple models (k-NN, logistic regression) as strong baselines",
+        "You can craft a small adversarial perturbation from the input gradient and reason about task constraints"
+      ],
+      "concepts": [
+        {
+          "name": "Focal loss for imbalance",
+          "explain": "Focal loss multiplies cross-entropy by (1 − p)^γ, where p is the probability of the true class, so well-classified easy examples contribute little and training focuses on hard, often rare-class, examples. γ = 0 gives ordinary cross-entropy.",
+          "analogy": "A coach who spends practice time on the drills you keep failing, not the ones you already ace.",
+          "visual": {
+            "component": "FocalLossCurve",
+            "kind": "interactive",
+            "shows": "Loss against probability of the true class for γ = 0, 1, 2 and 5, with a marker showing the relative weight of an easy and a hard example.",
+            "interaction": "Slide γ; drag the easy and hard example markers.",
+            "aha": "Focal loss reshapes the loss curve so easy examples stop dominating the gradient."
+          }
+        },
+        {
+          "name": "Pseudo-labelling unlabelled data",
+          "explain": "Train on labelled data, predict on unlabelled data, add the most confident predictions as extra labelled examples, and retrain. A high confidence threshold adds few but accurate labels; a low one adds many but noisy ones.",
+          "analogy": "A senior student marking juniors' worksheets only where they are sure of the answer, then using those as extra practice material.",
+          "visual": {
+            "component": "PseudoLabelLoop",
+            "kind": "animation",
+            "shows": "A 2D dataset with a few labelled points and many unlabelled ones; each round adds confident pseudo-labels (with errors shown) and redraws the boundary.",
+            "interaction": "Slide the confidence threshold; step rounds; compare final accuracy.",
+            "aha": "Unlabelled data helps when you only trust confident predictions."
+          }
+        },
+        {
+          "name": "Strong cheap baselines",
+          "explain": "Past IOAI winners often used simple ideas well: frozen pretrained embeddings with k-NN or logistic regression, symmetry-based augmentation, PCA features, or a small gate in front of a frozen model. Before building something big, try the simplest pipeline that respects the constraints.",
+          "analogy": "In a cooking contest with strange rules, the winner is often the cook who understood the rules best, not the one with the fanciest equipment.",
+          "visual": {
+            "component": "BaselineLadder",
+            "kind": "interactive",
+            "shows": "A ladder of approaches for a sample task (majority class, logistic regression on raw features, frozen embeddings + k-NN, fine-tuned model), each with score, time and constraint compliance.",
+            "interaction": "Click rungs to see code and results; toggle task constraints that rule some approaches out.",
+            "aha": "Climb the ladder from simple to complex and stop when constraints or time say so."
+          }
+        },
+        {
+          "name": "Gradients with respect to the input",
+          "explain": "Backprop usually gives gradients for the weights, but the same call gives the gradient of the loss with respect to the input: set x.requires_grad_(True), compute the loss, call backward and read x.grad. Nudging every pixel a tiny step ε in the direction sign(x.grad) raises the loss fastest (the fast gradient sign method), which can flip a classifier's prediction with changes people cannot see. IOAI 2026's Double Agent Dilemma asked for exactly such perturbations against a ResNet-18 and a ViT-Tiny, and the same gradient drawn as a heat map (a saliency map) shows which pixels a model relies on.",
+          "analogy": "Finding the few loose tiles that make a whole floor wobble: test which small push matters most, then push exactly there.",
+          "visual": {
+            "component": "InputGradientAttack",
+            "kind": "interactive",
+            "shows": "A small image, the classifier's top-3 probabilities, the input-gradient heat map, and the perturbed image with the perturbation magnified, plus the perturbation size as an L∞ value.",
+            "interaction": "Slide ε; switch between sign-of-gradient and random noise of the same size; press 'step' to apply repeated small steps and watch the prediction flip.",
+            "aha": "The gradient tells you not only how to change the weights but which input changes the model is most sensitive to: the basis of adversarial attacks and saliency maps."
+          }
+        }
+      ],
+      "code": "torch-shown",
+      "checkpoint_focus": [
+        "Weighted cross-entropy and balanced sampling",
+        "Focal loss down-weights easy examples",
+        "Pseudo-label threshold trade-off",
+        "Frozen embeddings + simple head",
+        "Read constraints carefully",
+        "Input gradient: x.requires_grad_(True), x.grad, sign step"
+      ]
+    },
+    {
+      "slug": "study-roadmap",
+      "title": "Your study roadmap beyond NOAI",
+      "summary": "A skills ladder from Prelim recall to IOAI open-ended modelling, project ideas, practice sources and a weekly plan from March to July.",
+      "minutes": 18,
+      "objectives": [
+        "You can place your skills on the ladder from recall to open-ended modelling",
+        "You can choose practice sources (IOAI past tasks, AICC contests, Kaggle)",
+        "You can draft a weekly plan from March to July 2027",
+        "You can use the IOAI syllabus coverage map to find and fill your gaps"
+      ],
+      "concepts": [
+        {
+          "name": "The skills ladder",
+          "explain": "Preparation climbs five rungs: recalling concepts quickly (Prelim), implementing known algorithms from scratch (Final), completing and improving a real pipeline (NTU selection), learning new model families on GPU (camp), and solving novel constrained problems (IOAI). Each rung needs the one below it.",
+          "analogy": "Grading up in a martial art: each belt builds on the skills of the previous one.",
+          "visual": {
+            "component": "SkillsLadder",
+            "kind": "interactive",
+            "shows": "A five-rung ladder; each rung lists the skills, the course modules that build them and a sample task.",
+            "interaction": "Click rungs; tick off skills you have; see suggested next modules.",
+            "aha": "Knowing which rung you are on tells you what to practise next."
+          }
+        },
+        {
+          "name": "A weekly plan to July",
+          "explain": "Between the Final and IOAI there are about four months. A good plan mixes one IOAI past task per week, focused reading on syllabus gaps, practice with Hugging Face fine-tuning on GPU (e.g. free cloud notebooks), and timed mini-contests, with extra intensity before 8 May.",
+          "analogy": "A periodised training plan for a marathon: base building, then race-specific sessions, then taper.",
+          "visual": {
+            "component": "WeeklyPlanBuilder",
+            "kind": "interactive",
+            "shows": "A calendar from March to July 2027 with milestones and draggable activity blocks (past task, reading, fine-tuning practice, mini-contest).",
+            "interaction": "Set available hours; drag blocks; see coverage of syllabus areas.",
+            "aha": "A visible plan anchored to fixed dates keeps months of preparation on track."
+          }
+        },
+        {
+          "name": "Coverage map",
+          "explain": "The IOAI syllabus groups topics into Foundational Skills and Classical ML, Neural Networks and Deep Learning, Computer Vision, and NLP and Audio, each marked theory, practice or both. This course covers the theory; IOAI also expects practical fluency with Hugging Face, detection libraries, and audio models, and says breadth should be prioritised over depth.",
+          "analogy": "Like comparing your O-level syllabus checklist with what the A-level syllabus adds.",
+          "visual": {
+            "component": "SyllabusCoverageGrid",
+            "kind": "interactive",
+            "shows": "A grid of IOAI syllabus topics coloured by how deeply this course covers them, with links to lessons and external resources.",
+            "interaction": "Filter by section and by theory/practice; click a cell for resources.",
+            "aha": "Breadth across all four sections matters most."
+          }
+        }
+      ],
+      "code": "none",
+      "checkpoint_focus": [
+        "Skills ladder rungs",
+        "Official practice sources",
+        "Weekly planning towards 8 May and July"
+      ]
+    }
+  ]
+}

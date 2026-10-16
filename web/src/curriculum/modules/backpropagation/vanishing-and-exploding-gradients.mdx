@@ -1,0 +1,240 @@
+import ChainOfFactors from './visuals/vanishing-and-exploding-gradients/ChainOfFactors'
+import GradientDepthBars from './visuals/vanishing-and-exploding-gradients/GradientDepthBars'
+import ResidualHighway from './visuals/vanishing-and-exploding-gradients/ResidualHighway'
+import ClipByNorm from './visuals/vanishing-and-exploding-gradients/ClipByNorm'
+import NoWrapRunner from './visuals/backprop-step-by-step/NoWrapRunner'
+import { GRAD_SIZES_CODE, GRAD_SIZES_OUTPUT, TORCH_NORMS_CODE, TORCH_NORMS_OUTPUT } from './visuals/vanishing-and-exploding-gradients/snippets'
+
+Backpropagation hands every weight a gradient, but nothing promises that the gradient arrives at a useful size. In a deep network the signal from the loss has to travel back through every layer, and each layer multiplies it by some number. For years this made networks with more than a handful of layers almost impossible to train. This lesson shows exactly why, and the five fixes that make 100-layer networks routine today.
+
+<Analogy title="Passing a message down the line">
+
+Twenty people stand in a line at an NDP rehearsal and pass a message from the back to the front by whispering. If each person repeats it at a quarter of the volume they heard, ten people later it is down to $(1/4)^{10}$, about one millionth: the front of the line hears nothing. If instead each person repeats it 1.5 times *louder*, after twenty people it is $1.5^{20} \approx 3300$ times louder, a roar that drowns everything else. The message only arrives intact if everyone passes it on at the same volume.
+
+</Analogy>
+
+## Why the gradient is a product
+
+Start with the simplest deep network: one neuron per layer. The input $x = a_0$ passes through $D$ layers, and layer $k$ computes
+
+$$
+z_k = w_k \, a_{k-1}, \qquad a_k = \varphi(z_k)
+$$
+
+- $a_{k-1}$ is the output of the layer before, and $w_k$ is layer $k$'s weight.
+- $z_k$ is the <Term def="The weighted input of a neuron, before the activation function is applied.">pre-activation</Term>, and $\varphi$ (phi) is the activation function (sigmoid, tanh, ReLU): the same $f$ as in earlier lessons such as [Backprop step by step](#/learn/backpropagation/backprop-step-by-step), renamed so that $f$ is free for the per-layer factor below. $\varphi'(z_k)$ is its slope at $z_k$.
+
+Backpropagation walks back one edge at a time, multiplying by each local derivative. Stepping back through layer $k$ means multiplying by $\frac{\partial a_k}{\partial a_{k-1}} = w_k \, \varphi'(z_k)$. So the gradient that reaches the first layer is
+
+$$
+\frac{\partial L}{\partial a_1} = \frac{\partial L}{\partial a_D} \times w_2\varphi'(z_2) \times \cdots \times w_D\varphi'(z_D)
+$$
+
+In words: **the gradient at layer 1 is the gradient the loss sends back, times one factor (weight × slope) for every layer in between.** The first weight's own gradient is built from it, $\frac{\partial L}{\partial w_1} = \frac{\partial L}{\partial a_1} \, \varphi'(z_1) \, x$, so when $\frac{\partial L}{\partial a_1}$ is tiny, $w_1$ hardly moves. If every factor is about the same number $f$, the product is $f^{D-1}$, and powers change fast: $0.5^{20} \approx 10^{-6}$ while $1.5^{20} \approx 3300$.
+
+<ChainOfFactors />
+
+<KeyIdea>
+
+The gradient reaching an early layer is a **product of one factor per later layer**. Factors below 1 make it shrink exponentially with depth, a <Term def="When gradients get smaller and smaller as they travel back towards the input, so the early layers barely learn.">vanishing gradient</Term>; factors above 1 make it grow exponentially, an <Term def="When gradients get larger and larger as they travel back, giving huge, unstable weight updates.">exploding gradient</Term>.
+
+</KeyIdea>
+
+## Why sigmoid is the usual culprit
+
+The sigmoid $\sigma(z) = \frac{1}{1 + e^{-z}}$ has the slope $\sigma'(z) = \sigma(z)\big(1 - \sigma(z)\big)$. Write $p = \sigma(z)$, a number between 0 and 1. The product $p(1-p)$ is largest when $p = 0.5$, which happens at $z = 0$, and there it equals $0.25$. So **a sigmoid never passes back more than a quarter of the gradient it receives** (times its weight). For large $|z|$ the curve goes flat, the neuron <Term def="A sigmoid or tanh neuron saturates when its input is so large or so negative that the curve is flat there, so its slope is almost 0.">saturates</Term>, and the slope is close to 0: even worse.
+
+<Steps title="How small does it get? (no calculator)">
+  <Step title="The best case: $z = 0$">
+    $\sigma(0) = 0.5$, so $\sigma'(0) = 0.5 \times 0.5 = 0.25$.
+  </Step>
+  <Step title="A saturating neuron: $z = 2$ and $z = 5$">
+    $\sigma(2) \approx 0.88$, so $\sigma'(2) \approx 0.88 \times 0.12 \approx 0.105$, about $0.1$. At $z = 5$, $\sigma \approx 0.993$ and $\sigma' \approx 0.007$.
+  </Step>
+  <Step title="Ten layers, best case, every weight 1">
+    The factors multiply: $0.25^{10} = \frac{1}{4^{10}}$. Speed trick: $4^5 = 1024 \approx 10^3$, so $4^{10} \approx 10^6$. The gradient is about **one millionth** of what the loss sent back.
+  </Step>
+  <Step title="What that means for training">
+    Each weight moves by (learning rate) × (gradient). If the last layer's weights move by about 0.01 per step, the first layer's move by about $10^{-8}$: they would need a million times as many steps to learn the same amount. In practice they stay near their random starting values while the later layers do all the work.
+  </Step>
+</Steps>
+
+<QuickCheck
+  q="In a chain of sigmoid neurons, every weight is 1 and every pre-activation is $z = 0$. The gradient arriving at layer 5 is 1. How big is it when it reaches layer 1, four layers further back?"
+  options={['$1/256 \\approx 0.004$', '$1$', '$1/1024 \\approx 0.001$', '$1/16 \\approx 0.06$']}
+  answer={0}
+  explain="Each layer multiplies by $w \cdot \sigma'(0) = 1 \times 0.25$. Four layers: $0.25^4 = 1/4^4 = 1/256 \approx 0.004$. The answer 1 comes from adding $0.25$ four times; gradients multiply along a chain, they never add. $1/1024 = 0.25^5$ counts five factors, but going from layer 5 back to layer 1 crosses only four, and $1/16 = 0.25^2$ counts only two."
+/>
+
+<PastPaperQuestion paper="prelim2026" n={44} />
+
+## Exploding gradients and `nan` losses
+
+Factors above 1 cause the opposite problem. A ReLU has slope 1 for positive inputs, so with weights around 1.5 each layer multiplies the gradient by 1.5, and twenty layers give $1.5^{20} \approx 3300$. Gradient descent then takes a giant step: the update $w \leftarrow w - \eta \, \frac{\partial L}{\partial w}$ with learning rate $\eta = 0.01$ and a gradient of 10 000 moves the weight by 100.
+
+After a step like that the outputs become enormous and the numbers <Term def="Grow beyond the largest number the computer's number format can store, which turns them into infinity.">overflow</Term>. A `float32` can hold numbers up to about $3.4 \times 10^{38}$; anything bigger becomes `inf`, and `inf - inf` or `0 * inf` gives `nan` ("not a number"). Any sum or product that touches a `nan` is also `nan`, so once one appears the loss prints `nan` for ever after. A typical training log reads 2.31, 2.28, 2.26, 845.2, then `nan`, `nan`, `nan`.
+
+## Activation, initialisation and depth, together
+
+Real layers have many neurons, so each factor becomes a matrix (the weights) combined with the slopes, but the story is the same: each layer stretches or shrinks the gradient by some typical factor, and depth turns that factor into a power. Two things set the factor: **the activation's slopes** and **the size of the weights**.
+
+Take a square layer, with $n$ inputs (its <Term def="The number of inputs feeding into each neuron of a layer.">fan-in</Term>) and $n$ outputs, as in the chart below. In the backward pass, each neuron's gradient is a sum of $n$ contributions, one from each neuron it feeds. A sum of $n$ random $\pm 1$ terms has a typical size of about $\sqrt{n}$, not $n$, because the pluses and minuses partly cancel: 4 terms give about 2, and 100 terms about 10. So weights of size about $1/\sqrt{n}$ cancel that growth. Write the weights' standard deviation as $k/\sqrt{n}$; then $k$ is whatever stretching is left over, and the layer scales the gradient's size by roughly $k$ times the typical (<Term def="Root-mean-square: square the values, take their mean, then the square root. For ReLU slopes (half 1s, half 0s) it is the square root of 1/2, about 0.71.">root-mean-square</Term>) slope of its activation:
+
+- **tanh** near 0 has slope about 1, so $k = 1$ keeps the factor near 1. This is <Term def="Random weights with variance 2/(n_in + n_out), which is 1/n when a layer has n inputs and n outputs. Designed for sigmoid and tanh.">Xavier (Glorot) initialisation</Term>.
+- **ReLU** has slope 1 on the half of its neurons that are active and 0 on the rest, so its root-mean-square slope is $\sqrt{1/2} \approx 0.71$. Choosing $k = \sqrt{2} \approx 1.41$ makes up for it, since $1.41 \times 0.71 \approx 1$. This is <Term def="Random weights with variance 2/n_in, where n_in is the fan-in. Designed for ReLU layers.">He (Kaiming) initialisation</Term>.
+- **sigmoid** has slope at most 0.25 (about 0.2 on average), so with sensible weights its factor stays well below 1.
+
+<Reveal label="The exact variances (optional)">
+
+Xavier draws the weights with variance $2/(n_{in} + n_{out})$, which is $1/n$ when a layer has $n$ inputs and $n$ outputs: that is $k = 1$. He uses variance $2/n_{in}$, that is $k = \sqrt{2}$. ReLU passes only its active half, which halves the signal's squared size, and doubling the variance puts it back.
+
+</Reveal>
+
+<GradientDepthBars />
+
+Each of the standard fixes attacks one cause:
+
+1. **ReLU in the hidden layers.** Its slope is exactly 1 for every positive input and it never saturates there, so active neurons pass the gradient back undiminished. The catch: its slope is 0 for negative inputs, and a neuron whose input is negative for every example never learns again (the "dying ReLU"). Leaky ReLU keeps a small slope such as 0.01 for negative inputs.
+2. **He or Xavier initialisation.** Choose the starting weight scale so each layer's factor begins near 1.
+3. **<Term def="Batch normalisation: for each neuron, subtract the mini-batch mean and divide by the mini-batch standard deviation of its pre-activations, then apply a learned scale and shift.">BatchNorm</Term>.** Rescales every neuron's pre-activations over the mini-batch to mean 0 and variance 1, so the weights' scale stops mattering. In the chart, switch BatchNorm on and drag $k$: the dots hardly move.
+4. **Residual connections**, next.
+5. **Gradient clipping**, for the explosions that still happen.
+
+Initialisation and normalisation get a full lesson of their own later, [Initialisation, BatchNorm and LayerNorm](#/learn/training-deep-networks/initialisation-and-normalisation); here the point is *why* they work. Good initialisation starts the per-layer factor near 1, and normalisation stops it depending on the size of the weights.
+
+<Reveal label="Going further: BatchNorm's limits, and recurrent networks">
+
+BatchNorm alone does not force the factor to exactly 1. Try ReLU + BatchNorm (residual off) at depth 30 in the chart: the gradient still grows about 1.2 times per layer, roughly 560 times in all. That is why ResNets (residual networks, introduced in the next section) combine it with residual connections (setting 7).
+
+A recurrent network (RNN) applies the *same* weights at every time step, so a 100-word sentence behaves like a 100-layer network, and the same factor gets multiplied a hundred times. RNNs suffer from both problems. LSTMs add a gated memory path that works much like the residual highway below, and gradient clipping is standard when training them.
+
+</Reveal>
+
+## Residual connections: a gradient highway
+
+<Analogy title="The expressway">
+
+Driving from Jurong to Changi on local roads means stopping at every traffic light; one jammed junction and nothing gets through. The PIE bypasses all of them. A residual connection gives the gradient its own expressway past every layer.
+
+</Analogy>
+
+A <Term def="A shortcut that adds a block's input to its output, y = x + F(x), so the block only has to learn the change F(x).">residual (skip) connection</Term> adds a block's input to its output:
+
+$$
+y = x + F(x)
+$$
+
+Here $F$ is the block's ordinary layers (often two layers with an activation between them) and $x$ is the block's input. Differentiate both sides:
+
+$$
+\frac{\partial y}{\partial x} = 1 + F'(x)
+$$
+
+so the chain rule gives
+
+$$
+\frac{\partial L}{\partial x} = \underbrace{\frac{\partial L}{\partial y}}_{\text{skip path}} + \underbrace{\frac{\partial L}{\partial y}\,F'(x)}_{\text{through } F}
+$$
+
+The first term is the gradient from above, **passed back unchanged**, however small $F'(x)$ is. Stack $D$ blocks and a plain network multiplies $F'_1 F'_2 \cdots F'_D$, which collapses when the factors are small. A residual network multiplies $(1 + F'_1)(1 + F'_2)\cdots(1 + F'_D)$; multiply it out and one of the terms is always $1 \times 1 \times \cdots \times 1 = 1$: the path straight down the skip connections. So the gradient cannot be wiped out just because every $F'$ is small. (In a real network $F'$ can also be negative, so the skip path guarantees a direct route for the gradient, not that it can never shrink.)
+
+<Steps title="Three blocks, each with $F' = 0.1$">
+  <Step title="Plain stack">
+    $0.1 \times 0.1 \times 0.1 = 0.001$. The gradient is a thousand times smaller after just three blocks.
+  </Step>
+  <Step title="Residual stack">
+    $(1 + 0.1)^3 = 1.1 \times 1.1 \times 1.1 = 1.331$. The gradient arrives at full strength.
+  </Step>
+</Steps>
+
+<ResidualHighway />
+
+This is the idea behind **ResNet** (2015), which trained networks with 152 layers at a time when a plain 34-layer network trained *worse* than a plain 18-layer one. Every Transformer block uses residual connections too. Notice in the gradient-size chart above (setting 6) and in the highway with a large $s$ that residual connections alone can let the gradient *grow*, because every block adds its own contribution; that is why ResNets also put BatchNorm inside every block. (Gradient flow is only part of the story: [CNN architectures and ResNets](#/learn/convolutional-networks/cnn-architectures-and-resnets) shows that those plain deep networks were hard to *optimise* even with BatchNorm, and why a block that can easily learn "do nothing" fixes that.)
+
+<QuickCheck
+  q="A residual block computes $y = x + F(x)$. In the backward pass the gradient arriving at $y$ is 4, and $F'(x) = 0.25$. What gradient reaches $x$?"
+  options={['$5$', '$1$', '$4.25$', '$1.25$']}
+  answer={0}
+  explain="$\frac{\partial L}{\partial x} = 4 \times (1 + 0.25) = 4 + 1 = 5$. The answer 1 is $4 \times 0.25$, which forgets the skip path: that is the plain network's answer. $4.25$ adds $F'$ to the upstream gradient instead of multiplying by $1 + F'$, and $1.25$ is $1 + F'$ alone, which forgets the upstream 4."
+/>
+
+<PastPaperQuestion paper="final2026" n={7} />
+
+## Gradient clipping: a cap for explosions
+
+Even with good initialisation, an unlucky batch can produce one enormous gradient, and one bad step can wreck weights that took hours to train. <Term def="Shrinking the gradient before the weight update whenever it is larger than a chosen threshold.">Gradient clipping</Term> caps the gradient's size before the update. The usual version, **clipping by norm** with threshold $c$ (PyTorch calls it `max_norm`):
+
+$$
+g \leftarrow \begin{cases} g & \text{if } \lVert g \rVert \le c \\[4pt] g \cdot \dfrac{c}{\lVert g \rVert} & \text{if } \lVert g \rVert > c \end{cases}
+$$
+
+- $g$ is the gradient of *all* the parameters, written as one long vector, and $\lVert g \rVert$ is its length (the square root of the sum of squares).
+- When $g$ is too long, multiplying by $\frac{c}{\lVert g \rVert}$ (a number below 1) makes its length exactly $c$ **without changing its direction**.
+
+For example, $g = (6, 8)$ has $\lVert g \rVert = \sqrt{36 + 64} = 10$. With $c = 5$, multiply by $5/10$: the clipped gradient is $(3, 4)$, still pointing the same way but half as long.
+
+<ClipByNorm />
+
+PyTorch also has `clip_grad_value_`, which cuts each component to $[-c, c]$ separately. That can turn the gradient's direction, which is why clipping by norm is the usual choice; try **clip by value** in the figure to see the turn.
+
+In PyTorch the clip goes after the gradients exist and before the optimiser uses them:
+
+```python
+loss.backward()     # 1. compute the gradients
+# 2. cap their total length at max_norm
+torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=1.0)
+optimiser.step()    # 3. update with the capped gradients
+```
+
+<Mistake title="Clipping does not cure vanishing gradients">
+
+Clipping only ever makes gradients *shorter*. A gradient of $10^{-9}$ is left exactly as it is. Vanishing gradients need ReLU, good initialisation, normalisation or residual connections; clipping is the tool for **exploding** gradients.
+
+</Mistake>
+
+<PastPaperQuestion paper="prelim2026" n={222} />
+
+## Measure it yourself
+
+This NumPy code builds the same kind of 20-layer network as the gradient-size chart (32 neurons per layer), runs a forward pass, sends a gradient of size 1 back from the loss, and prints its size at layers 1, 10 and 20. Run it, then try `depth=40` or other values of `k`.
+
+<NoWrapRunner code={GRAD_SIZES_CODE} />
+
+<CodeBlock language="text" code={GRAD_SIZES_OUTPUT} showLineNumbers={false} />
+
+Sigmoid's first layer receives about $10^{-12}$ of the gradient, ReLU with $k = 1$ about $0.002$, He initialisation ($k \approx 1.41$) keeps it near 1, and $k = 2$ blows it up to about 130.
+
+<Reveal label="Optional: a similar measurement in PyTorch">
+
+In PyTorch you would look at each layer's `weight.grad.norm()` (the size of its weight gradient) after `loss.backward()`. Here are three 20-layer networks: sigmoid with PyTorch's default initialisation, ReLU with He initialisation, and ReLU with weights that are too large. `clip_grad_norm_` returns the total norm *before* clipping, which makes it a handy health monitor.
+
+<CodeBlock language="python" code={TORCH_NORMS_CODE} />
+
+<CodeBlock language="text" code={TORCH_NORMS_OUTPUT} showLineNumbers={false} />
+
+The sigmoid network's first layer gets a gradient about sixteen powers of ten smaller than its last layer's, so it will never learn. (PyTorch's default initialisation uses smaller weights than $k = 1$, so its sigmoid network vanishes even faster than the NumPy one.) The He-initialised ReLU network's total norm (0.52) is under the threshold, so clipping leaves it alone. The oversized network's gradients are around $10^{12}$, and clipping rescales them to a total length of exactly 1.
+
+</Reveal>
+
+## Diagnose and fix
+
+| What you see | Likely problem | First things to try |
+|---|---|---|
+| Gradient norms shrink layer by layer towards the input; early layers barely change; the loss plateaus | Vanishing gradients | ReLU, He initialisation, BatchNorm, residual connections |
+| Loss spikes, then turns into `nan`; gradient norms in the thousands or more | Exploding gradients | Gradient clipping, a lower learning rate, better initialisation, normalisation |
+| Many ReLU neurons output 0 for every input and their gradients are 0 | Dying ReLU | Leaky ReLU, a lower learning rate |
+
+<ExamTip>
+
+Prelim questions on this topic are mostly matching: **sigmoid or tanh derivative below 1 → vanishing**; **residual / skip connections → gradient flow in very deep networks (ResNet)**; **gradient clipping → exploding gradients**; **He → ReLU, Xavier → sigmoid/tanh**; **LSTM → vanishing gradients in RNNs**; **`nan` loss → learning rate too high or exploding gradients**. For quick sums, remember $0.25^n = 1/4^n$, $4^5 \approx 10^3$ and $2^{10} \approx 10^3$. If you are given a table of gradient norms per layer, compare the input end with the output end: tiny at the input means vanishing, huge means exploding.
+
+</ExamTip>
+
+<Takeaways>
+
+- Backprop multiplies **one factor per layer** (weight × activation slope), so gradient size changes **exponentially** with depth: below 1 it vanishes, above 1 it explodes.
+- Sigmoid's slope is at most **0.25**, so deep sigmoid networks vanish ($0.25^{10} \approx 10^{-6}$); exploding gradients cause huge updates, overflow and `nan` losses.
+- Fixes: **ReLU** (slope 1), **He/Xavier initialisation** (factor near 1 at the start), **BatchNorm** (the weights' scale stops mattering), **residual connections** ($y = x + F(x)$ gives $\partial y / \partial x = 1 + F'(x)$, a gradient highway).
+- **Gradient clipping** rescales $g$ to length $c$ when $\lVert g \rVert > c$, keeping its direction; it only fixes *exploding* gradients and goes between `loss.backward()` and `optimiser.step()`.
+
+</Takeaways>

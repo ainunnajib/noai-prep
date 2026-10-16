@@ -1,0 +1,229 @@
+import BoundaryDrawer from './visuals/classify-with-boundaries/BoundaryDrawer'
+import KNNPlayground from './visuals/classify-with-boundaries/KNNPlayground'
+import GeneralisationPeek from './visuals/classify-with-boundaries/GeneralisationPeek'
+
+So far our model predicted a number: the price of a flat. Many of the most useful AI systems answer a different kind of question: *which kind is it?* Is this SMS spam? Does this X-ray look healthy? Will this student pass? This lesson shows two ways a machine can answer, by **drawing a boundary** or by **asking the neighbours**, and the single most important test of any model: how it does on data it has **never seen**.
+
+## Two kinds of prediction
+
+You met regression and classification in [the first lesson of this module](#/learn/ai-first-look/what-is-ai). As a reminder, supervised learning tasks come in two main flavours:
+
+- <Term def="Predicting a number on a continuous scale, such as a price, a temperature or a mark out of 100.">Regression</Term> predicts a **number**. The HDB price model from the last two lessons was regression.
+- <Term def="Predicting which category something belongs to, such as spam or not spam, or pass or fail.">Classification</Term> predicts a **category**, called a <Term def="One of the categories a classifier can choose between, such as 'pass' or 'fail'.">class</Term>. With exactly two classes it is called *binary* classification.
+
+| Task | What the model outputs | Type |
+|---|---|---|
+| Predict an HDB flat's resale price | \$540,000 | regression |
+| Decide whether an SMS is spam | spam / not spam | classification |
+| Predict tomorrow's rainfall | 12.5 mm | regression |
+| Predict whether it will rain tomorrow | rain / no rain | classification |
+| Read a handwritten digit | 0, 1, 2, …, 9 | classification (10 classes) |
+
+A quick test: can the answer sensibly fall *between* two possible answers? Between \$540,000 and \$541,000 there are plenty of prices, so that is regression. There is nothing between "spam" and "not spam", so that is classification. Notice that the same situation can be framed either way: "how many mm of rain?" is regression, "will it rain?" is classification.
+
+## Drawing a boundary
+
+<Analogy title="Two halves of the school field">
+
+On sports day, a chalk line splits the school field in two. Which side you stand on decides your team; nobody needs to check anything else. A classifier can work the same way: it draws a line through the data, and the side a point lands on decides its class.
+
+</Analogy>
+
+Our data is last year's class of 24 students. For each student we know two <Term def="Measurable inputs that a model uses to make its prediction, such as hours of revision or floor area.">features</Term>, the hours of revision in the week before a test and the hours of sleep the night before, plus a <Term def="The right answer attached to a training example, here 'pass' or 'fail'.">label</Term>: whether they passed. Two numbers per student means each student is a point on a 2-D graph.
+
+<BoundaryDrawer />
+
+The line splits the graph into two regions: one where the model predicts pass and one where it predicts fail. The line between them is called the <Term def="The line (or curve) that separates the regions where a classifier predicts different classes.">decision boundary</Term>. Notice that no straight line gets all 24 right. Real data is messy, and 22 out of 24 is the best a straight line can do here.
+
+### A straight boundary is a rule
+
+The computer stores a straight boundary as a simple scoring rule:
+
+$$
+\text{score} = w_1 \times \text{revision} + w_2 \times \text{sleep} + b
+$$
+
+- $\text{revision}$ and $\text{sleep}$ are the student's two features, in hours.
+- $w_1$ and $w_2$ are <Term def="Numbers that say how strongly each feature pushes the score up or down. Training learns them.">weights</Term>: how much each hour of revision or sleep pushes the score up.
+- $b$ is the <Term def="A number added to the score that shifts the boundary without tilting it, like the intercept of a line.">bias</Term>, which slides the line without tilting it, just like the intercept $b$ of a straight line.
+
+The model predicts **pass** if $\text{score} > 0$ and **fail** if $\text{score} < 0$. The decision boundary is exactly the set of points where $\text{score} = 0$, and that set is a straight line.
+
+<Steps title="Using the rule $\text{score} = 1 \times \text{revision} + 0.6 \times \text{sleep} - 9$">
+  <Step title="A student who revised 6 h and slept 7 h">
+    $\text{score} = 6 + 0.6 \times 7 - 9 = 6 + 4.2 - 9 = 1.2$. That is above 0, so predict **pass**.
+  </Step>
+  <Step title="A student who revised 3 h and slept 8 h">
+    $\text{score} = 3 + 0.6 \times 8 - 9 = 3 + 4.8 - 9 = -1.2$. That is below 0, so predict **fail**.
+  </Step>
+  <Step title="A student who revised 3 h and slept 10 h">
+    $\text{score} = 3 + 6 - 9 = 0$. This student sits exactly on the boundary, where the model is undecided.
+  </Step>
+</Steps>
+
+This rule is close to the line the computer found in the figure. **Training a classifier means finding $w_1$, $w_2$ and $b$** that put the training examples on the correct side as well as possible. The count of correct answers has no useful slope (it jumps in whole steps), so instead the same predict, measure, find the slope, nudge loop from [Letting the computer find the line](#/learn/ai-first-look/let-the-computer-learn) minimises a smooth loss called *cross-entropy*. You will meet this method later as [logistic regression](#/learn/classification/logistic-regression), one of the most common ways to do binary classification.
+
+<KeyIdea>
+
+A classifier splits the space of inputs into **regions**, one for each class. The border between the regions is the **decision boundary**. A linear classifier's boundary is straight: the points where $w_1 x_1 + w_2 x_2 + b = 0$, where $x_1$ is the first feature (revision) and $x_2$ the second (sleep).
+
+</KeyIdea>
+
+## Asking the neighbours: k-nearest neighbours
+
+<Analogy title="Which school?">
+
+A new family moves into your HDB block and you want to guess which secondary school their son goes to. A good guess: ask the five students who live nearest to them, and go with the most common answer. People who live close together tend to go to the same schools.
+
+</Analogy>
+
+<Term def="A classifier that labels a new point by a majority vote of the k training points closest to it.">k-nearest neighbours</Term> (k-NN, also written kNN or KNN) does not draw a line at all. To classify a new point, it:
+
+1. measures the **distance** from the new point to every training point;
+2. picks the **k closest** ones, its k nearest neighbours;
+3. takes a **majority vote** of their labels.
+
+The distance is ordinary straight-line distance (also called Euclidean distance), which is just Pythagoras:
+
+$$
+d = \sqrt{(p_1 - q_1)^2 + (p_2 - q_2)^2}
+$$
+
+Here $P = (p_1, p_2)$ and $Q = (q_1, q_2)$ are two students, with feature 1 (revision) first and feature 2 (sleep) second, as in the scoring rule. So $p_1 - q_1$ is how far apart they are across and $p_2 - q_2$ is how far apart they are up; square both, add, and take the square root.
+
+k-NN trusts these raw distances, so it works best when the features are on similar scales. Here both are in hours. If one feature were in dollars, its big numbers would swamp the other feature; [a later module](#/learn/data-and-features/scaling-and-normalisation) shows how to rescale features first.
+
+<KNNPlayground />
+
+<Steps title="k-NN by hand: a new student who revised 5 h and slept 6 h">
+  <Step title="The classmates">
+    A $(5, 7)$ failed, B $(7, 6)$ passed, C $(6, 8)$ passed, D $(2, 6)$ failed, E $(9, 3)$ passed. Each pair is (revision, sleep).
+  </Step>
+  <Step title="Squared distances">
+    Skip the square roots: if $d^2$ is smaller, $d$ is smaller too. A: $0^2 + 1^2 = 1$. B: $2^2 + 0^2 = 4$. C: $1^2 + 2^2 = 5$. D: $3^2 + 0^2 = 9$. E: $4^2 + 3^2 = 25$.
+  </Step>
+  <Step title="Sort them">
+    Nearest first: A (1), B (4), C (5), D (9), E (25). The real distances are $1$, $2$, $\sqrt{5} \approx 2.24$, $3$ and $5$.
+  </Step>
+  <Step title="$k = 1$">
+    The single nearest neighbour is A, who failed, so predict **fail**.
+  </Step>
+  <Step title="$k = 3$">
+    A (fail), B (pass), C (pass): 2 votes to 1, so predict **pass**.
+  </Step>
+  <Step title="$k = 5$">
+    B, C and E passed; A and D failed: 3 votes to 2, so predict **pass**. The answer depended on $k$.
+  </Step>
+</Steps>
+
+### Choosing k
+
+- **Small k** (such as $k = 1$) copies the closest single example, even an unusual one. The boundary is jumpy, with little islands around odd points.
+- **Large k** averages over many neighbours, so the boundary is smooth. Too large and it ignores real local patterns: with $k$ equal to the whole class, every new student gets the most common label.
+- With two classes, use an **odd k** so the vote can never tie.
+- $k$ is a hyperparameter, like the learning rate: you choose it; the data does not. The usual way is to try several values and keep the one that does best on data held back from training, for reasons the next section makes clear.
+
+k-NN has no real training step: it simply stores the examples, which is why it is called a "lazy" learner. The work happens at prediction time, when it must measure the distance to every stored example. For regression, k-NN averages the neighbours' numbers instead of voting.
+
+<Reveal label="Peek at the code (optional)">
+
+The k-NN example by hand, in NumPy. The three steps are one line each: distances, sort, vote.
+
+```python
+import numpy as np
+
+X = np.array([[5, 7], [7, 6], [6, 8], [2, 6], [9, 3]])   # (revision, sleep) of A to E
+y = np.array(['fail', 'pass', 'pass', 'fail', 'pass'])
+new = np.array([5, 6])
+
+d2 = np.sum((X - new) ** 2, axis=1)    # squared distance to each classmate
+order = np.argsort(d2)                 # positions, nearest first
+print(d2)
+print(y[order])                        # labels, nearest first
+for k in (1, 3, 5):
+    labels, counts = np.unique(y[order[:k]], return_counts=True)
+    print(k, labels[np.argmax(counts)])  # majority vote of the k nearest
+```
+
+```text
+[ 1  4  5  9 25]
+['fail' 'pass' 'pass' 'fail' 'pass']
+1 fail
+3 pass
+5 pass
+```
+
+</Reveal>
+
+<ExamTip title="k-NN under time pressure">
+
+To find nearest neighbours without a calculator, compare **squared** distances and skip the square roots. Spot Pythagorean triples: E above is exactly $\sqrt{16 + 9} = 5$ away. And watch the classic trap: the **k in k-NN is the number of neighbours**, while the k in k-means is the number of clusters, a different (unsupervised) algorithm.
+
+</ExamTip>
+
+<QuickCheck
+  q="A training set has 30 students who passed and 20 who failed. You run k-NN with $k = 50$, so every training student votes. What does it predict for a new student?"
+  options={[
+    'Pass, for every new student, wherever they are',
+    'Fail, for every new student, wherever they are',
+    'Pass or fail, depending on where the new student is',
+    'No answer: $k = 50$ is even, so the pass–fail vote ends in a tie',
+  ]}
+  answer={0}
+  explain="With $k$ equal to the whole training set, all 50 students vote every time: 30 pass against 20 fail, so the answer is always pass. Where the new student sits no longer matters. An even $k$ only risks a tie when the votes split exactly in half, and 30 to 20 is a clear majority. This is the extreme of a too-large $k$: the boundary has vanished."
+/>
+
+## Memorising is not learning
+
+<Analogy title="Last year's prelim paper">
+
+You memorise the answers to last year's paper and score 100% when you redo it. Then the real exam has new questions, and you struggle. A perfect score on questions you have already seen proves very little.
+
+</Analogy>
+
+You met this idea as a study habit in [How to study](#/learn/start-here/how-to-study); here you watch it happen to a model. The examples a model learns from are its <Term def="The examples a model learns from.">training set</Term>. What we really care about is how it does on **new** examples, its <Term def="How well a model performs on new examples it was not trained on.">generalisation</Term>. To measure it, we keep some labelled examples hidden during training, the <Term def="Labelled examples kept hidden during training and used only at the end, to check how well the model does on new data.">test set</Term>, and only look at them at the end.
+
+Here is a trap. k-NN with $k = 1$ always scores 100% on its own training data (unless two training points sit on exactly the same spot with different labels), because every training point's nearest neighbour is itself, at distance 0. So a perfect training score tells you nothing about this model. The only fair test is new data.
+
+<GeneralisationPeek />
+
+The memoriser bent its boundary around individual training students, unusual ones included. Two new students who passed landed in the little island around the student who revised a lot but failed, so the memoriser predicted "fail" for them; others were caught in its wiggles. The straight line got the two unusual students "wrong" in training, but by ignoring them it captured the real pattern. In this sample the line judged 33 of the 36 new students correctly (92%) against the memoriser's 29 (81%), and on thousands of new students the line averages about 89% against the memoriser's 82%.
+
+This is <Term def="When a model fits its training data too closely, including its noise and quirks, so it does much worse on new data.">overfitting</Term>: the model fits the training data so closely, quirks and all, that it does worse on new data. The opposite problem is <Term def="When a model is too simple to capture the real pattern, so it does badly even on its own training data.">underfitting</Term>: a model too simple to capture the pattern, which does badly on both training and new data.
+
+<KeyIdea>
+
+Always judge a model on data it has **never seen**. High training accuracy with much lower test accuracy is the signature of **overfitting**.
+
+</KeyIdea>
+
+<Mistake title="Peeking at the test set">
+
+Two common slips: reporting training accuracy as if it were the model's real accuracy, and trying many values of $k$ against the test set and keeping the best. Once you have used the test set to choose, it is no longer "new". Choose with a separate *validation set*, a second batch of held-back examples used only for choosing settings such as $k$ (or with *cross-validation*, which takes turns holding back different parts of the training data). Then use the test set once, at the end.
+
+</Mistake>
+
+<PastPaperQuestion paper="prelim2026" n={143} />
+
+<ExamTip title="Spotting fit problems from numbers">
+
+| Training accuracy | Test (or validation) accuracy | Diagnosis |
+|---|---|---|
+| very high | much lower | overfitting (memorising) |
+| low | low | underfitting (too simple) |
+| high | close to training | generalising well |
+
+NOAI scenario questions often give exactly these numbers, sometimes with losses instead of accuracies (then low is good). Look at the **gap** first.
+
+</ExamTip>
+
+You have now trained, measured and tested models without a line of code. Next, [Python from zero](#/learn/python-basics/first-program) teaches you to write that code yourself, so that by the Final you can build these models from scratch.
+
+<Takeaways>
+
+- **Regression** predicts a number; **classification** predicts a class.
+- A classifier splits the inputs into regions, and the border is the **decision boundary**. A straight boundary is a rule: predict pass when $w_1 x_1 + w_2 x_2 + b > 0$ (here $x_1$ is revision and $x_2$ is sleep).
+- **k-NN** finds the $k$ nearest training points and takes a majority vote. By hand, compare squared distances. Small $k$ is jumpy, large $k$ is smooth, and odd $k$ avoids ties.
+- What matters is **generalisation**, accuracy on new data. A model that memorises can score 100% in training and still do worse on new data: that is **overfitting**, so always keep a test set hidden.
+
+</Takeaways>

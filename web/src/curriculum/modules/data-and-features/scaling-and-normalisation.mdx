@@ -1,0 +1,271 @@
+import ScaleChangesNeighbours from './visuals/scaling-and-normalisation/ScaleChangesNeighbours'
+import ScalingContours from './visuals/scaling-and-normalisation/ScalingContours'
+
+A model sees only numbers, never units. To a computer, "a difference of 100" looks the same whether it is 100 years of age or 100 dollars of income. So when one feature is measured in big numbers and another in small ones, the big one quietly takes over: it decides who counts as "similar" and it makes training slow. Rescaling the features so they live on comparable scales is one of the cheapest and most effective steps in any machine-learning pipeline.
+
+<Analogy title="Comparing two HDB flats">
+
+Flat A costs \$500,000 and has 4 rooms; flat B costs \$500,100 and has 5 rooms. In raw numbers the price difference is 100 and the room difference is 1, so a naive "distance" says the price matters 100 times more. But an extra room is a big deal, and \$100 is nothing! Before you can compare them fairly, you have to put both differences on a common scale, for example "how unusual is this difference compared with the typical spread of prices, or of room counts?"
+
+</Analogy>
+
+## The problem: the biggest numbers win
+
+Many models measure how close two data points are with the <Term def="The straight-line distance between two points: square each feature's difference, add the squares, and take the square root.">Euclidean distance</Term>. For two features,
+
+$$
+d(A, B) = \sqrt{(\Delta\,\text{age})^2 + (\Delta\,\text{income})^2},
+$$
+
+where $\Delta$ ("delta") means "the difference between A and B", so $\Delta\,\text{age} = \text{age}_A - \text{age}_B$.
+
+Take three people: A is 25 years old and earns \$3,000 a month, B is 60 and earns \$3,100, and C is 26 and earns \$3,400. Who is more like A?
+
+- $d(A, B) = \sqrt{35^2 + 100^2} = \sqrt{1225 + 10000} \approx 106$
+- $d(A, C) = \sqrt{1^2 + 400^2} = \sqrt{1 + 160000} \approx 400$
+
+The distance says B, a person 35 years older, is nearly four times "closer" to A than C, who is almost the same age. Income differences are in hundreds, age differences in tens, and squaring makes the gap even wider: income supplies 89% of the squared distance to B and practically all of it to C. A <Term def="k-nearest neighbours: predicts a new point's label by a vote (or average) of the k training points closest to it.">k-nearest-neighbours</Term> model built on these numbers would effectively ignore age.
+
+<ScaleChangesNeighbours />
+
+The label here, "needs reading glasses", depends mostly on age. Without scaling, the neighbours of a 58-year-old are whoever has a similar income, mostly younger people, so the vote goes wrong. After scaling, age gets a fair say and the neighbours are people in their 60s, so the vote comes out right.
+
+## Two standard fixes
+
+### Standardisation (z-scores)
+
+You met z-scores in [the normal curve lesson](#/learn/probability-and-statistics/distributions-and-clt) and standardised whole columns in [Broadcasting](#/learn/numpy/broadcasting). A quick recap:
+
+<Term def="Rescaling a feature as z = (x − mean) / standard deviation, so it has mean 0 and standard deviation 1. Also called z-score normalisation; scikit-learn's StandardScaler.">Standardisation</Term> replaces each value $x$ of a feature by its z-score:
+
+$$
+z = \frac{x - \mu}{\sigma}
+$$
+
+- $\mu$ (mu) is the feature's mean, so $x - \mu$ says how far $x$ is above (+) or below (−) average.
+- $\sigma$ (sigma) is the feature's standard deviation, its typical distance from the mean. Dividing by it measures that distance **in standard deviations**, a unit that is the same for every feature.
+- After standardising, every feature has mean 0 and standard deviation 1. A z-score of $+2$ means "two standard deviations above average", whether the feature was age, income or exam marks.
+
+<Steps title="Standardise the values 2, 4, 4, 4, 5, 5, 7, 9">
+  <Step title="Mean">
+    The sum is $40$ and there are 8 values, so $\mu = 40 \div 8 = 5$.
+  </Step>
+  <Step title="Standard deviation">
+    The deviations from 5 are $-3, -1, -1, -1, 0, 0, 2, 4$. Their squares add up to $9 + 1 + 1 + 1 + 0 + 0 + 4 + 16 = 32$. The variance is $32 \div 8 = 4$, so $\sigma = \sqrt{4} = 2$.
+  </Step>
+  <Step title="z-scores">
+    $z = (x - 5) / 2$: the value 9 becomes $4 \div 2 = 2$, the value 2 becomes $-3 \div 2 = -1.5$, and each 4 becomes $-0.5$.
+  </Step>
+  <Step title="Check">
+    The new values $-1.5, -0.5, -0.5, -0.5, 0, 0, 1, 2$ add up to 0, so their mean is 0, as promised.
+  </Step>
+</Steps>
+
+### Min-max scaling
+
+<Term def="Rescaling a feature as (x − min) / (max − min), so the smallest value becomes 0 and the largest becomes 1. scikit-learn's MinMaxScaler.">Min-max scaling</Term> squeezes each feature into the range 0 to 1:
+
+$$
+x' = \frac{x - x_{\min}}{x_{\max} - x_{\min}}
+$$
+
+- $x - x_{\min}$ shifts the feature so that its smallest value becomes 0.
+- $x_{\max} - x_{\min}$ is the feature's range; dividing by it makes the largest value exactly 1.
+
+For temperatures 24, 26, 29 and 34 °C, the range is $34 - 24 = 10$, so 26 becomes $2 \div 10 = 0.2$, 29 becomes $0.5$, and 34 becomes $1$. Pixel values are a special case you will meet often: they always run from 0 to 255, so dividing by 255 is min-max scaling.
+
+<KeyIdea>
+
+**Standardise**: $z = (x - \mu)/\sigma$ gives mean 0 and standard deviation 1. **Min-max**: $x' = (x - x_{\min})/(x_{\max} - x_{\min})$ gives the range 0 to 1. Either way, every feature ends up on a comparable scale, so no feature wins just because of its units.
+
+</KeyIdea>
+
+### Which one should you use?
+
+- **Standardisation** is the default for most models (linear and logistic regression, SVMs, k-NN, neural networks, PCA).
+- **Min-max** suits features with natural limits (pixels, percentages) and models that expect inputs in $[0, 1]$.
+- **Outliers** hurt min-max badly: one extreme value becomes 1 and squashes every other value towards 0. Standardisation is affected too, since the mean and standard deviation are pulled by extremes. A <Term def="Scaling with the median and the interquartile range, z = (x − median) / IQR, so a few extreme values barely change the scale. scikit-learn's RobustScaler.">robust scaler</Term> uses the median and the IQR (from [Missing data and outliers](#/learn/data-and-features/missing-data-and-outliers)) instead.
+
+<QuickCheck
+  id="data-and-features.scaling.qc-outlier-squash"
+  q="Min-max scale the values 1, 2, 3, 4, 100. Roughly what does the value 4 become?"
+  options={['0.03', '0.75', '0.04', '1']}
+  answer={0}
+  explain="$x' = (4 - 1)/(100 - 1) = 3/99 \approx 0.03$. The single outlier 100 stretches the range, so the first four values are crushed into 0 to 0.03. 0.04 $= 4/100$ forgets to subtract the minimum. 1 is what 4 would become if 100 were not there, since 4 would then be the maximum; and 0.75 $= (4 - 1)/4$ also ignores the outlier and then divides by the maximum instead of the range."
+/>
+
+<Note title="“Normalisation” means different things">
+
+People use "normalise" loosely. In an exam, "normalise to $[0, 1]$" means min-max scaling and "z-score normalisation" means standardisation. scikit-learn's `Normalizer` is something else again: it rescales each **row** (one data point) to length 1, which is useful for comparing text vectors by direction.
+
+</Note>
+
+## Scaling makes gradient descent behave
+
+Distances are not the only thing that units distort. Models trained by gradient descent (linear and logistic regression, neural networks) suffer too. Remember the learning rate $\eta$ from [Letting the computer find the line](#/learn/ai-first-look/let-the-computer-learn): it is the size of each downhill step on the loss.
+
+<Analogy title="A ball in a long, narrow drain">
+
+Picture the loss as a landscape and gradient descent as a ball hopping downhill in steps of a fixed size. In a round bowl, every hop heads roughly towards the bottom. In a long, narrow drain, the sides are steep and the floor slopes gently: the ball hops from side to side across the narrow width and barely moves along the length.
+
+</Analogy>
+
+Unscaled features build exactly that drain. Each weight is one direction of the landscape:
+
+- **Big-number feature → steep direction → needs tiny steps.** A small change to the weight of income (in thousands) changes every prediction a lot, so a large step overshoots and the run blows up (diverges).
+- **Small-number feature → gentle direction → tiny steps crawl.** With the tiny steps the steep direction forces on you, progress along the gentle one is painfully slow.
+
+One learning rate must serve both, so it is too big for one or too small for the other. Standardising gives every feature the same spread, so the drain becomes a round bowl (as long as the features are not strongly correlated), one learning rate suits every direction, and each step heads almost straight for the minimum.
+
+<Note title="How steep is steep?">
+
+For squared-error loss, the <Term def="How quickly the slope changes as you move in one direction. A sharply curved direction needs small steps.">curvature</Term> along a weight is proportional to the average of its feature's squared values. Make a feature's numbers 10 times bigger (millimetres instead of centimetres, say) and its direction becomes 100 times more sharply curved.
+
+</Note>
+
+<ScalingContours />
+
+Even with the best learning rate each run can use, the raw features need 97 steps to get within 1% of the minimum, while the standardised features need just 2. And that is with income measured in thousands of dollars. Measure it in plain dollars and the drain becomes so narrow that even the best learning rate needs about 56,000 steps.
+
+### Two more ways NOAI describes the same effect
+
+- **A step size for each feature.** Dividing feature $j$ by its standard deviation $\sigma_j$ and running gradient descent with learning rate $\eta$ is exactly the same as updating the *original* weight with an **effective learning rate of $\eta / \sigma_j^2$**. So standardising shrinks the step for high-variance features (income) and enlarges it for low-variance ones (age): every weight gets a step size that suits it. Rescaling the problem like this is called <Term def="Rescaling a problem (or each parameter's step) so that gradient descent sees a rounder bowl and one learning rate suits every direction.">preconditioning</Term>.
+- **Centring matters too, not only the spread.** A neuron, like a linear model, computes a weighted sum of its inputs, $w_1x_1 + w_2x_2 + \cdots$, and for one example the slope of the loss with respect to each weight $w_j$ turns out to be one shared error number times that weight's input $x_j$ (the calculus module shows why, in [Partial derivatives and the gradient](#/learn/calculus-and-gradient-descent/partial-derivatives-gradients)). If every input is positive (raw pixel values 0 to 255, ages, prices), all of these slopes share one sign, so in each step the weights all go up together or all go down together. When the best move is "this weight up, that one down", gradient descent has to zig-zag to get there. Subtracting the mean fixes the signs; dividing by the standard deviation fixes the step sizes.
+
+One more rule: compute $\mu$ and $\sigma$ over the **whole training set**, not separately for each example. Standardising each image by its own mean and standard deviation erases the differences in brightness and contrast between images, which may be exactly what the model needs to see. (Dividing every pixel by 255 and dataset-wide z-scores both keep those differences, since each applies one fixed rescaling to every image; what the z-scores add is the centring.)
+
+<PastPaperQuestion paper="prelim2026" n={294} />
+
+<Mistake title="“Scaling changes what the model can learn”">
+
+For a plain linear model (with no penalty on big weights), scaling does not change the best possible predictions: a weight on income in dollars is simply 1,000 times smaller than the weight on income in thousands. What scaling changes is how easily **gradient descent** finds those weights, and what **distance-based** models and models **with a penalty on big weights** consider "big". Watch out: scikit-learn's `LogisticRegression` has such a penalty switched on by default (`C=1.0`), so there scaling changes the fitted model and its predictions too.
+
+</Mistake>
+
+## Which models need scaling, and why trees do not
+
+| Model | Needs scaling? | Why |
+|---|---|---|
+| k-NN, k-means, SVMs | Yes | They compare points by distance |
+| Linear and logistic regression, neural networks (trained by gradient descent) | Yes | Unscaled features make a long, narrow valley |
+| Models with a penalty on big weights (Ridge and Lasso, coming in [L1 and L2 regularisation](#/learn/linear-regression/regularisation)); PCA (later in the course) | Yes | The penalty, or PCA's search for the direction of biggest spread, depends on units |
+| Decision trees, random forests, gradient boosting (e.g. XGBoost) | No | Each split looks at one feature at a time |
+
+Why are trees immune? A tree asks questions like "is income below \$5,000?". Standardising income turns that into "is the income z-score below 0.37?", which sends exactly the same people left and right. Scaling stretches the number line but never changes the **order** of the values, and the order is all a split depends on.
+
+<QuickCheck
+  id="data-and-features.scaling.qc-tree"
+  q="You standardise all the features before training a decision tree. What happens to the tree's predictions?"
+  options={['They stay the same; only the split thresholds change', 'They improve, because the features are now comparable', 'They get worse, because z-scores can be negative', 'The tree can no longer be trained on negative values']}
+  answer={0}
+  explain="Standardising is a stretch and shift that keeps the order of every feature's values, so each split separates exactly the same samples, only at a rescaled threshold. Trees never compare one feature's size with another's, so they gain nothing from scaling (and negative values are no problem)."
+/>
+
+<PastPaperQuestion paper="prelim2026" n={156} />
+
+## Fit the scaler on the training data only
+
+The mean, standard deviation, minimum and maximum are **learned from data**, just like the fill values of an imputer. The rule is the same: compute them from the training set, then use those same numbers to transform the validation and test sets (and any new data in production).
+
+<Steps title="Scaling a test value with training statistics">
+  <Step title="Learn from the training set">
+    A feature has training mean $\mu = 50$ and training standard deviation $\sigma = 10$.
+  </Step>
+  <Step title="Transform a test value">
+    A test value of 70 becomes $z = (70 - 50)/10 = 2$, using the **training** $\mu$ and $\sigma$.
+  </Step>
+  <Step title="Do not refit on the test set">
+    If you recomputed $\mu$ and $\sigma$ on the test set, the same raw value would map to a different number than it would in training, and a test set of one sample would have $\sigma = 0$ and divide by zero.
+  </Step>
+</Steps>
+
+In scikit-learn, call `fit` (or `fit_transform`) on the training data and only `transform` on everything else:
+
+<PyRunner packages={['numpy', 'scikit-learn']} code={`import numpy as np
+from sklearn.preprocessing import (
+    StandardScaler, MinMaxScaler)
+
+# columns: age (years), monthly income ($)
+X_train = np.array([[25, 3000], [60, 3100],
+                    [26, 3400], [45, 5000]],
+                   dtype=float)
+X_test = np.array([[30, 4000], [70, 6000]],
+                  dtype=float)
+
+scaler = StandardScaler()
+# learn each column's mean and std from TRAIN only
+scaler.fit(X_train)
+print("means:", scaler.mean_)
+print("stds: ", scaler.scale_.round(2))
+print(scaler.transform(X_train).round(2))
+# the test rows use the TRAIN statistics
+print("test:")
+print(scaler.transform(X_test).round(2))
+
+mm = MinMaxScaler().fit(X_train)
+print("min-max test:")
+print(mm.transform(X_test).round(2))
+
+# the same standardisation by hand with NumPy:
+# one mean and one std (dividing by n) per column
+mu = X_train.mean(axis=0)
+sigma = X_train.std(axis=0)
+print(((X_test - mu) / sigma).round(2))`} />
+
+Notice `axis=0`: it computes one mean and one standard deviation **per column** (per feature). Writing `X_train.mean()` without it averages ages and incomes together, a classic bug in from-scratch Final tasks.
+
+Look at the second test person, aged 70 with \$6,000 a month: both values are above the training maximum, so min-max scaling gives numbers above 1 (a value below the training minimum would become negative). That is fine; do not refit the scaler. One more trap: `np.std` and `StandardScaler` divide by $n$, but pandas' `.std()` divides by $n - 1$ (`ddof=1`), so `(df - df.mean()) / df.std()` gives slightly smaller z-scores than `StandardScaler`. Use `df.std(ddof=0)` to match it.
+
+In PyTorch the same idea uses `dim=0`. `torch.std` also divides by $n - 1$ by default; pass `correction=0` to match `StandardScaler`.
+
+```python
+import torch
+
+# 3 samples, 2 features (age, income in $)
+x = torch.tensor([[20., 2000.], [40., 4000.], [60., 9000.]])
+
+# mean of each column
+mu = x.mean(dim=0)
+# divide by n, like StandardScaler
+sd = x.std(dim=0, correction=0)
+z = (x - mu) / sd
+print(z)
+print(z.mean(dim=0), z.std(dim=0, correction=0))
+# the default divides by n - 1: a bit bigger
+print(x.std(dim=0))
+```
+
+<CodeBlock language="text" showLineNumbers={false} code={`tensor([[-1.2247, -1.0190],
+        [ 0.0000, -0.3397],
+        [ 1.2247,  1.3587]])
+tensor([0., 0.]) tensor([1.0000, 1.0000])
+tensor([  20.0000, 3605.5513])`} />
+
+<Mistake title="Calling fit_transform on the test set">
+
+`scaler.fit_transform(X_test)` refits the scaler on the test data, so training and test values are measured on different rulers, and the test set's statistics leak into your evaluation. Use `scaler.transform(X_test)`. A scikit-learn `Pipeline` does this for you automatically (see [Splitting data and avoiding leakage](#/learn/data-and-features/splitting-and-leakage)).
+
+</Mistake>
+
+<ExamTip>
+
+How NOAI asks about this:
+
+- **z-score arithmetic**: $z = (x - \mu)/\sigma$. "Mean 10, standard deviation 2, value 14" gives $z = 4/2 = 2$. Do not forget to divide.
+- **Min-max arithmetic**: $(x - \min)/(\max - \min)$. Subtract the minimum first.
+- **Which models need scaling**: distance-based (k-NN, k-means, SVM), gradient-descent-trained (linear and logistic regression, neural networks), regularised models and PCA do; tree-based models do not.
+- **Why scaling helps training**: features with large values dominate the gradient and stretch the loss into a narrow valley. Standardising gives each weight an effective learning rate of $\eta/\sigma_j^2$ (smaller for high-variance features, larger for low-variance ones), so one learning rate works for every weight and gradient descent converges faster. Centring (mean 0) also helps: with all-positive inputs, a neuron's weight slopes all share one sign, so its weights can only move together and must zig-zag.
+- **Whose statistics?** The training set's, applied to every example; not each image's own mean and standard deviation, which wipes out brightness differences between images.
+- **Leakage**: fit the scaler on the training set only and transform the test set with it.
+
+</ExamTip>
+
+<Takeaways>
+
+- Distances and gradients see only numbers, so features in large units dominate unless you rescale.
+- Standardisation $z = (x - \mu)/\sigma$ gives mean 0 and standard deviation 1; min-max $(x - x_{\min})/(x_{\max} - x_{\min})$ gives the range 0 to 1, but outliers squash it.
+- Scaling turns a long, narrow loss valley into a round bowl, so gradient descent can use a larger learning rate and converge in far fewer steps.
+- k-NN, SVMs, k-means, PCA, regularised and gradient-trained models need scaling; trees do not, because splits depend only on the order of values.
+- Learn the scaling statistics on the training set (`fit`), then apply them everywhere else (`transform`).
+
+</Takeaways>

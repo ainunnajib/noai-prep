@@ -1,0 +1,238 @@
+import CompleteCaseShrinker from './visuals/missing-data-and-outliers/CompleteCaseShrinker'
+import ImputationVisualizer from './visuals/missing-data-and-outliers/ImputationVisualizer'
+import ForwardFillTimeline from './visuals/missing-data-and-outliers/ForwardFillTimeline'
+import BoxPlotIQR from './visuals/missing-data-and-outliers/BoxPlotIQR'
+
+Real datasets are messy. A sensor drops out for an hour, a student skips a survey question, someone types 410 instead of 41. Before any model can learn, you have to decide what to do with the **holes** (missing values) and the **extremes** (outliers). Choose badly and the model learns from a distorted picture of the world.
+
+<Analogy title="The class survey with blank answers">
+
+Your form teacher asks: "How many hours do you revise per week?" Ten students leave it blank. If she writes the class average into every blank, the class suddenly looks very uniform. And if the blanks came mostly from students who barely revise, that average is too high for them too. Every fill is a guess, and every guess is an assumption.
+
+</Analogy>
+
+## Why the blanks are there matters
+
+You met `NaN`, `dropna()` and `fillna()` in [Cleaning data: missing values, types and duplicates](#/learn/pandas-and-plotting/cleaning-data). This lesson asks what each way of handling a blank does to the data, and so to the model. Start with **why** the values are missing. Statisticians name three cases:
+
+- <Term def="MCAR: whether a value is missing has nothing to do with any data, like a sensor that randomly drops a reading.">Missing completely at random</Term> (MCAR): pure chance, like a sensor that drops a reading.
+- <Term def="MAR: whether a value is missing depends on other columns you can see, but not on the missing value itself.">Missing at random</Term> (MAR): it depends on other columns you can see (older people skip an online form more often, and you know their age).
+- <Term def="MNAR: whether a value is missing depends on the missing value itself.">Missing not at random</Term> (MNAR): it depends on the missing value itself (students who barely revise skip the revision question).
+
+Only with MCAR are the rows with blanks just like the others; otherwise the blank itself carries information. You then have three choices: **drop** the incomplete rows, **fill in** the blanks with a guess (called <Term def="Replacing missing values with estimated ones, such as the column's mean or median, the previous reading, or a value predicted from the other columns.">imputation</Term>), or **use a model that copes** with `NaN` by itself.
+
+## Choice 1: drop the incomplete rows
+
+Here is why <Term def="Training only on the rows that have no missing values at all, i.e. df.dropna().">complete-case analysis</Term> (`df.dropna()`) collapses so fast. Suppose each value is missing with probability $p$, independently and completely at random, and each row has $d$ features. A row survives only if **all** $d$ of its cells are present, and for independent events you multiply the probabilities:
+
+$$
+P(\text{row is complete}) = (1-p)^d
+$$
+
+With $p = 0.15$ and one feature, 85% of rows survive. With 20 features, almost none do. Try it:
+
+<CompleteCaseShrinker />
+
+<Steps title="15% missing across 20 features, by hand">
+  <Step title="Write the formula">
+    $P(\text{complete}) = 0.85^{20}$.
+  </Step>
+  <Step title="Square repeatedly">
+    $0.85^2 \approx 0.72$, so $0.85^4 \approx 0.72^2 \approx 0.52$, and $0.85^5 \approx 0.52 \times 0.85 \approx 0.44$.
+  </Step>
+  <Step title="Square twice more">
+    $0.85^{10} \approx 0.44^2 \approx 0.19$, and $0.85^{20} \approx 0.19^2 \approx 0.04$.
+  </Step>
+  <Step title="Interpret">
+    Only about **4%** of rows are complete. `dropna()` would throw away 96% of a 10,000-row dataset, keeping roughly 400 rows.
+  </Step>
+</Steps>
+
+<Mistake title="“15% missing means I lose 15% of my rows”">
+
+Only with a single feature. The losses multiply, they do not add, and "20 × 15% = 300%, so I lose everything" is wrong too: $0.85^{20} \approx 4\%$ is small but not zero.
+
+</Mistake>
+
+Dropping has a second, quieter problem: unless the blanks are MCAR, the rows you keep are not typical, so every average computed from them is biased. The next visual shows this.
+
+## Choice 2: fill in the gaps (imputation)
+
+The simple fills for a number column are its **mean** or **median**; for a category column, the **mode** (most frequent category) or a new category `"unknown"`. A smarter fill is **regression imputation**: predict the blank from the row's other columns, with a model trained on the complete rows. Each is an assumption about what the blank "really" was:
+
+<ImputationVisualizer />
+
+Four things to notice:
+
+- **Mean and median fills pile every blank onto one value.** The histogram grows a spike, the spread shrinks, and the correlation weakens, because the filled points form a vertical line that ignores the score.
+- **Dropping, mean and median all get the mean wrong here** (5.71 h or 5.51 h, against the true 4.64 h). The blanks are MNAR: the students who skipped the question revise less, so the mean of the values you *observed* was already too high, and no single fill value can repair that.
+- **Regression fill keeps the trend but overdoes it.** Its filled points sit exactly on the line, with none of the natural scatter, so the correlation comes out *too strong*, and one student even gets a negative number of hours.
+- **The blank itself is a clue.** The students who left it blank scored lower on average. A 0/1 column recording where the blanks were, called a <Term def="An extra 0/1 feature that is 1 where a value was missing (before filling) and 0 elsewhere, so the model can learn whether 'missing' carries information.">missing indicator</Term> (often named `is_missing`), lets the model learn that.
+
+### Why mean imputation shrinks the spread
+
+The variance is the average squared distance from the mean, $\sigma^2 = \frac{1}{n}\sum_{i=1}^{n} (x_i - \bar{x})^2$, where $\bar{x}$ is the mean and $n$ the number of values. (We divide by $n$ here; pandas' `.var()` divides by $n - 1$, which changes the numbers slightly.) Fill the blanks of a column with the mean $\bar{x}$ of its $n_{\text{obs}}$ observed values:
+
+- The mean stays at the observed mean $\bar{x}$, since every added value equals it (and if the blanks are not random, that observed mean was biased already).
+- Each filled value adds $(\bar{x} - \bar{x})^2 = 0$ to the sum of squares, so the sum stays the same...
+- ...but you now divide by the bigger count $n$. So
+
+$$
+\sigma^2_{\text{after}} = \frac{n_{\text{obs}}}{n}\,\sigma^2_{\text{obs}} = (1 - m)\,\sigma^2_{\text{obs}},
+$$
+
+where $m$ is the fraction of values that were missing. With 30% blanks, the variance drops to 70% of its true size. Everything that depends on spread is distorted: the standard deviation, correlations (which shrink by a factor of about $\sqrt{1-m}$) and, in models with several features, the learned weights.
+
+<QuickCheck
+  id="data-and-features.missing.qc-variance"
+  q="A column has 10 observed values with variance 8 (dividing by the number of values). Ten more rows arrive with this column blank, and you fill all of them with the column's mean. What is the variance of the filled column?"
+  options={['4', '8', '16', '2']}
+  answer={0}
+  explain="The 10 filled values sit exactly on the mean, so they add $0$ to the sum of squared deviations ($10 \times 8 = 80$), but the count doubles from 10 to 20. The variance becomes $80 / 20 = 4$. It does not stay at 8: mean imputation always shrinks the spread when anything was missing. 16 doubles instead of halving, and 2 halves twice."
+/>
+
+### Mean or median?
+
+Weekly pocket money of \$20, \$30, \$30, \$40 and \$380 has mean $500 \div 5 = 100$ but median 30. One extreme value drags the mean a long way without moving the median, so filling a blank with 100 invents a value almost nobody is close to.
+
+<KeyIdea>
+
+Imputation always injects an assumption. Use the **median** for skewed columns or columns with outliers, the **mode** (or an `"unknown"` category) for categories, and add a **missing-indicator** column when the fact that a value is blank might carry information.
+
+</KeyIdea>
+
+### Fit the imputer on the training data only
+
+The fill value is *learned* from data, just like a model's weights. Compute it from the **training set only**, then reuse that number on the validation and test sets; computing it on the whole dataset leaks test information into training ([Splitting data and avoiding leakage](#/learn/data-and-features/splitting-and-leakage) returns to this). And never fill in a missing **target** (the label you predict): a guessed label only teaches the model your guess, so drop those rows.
+
+In scikit-learn, `SimpleImputer` does this properly: `fit` learns the fill values from the training data, `transform` applies them anywhere, and `add_indicator=True` appends missing-indicator columns.
+
+<PyRunner packages={['numpy', 'scikit-learn']} code={`import numpy as np
+from sklearn.impute import SimpleImputer
+
+X_train = np.array([[5.0], [np.nan], [3.0], [8.0], [4.0]])
+X_test = np.array([[np.nan], [6.0]])
+
+imp = SimpleImputer(strategy="median", add_indicator=True)
+# learn the median from the TRAINING rows only
+imp.fit(X_train)
+print("median learned from train:", imp.statistics_)
+# 2nd column is the missing indicator
+print(imp.transform(X_test))`} />
+
+The test blank is filled with 4.5, the median of the four training values 3, 4, 5 and 8. The test set's own value (6) played no part in it.
+
+## Choice 3: let the model cope
+
+Models that combine **all** the features in a distance or a weighted sum need a real number in every cell, so impute first. Tree models look at one feature at a time, and many tree libraries accept `NaN` directly. Boosted trees (teams of small decision trees, which you will build in [Gradient boosting](#/learn/trees-and-ensembles/gradient-boosting)) try sending the missing values left and then right at every split and keep the better direction; the classic decision-tree algorithm, <Term def="Classification and regression trees: the classic algorithm for growing a single decision tree.">CART</Term>, uses <Term def="A backup rule at a tree split: if the main feature is missing for a row, the tree uses another feature that splits the data in a similar way.">surrogate splits</Term>.
+
+| Impute first | Can take `NaN` as it is |
+|---|---|
+| distance and weighted-sum models: k-NN, SVMs, linear and logistic regression, neural networks | tree models: XGBoost, LightGBM, scikit-learn's `HistGradientBoosting` models, and its decision trees (since version 1.3) |
+
+<PastPaperQuestion paper="prelim2026" n={259} />
+
+## Gaps in sequences: use the neighbours in time
+
+In a <Term def="A sequence of measurements taken in time order, such as hourly temperatures or a heart rate recorded every second.">time series</Term>, the neighbours of a gap are far better guides than the overall average. You met the two standard fills in [Cleaning data: missing values, types and duplicates](#/learn/pandas-and-plotting/cleaning-data):
+
+- **Forward-fill** (`ffill`) repeats the last known reading until a new one arrives. It uses only the past.
+- **Linear interpolation** (`interpolate`) draws a straight line from the reading before the gap to the reading after it. For 30 °C at 1 pm and 33 °C at 4 pm, it fills 31 at 2 pm and 32 at 3 pm; forward-fill would give 30 and 30.
+
+Which one should you trust? Move the gap and change its length:
+
+<ForwardFillTimeline />
+
+For short gaps (up to about 4 hours), interpolation wins nearly nine times out of ten, and the global mean is far off whenever the temperature is away from its daily average. For long gaps interpolation still wins about three times in four, but not always: put a 12-hour gap over the afternoon peak and its straight line cuts under the peak. Over a long gap every simple fill struggles, because the series has time to do something new.
+
+<Note title="Interpolation peeks at the future">
+
+Interpolation needs the reading *after* the gap. That is fine when you clean historical data, but a live system predicting right now has no future reading to use. Real-time pipelines use forward-fill, which needs only the past. And neither method makes sense when rows are not in time (or space) order: in a table of customers, the "previous row" is just another customer.
+
+</Note>
+
+<QuickCheck
+  id="data-and-features.missing.qc-interp-middle"
+  q="Hourly readings are 20, ?, ?, ?, 28. What does linear interpolation put in the middle blank?"
+  options={['24', '20', '22', '28']}
+  answer={0}
+  explain="The rise is $28 - 20 = 8$ over 4 steps, so each hour adds 2: the blanks become 22, 24 and 26, and the middle one is 24. Forward-fill would give 20; 22 is the first blank, not the middle one."
+/>
+
+## Outliers and the IQR rule
+
+An <Term def="A value far away from the rest of the data. It may be an error (a typo, a faulty sensor) or a real but rare case.">outlier</Term> is a value far from the rest of the data. Some are mistakes (a typo of 410 for 41, a sensor glitch), some are real but rare (a billionaire in an income survey, a fraudulent transaction). Either way one huge value drags a mean, a variance and a mean-squared-error loss a long way.
+
+To find them without being fooled by them, use quantities that ignore the extremes. You met the quartiles $Q_1$ and $Q_3$ and the interquartile range $\text{IQR} = Q_3 - Q_1$ in [Describing data](#/learn/probability-and-statistics/describing-data), and the $1.5 \times \text{IQR}$ fences that mark a box plot's outlier dots in [Plotting data](#/learn/pandas-and-plotting/plotting-data). Quick recap: the IQR rule flags any value beyond the two **fences**:
+
+$$
+\begin{aligned}
+\text{lower fence} &= Q_1 - 1.5 \times \text{IQR} \\
+\text{upper fence} &= Q_3 + 1.5 \times \text{IQR}
+\end{aligned}
+$$
+
+The 1.5 is a convention chosen by the statistician John Tukey: in bell-shaped (normal) data it flags only about 0.7% of values, so anything it does flag deserves a closer look.
+
+Take nine commute times: 12, 15, 15, 17, 18, 20, 21, 21 and 41 minutes. Here $Q_1 = 15$ and $Q_3 = 21$, so $\text{IQR} = 6$ and $1.5 \times 6 = 9$. The fences are $15 - 9 = 6$ and $21 + 9 = 30$, so **41 is an outlier**.
+
+<BoxPlotIQR />
+
+<Note title="Quartile rules differ slightly">
+
+NumPy, pandas and matplotlib interpolate between neighbouring values; by hand, the usual rule is the median of each half (the visual uses it). For the commute times both give 15 and 21. In the exam, use the method the question gives.
+
+</Note>
+
+Why not flag anything more than 3 standard deviations from the mean (the "3σ rule")? Switch it on in the visual: the outlier inflates the very standard deviation meant to catch it. With $n$ values, nothing can be more than $\sqrt{n-1}$ standard deviations (dividing by $n$) from the mean, which is $\sqrt{8} \approx 2.83$ for 9 values, so the rule never fires. The quartiles ignore how far out the extreme is.
+
+### Found an outlier? Investigate before you act
+
+| What it is | What to do |
+|---|---|
+| An impossible value (age 250, a negative weight) | It is an error: fix it if you can, otherwise set it to `NaN` and impute |
+| A real but extreme value that distorts the fit | **Cap** it at the fence (called <Term def="Replacing values beyond a cut-off with the cut-off itself, e.g. every value above the upper fence becomes the upper fence. Named after the statistician Charles Winsor.">winsorising</Term>), take a logarithm, or use robust tools: the median, the MAE loss, tree models |
+| The very thing you want to detect (fraud, a machine fault, a rare disease) | **Keep it**. Deleting it deletes your signal |
+
+<PyRunner packages={['pandas']} code={`import pandas as pd
+
+# commute times (minutes)
+s = pd.Series([12, 15, 15, 17, 18, 20, 21, 21, 41])
+q1, q3 = s.quantile(0.25), s.quantile(0.75)
+iqr = q3 - q1
+low = q1 - 1.5 * iqr
+high = q3 + 1.5 * iqr
+print("Q1 =", q1, " Q3 =", q3, " IQR =", iqr)
+print("fences:", low, high)
+print("outliers:", s[(s < low) | (s > high)].tolist())
+# winsorise: cap at the fences
+print("capped:", s.clip(low, high).tolist())`} />
+
+<Mistake title="Deleting every outlier on autopilot">
+
+An outlier is a question, not a verdict: in fraud detection, the "outliers" are often exactly the fraud you want to catch. Check whether a value is an error before removing it, and never remove outliers from the test set to make the score look better.
+
+</Mistake>
+
+<ExamTip>
+
+How NOAI asks about this:
+
+- **Robustness**: "Which is less affected by outliers?" The **median** (and the IQR), not the mean (or the standard deviation).
+- **Dropping rows**: with a fraction $p$ missing independently and completely at random across $d$ features, only $(1-p)^d$ of rows are complete. Use repeated squaring: $0.85^{20} \approx 4\%$, $0.9^{10} \approx 35\%$.
+- **Which model copes with NaN**: trees and boosting libraries (XGBoost, LightGBM) can; k-NN, SVMs and linear models need imputation.
+- **Time series**: forward-fill or interpolate, never the global mean, and never forward-fill rows that are not in time order.
+- **IQR fences**: $Q_1 - 1.5\,\text{IQR}$ and $Q_3 + 1.5\,\text{IQR}$. Compute $1.5 \times \text{IQR}$ once and add or subtract it.
+- **Leakage**: fit imputers (and scalers) on the training set only.
+
+</ExamTip>
+
+<Takeaways>
+
+- Blanks compound: only $(1-p)^d$ of rows survive `dropna()`, so dropping rows can throw away almost everything.
+- Mean imputation keeps the observed mean (itself biased if the blanks are not random) but shrinks the variance by the factor $1 - m$ and weakens correlations; prefer the median for skewed data, and add a missing-indicator column when blanks may be informative.
+- Learn fill values from the training data only, then reuse them on the test data.
+- For time series, fill from neighbours in time: forward-fill (past only) or interpolation (needs the next reading).
+- Flag outliers with the IQR fences $Q_1 - 1.5\,\text{IQR}$ and $Q_3 + 1.5\,\text{IQR}$; then fix errors, cap or keep real extremes, and never delete the signal you are looking for.
+
+</Takeaways>

@@ -1,0 +1,237 @@
+{
+  "slug": "vectors-and-matrices",
+  "order": 7,
+  "part": "toolkit",
+  "domain": "mathematics",
+  "title": "Vectors and matrices",
+  "tagline": "The language every model speaks",
+  "summary": "Vectors as arrows and lists of numbers, the dot product, norms and cosine similarity, matrix shapes and multiplication, and the special matrices (identity, inverse, determinant) that NOAI asks about.",
+  "prerequisites": [
+    "python-toolkit",
+    "maths-foundations"
+  ],
+  "syllabus": [
+    "NOAI Mathematics: Linear Algebra",
+    "Vectors, dot product, norms (L1, L2), cosine similarity",
+    "Matrix shapes, transpose, matrix multiplication",
+    "Identity, inverse, determinant, trace, symmetric matrices"
+  ],
+  "paper_subtopics": [
+    "linear-algebra"
+  ],
+  "lessons": [
+    {
+      "slug": "vectors",
+      "title": "Vectors: arrows and lists of numbers",
+      "summary": "A vector is both an arrow in space and a list of numbers; adding and scaling work the same way in both pictures.",
+      "minutes": 14,
+      "objectives": [
+        "You can read a vector as an arrow and as a list",
+        "You can add vectors and multiply them by a number",
+        "You can describe a data point (e.g. a student's marks) as a vector"
+      ],
+      "concepts": [
+        {
+          "name": "A vector is an arrow and a list",
+          "explain": "Start with a point on graph paper: going 3 right and 4 up is the arrow (3, 4). The same list of numbers can store anything with several measurements, such as a house's size, age and price. A vector with n numbers lives in n-dimensional space.",
+          "analogy": "Directions from Bishan MRT to your school, '3 blocks east, 4 blocks north', are a vector: one instruction made of two numbers.",
+          "visual": {
+            "component": "VectorPlayground",
+            "kind": "interactive",
+            "shows": "A Plot grid with an arrow from the origin to a draggable tip, with its components drawn as dashed horizontal and vertical legs and the list [x, y] shown beside it.",
+            "interaction": "Drag the tip; the list updates live. Toggle 'data mode' to relabel the axes as 'hours studied' and 'score' so the arrow becomes a student record.",
+            "aha": "The arrow picture and the list of numbers are the same object, so geometry and data are interchangeable."
+          }
+        },
+        {
+          "name": "Adding and scaling vectors",
+          "explain": "To add vectors, add matching components; geometrically you place the arrows tip to tail. Multiplying by a number (a scalar) stretches or shrinks the arrow, and a negative number flips it.",
+          "analogy": "Taking the MRT 3 stops east and then a bus 2 stops north lands you where the combined trip would; walking the same route twice is scaling by 2.",
+          "visual": {
+            "component": "VectorAddScale",
+            "kind": "interactive",
+            "shows": "Two draggable arrows u and v, the tip-to-tail construction, and the sum u + v as a third arrow; a scalar slider produces c·u as a ghost arrow.",
+            "interaction": "Drag u and v; slide c from -2 to 3 and watch c·u stretch, shrink, vanish at 0 and flip when negative.",
+            "aha": "Vector arithmetic is just component-wise arithmetic, which is why NumPy can add whole arrays at once."
+          }
+        }
+      ],
+      "code": "snippet",
+      "checkpoint_focus": [
+        "Component-wise addition and scaling",
+        "Vector dimension",
+        "Interpreting data rows as vectors"
+      ]
+    },
+    {
+      "slug": "dot-product-and-norms",
+      "title": "Dot product, norms and cosine similarity",
+      "summary": "How to measure length, distance and 'how much two vectors point the same way'.",
+      "minutes": 18,
+      "objectives": [
+        "You can compute a dot product by hand",
+        "You can compute L1 and L2 norms and the distance between vectors",
+        "You can compute and interpret cosine similarity"
+      ],
+      "concepts": [
+        {
+          "name": "The dot product measures alignment",
+          "explain": "Multiply matching components and add: [1, 2]·[3, 4] = 1×3 + 2×4 = 11. Geometrically, a·b = |a||b|cos θ, so it is large and positive when the vectors point the same way, zero when they are perpendicular (orthogonal) and negative when they point apart.",
+          "analogy": "Pushing a trolley at an angle: only the part of your push along the trolley's direction moves it; the dot product measures that useful part.",
+          "visual": {
+            "component": "DotProductProjector",
+            "kind": "interactive",
+            "shows": "Two draggable arrows, the shadow (projection) of one onto the other drawn as a thick segment, the angle arc, and a readout of a·b computed both ways (component sum and |a||b|cos θ).",
+            "interaction": "Drag either arrow; the shadow and value change colour from positive (green) through zero (perpendicular) to negative (red).",
+            "aha": "The sign of the dot product tells you at a glance whether two vectors agree, disagree or are unrelated."
+          }
+        },
+        {
+          "name": "Norms: different ways to measure length",
+          "explain": "The L2 norm is ordinary length by Pythagoras, so ||[3, 4]||₂ = √(9 + 16) = 5. The L1 norm adds absolute values, |3| + |4| = 7, like walking along a street grid. The distance between two points is the norm of their difference.",
+          "analogy": "L2 is the crow's flight over HDB blocks; L1 is the taxi route that must follow the roads.",
+          "visual": {
+            "component": "NormBalls",
+            "kind": "interactive",
+            "shows": "The 'unit balls' of L1 (diamond), L2 (circle) and L∞ (square) drawn together, with a draggable point and its three norms listed.",
+            "interaction": "Drag the point; watch it cross each shape's boundary when that norm equals 1. Toggle to show the L1 path along the grid versus the straight L2 path.",
+            "aha": "Different norms are different rulers; the diamond's sharp corners will later explain why L1 regularisation makes weights exactly zero."
+          }
+        },
+        {
+          "name": "Cosine similarity",
+          "explain": "Cosine similarity divides the dot product by both lengths: cos θ = a·b / (|a||b|). It ignores how long the vectors are and keeps only direction, giving 1 for the same direction, 0 for perpendicular and -1 for opposite.",
+          "analogy": "Two playlists with the same mix of genres are similar even if one is ten times longer; cosine similarity compares the mix, not the size.",
+          "visual": {
+            "component": "CosineDial",
+            "kind": "interactive",
+            "shows": "A dial from -1 to 1 driven by the angle between two arrows, with a side panel of three tiny word-count vectors for short documents.",
+            "interaction": "Rotate one arrow; stretch it with a length slider and see cosine stay fixed while the dot product changes. Pick two documents to compare their cosine.",
+            "aha": "Cosine similarity is about direction only, which is why search engines and RAG use it to compare documents of different lengths."
+          }
+        }
+      ],
+      "code": "runnable",
+      "checkpoint_focus": [
+        "Dot product arithmetic",
+        "L2 norm via Pythagoras, L1 as sum of absolute values",
+        "Cosine similarity values 1, 0, -1",
+        "Orthogonality"
+      ]
+    },
+    {
+      "slug": "matrices-and-multiplication",
+      "title": "Matrices, shapes and matrix multiplication",
+      "summary": "Matrices as tables of numbers, the shape rule for multiplication and how each entry is a row-times-column dot product.",
+      "minutes": 20,
+      "objectives": [
+        "You can state the shape of a matrix and its transpose",
+        "You can decide whether two matrices can be multiplied and the result's shape",
+        "You can compute a small matrix product by hand",
+        "You can tell element-wise multiplication from matrix multiplication"
+      ],
+      "concepts": [
+        {
+          "name": "Shapes and the inner-dimension rule",
+          "explain": "A matrix with m rows and n columns has shape m×n. You can multiply A (m×n) by B (n×p) only when the inner numbers match, and the result has the outer shape m×p. The inner dimension disappears because it is summed over.",
+          "analogy": "Like train couplings: two carriages join only if the coupling sizes match, and the joined train keeps the two outer ends.",
+          "visual": {
+            "component": "ShapeDominoes",
+            "kind": "interactive",
+            "shows": "Two domino tiles labelled with shapes (e.g. 3×2 and 2×4); when the inner numbers match they snap together and the result tile (3×4) appears, otherwise they bounce apart with the mismatch highlighted.",
+            "interaction": "Use steppers to change the four dimensions; try chains of three matrices.",
+            "aha": "You can check any matrix product (and most PyTorch shape errors) by looking only at the shapes."
+          }
+        },
+        {
+          "name": "Each entry is a row times a column",
+          "explain": "Entry (i, j) of AB is the dot product of row i of A with column j of B. For a 2×2 product that is four dot products. Matrix-vector multiplication Ax is a weighted sum of A's columns, which is exactly what a neural-network layer computes.",
+          "analogy": "A hawker's bill: each customer's row of orders times the column of prices gives that customer's total.",
+          "visual": {
+            "component": "MatMulStepper",
+            "kind": "stepper",
+            "shows": "MatrixGrid views of A, B and AB with small integers; at each step the active row of A and column of B light up and the products and sum appear before filling the output cell.",
+            "interaction": "Step forward or back through every output cell, or click any output cell to jump to its computation; swap to B·A to compare.",
+            "aha": "Matrix multiplication is just many dot products arranged in a grid, and swapping the order usually changes the answer."
+          }
+        },
+        {
+          "name": "Transpose, and element-wise versus matrix product",
+          "explain": "The transpose Aᵀ flips rows and columns, so a 2×3 matrix becomes 3×2 and (AB)ᵀ = BᵀAᵀ. Element-wise (Hadamard) multiplication multiplies matching entries and needs equal shapes; it is a different operation from the matrix product.",
+          "analogy": "Transposing is turning a class timetable from 'days across, periods down' to 'periods across, days down': same data, swapped layout.",
+          "visual": {
+            "component": "TransposeAndHadamard",
+            "kind": "animation",
+            "shows": "A 2×3 grid whose cells rotate about the main diagonal into a 3×2 grid; a second tab contrasts A∘B (cell by cell) with A@B (row by column) on the same two matrices.",
+            "interaction": "Play the flip animation; switch tabs and hover cells to see which inputs produced each output.",
+            "aha": "'*' and '@' look similar in code but mean completely different things; mixing them up is a classic exam trap."
+          }
+        }
+      ],
+      "code": "runnable",
+      "checkpoint_focus": [
+        "(m×n)(n×p) = (m×p) shape rule",
+        "Computing entries of AB",
+        "Transpose shape and (AB)ᵀ = BᵀAᵀ",
+        "AB ≠ BA in general"
+      ]
+    },
+    {
+      "slug": "identity-inverse-determinant",
+      "title": "Identity, inverse, determinant and trace",
+      "summary": "The special matrices and single numbers that describe what a matrix does, including when it cannot be undone.",
+      "minutes": 18,
+      "objectives": [
+        "You can recognise identity, diagonal and symmetric matrices",
+        "You can compute a 2×2 determinant and inverse",
+        "You can explain what a zero determinant (singular matrix) means",
+        "You can compute the trace"
+      ],
+      "concepts": [
+        {
+          "name": "The determinant is an area scale factor",
+          "explain": "A 2×2 matrix maps the unit square to a parallelogram; its determinant ad − bc is the signed area of that parallelogram. A determinant of 0 means the square is squashed flat onto a line, so information is lost.",
+          "analogy": "Like a photocopier zoom: a determinant of 2 doubles every area, 0.5 halves it, and 0 squashes the page into a line.",
+          "visual": {
+            "component": "DeterminantArea",
+            "kind": "interactive",
+            "shows": "A grid with the unit square and its image parallelogram, the two column vectors as draggable arrows, and det = ad − bc with the area shaded (colour flips when the orientation flips).",
+            "interaction": "Drag the column vectors; make them parallel to watch the area collapse to zero and the 'singular' badge appear.",
+            "aha": "det = 0 means some direction is crushed, which is exactly why a singular matrix has no inverse."
+          }
+        },
+        {
+          "name": "Identity and inverse undo each other",
+          "explain": "The identity matrix I has 1s on the diagonal and 0s elsewhere and leaves every vector unchanged, so AI = IA = A. The inverse A⁻¹ undoes A, so A⁻¹A = I. For a 2×2 matrix, A⁻¹ = (1/(ad − bc))·[[d, −b], [−c, a]], which only exists when ad − bc ≠ 0. There is no matrix division: 'A ÷ B' is not defined, and you multiply by B⁻¹ instead when it exists.",
+          "analogy": "Encrypting a message and decrypting it: the decryption key is the inverse, and doing both gets you back to the original (the identity).",
+          "visual": {
+            "component": "InverseUndo",
+            "kind": "stepper",
+            "shows": "A small shape (an arrow-shaped 'house') transformed by A, then by A⁻¹, returning to the start; the matrices are shown in MatrixGrid.",
+            "interaction": "Step through apply A, apply A⁻¹; edit A to make it singular and see the 'no inverse' step fail.",
+            "aha": "Undoing is only possible when nothing was squashed, linking inverse to determinant."
+          }
+        },
+        {
+          "name": "Symmetric, diagonal and trace",
+          "explain": "A symmetric matrix equals its own transpose (entry i,j equals entry j,i); covariance matrices are always symmetric. A diagonal matrix only has entries on the main diagonal and simply scales each axis. The trace is the sum of the diagonal entries.",
+          "analogy": "A symmetric matrix is like a table of distances between MRT stations: the distance from A to B equals the distance from B to A.",
+          "visual": {
+            "component": "MatrixTypeSpotter",
+            "kind": "interactive",
+            "shows": "A 3×3 MatrixGrid with editable cells and badges (identity, diagonal, symmetric, singular) that light up when the matrix qualifies, plus readouts for trace and determinant.",
+            "interaction": "Edit cells or click presets; mirror-highlight shows entry (i,j) and (j,i) together.",
+            "aha": "These properties are visible patterns in the grid, so many MCQs can be answered by inspection rather than calculation."
+          }
+        }
+      ],
+      "code": "snippet",
+      "checkpoint_focus": [
+        "det of 2×2 = ad − bc",
+        "Singular means det = 0 and no inverse",
+        "Identity and symmetric definitions",
+        "Trace as sum of diagonal"
+      ]
+    }
+  ]
+}

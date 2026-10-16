@@ -1,0 +1,202 @@
+import { useMemo, useState } from 'react'
+import { Figure, Controls, Slider, Button, Toggle, Plot, Grid, Axes, Path, Arrow, Dots, Label, Readout, M, mulberry32 } from '../../../../../kit'
+import { type V2, fmt, Clip } from '../linear-transformations/la'
+import { singular2 } from './linalg'
+import s from './sri.module.css'
+
+/*
+  Solving Ax = b for a 2×2 system = finding where two lines cross. Every row of A is the
+  (unit) normal of one line. Nudge b by a tiny random amount (at most EPS) many times and
+  re-solve: the solutions form an ellipse around the true answer whose long/short ratio is
+  exactly the condition number κ = σmax/σmin. Rotate the lines towards each other and watch it.
+*/
+
+const P: V2 = [1, 1] // the true solution
+const EPS = 0.15 // largest nudge to b
+const BATCH = 30
+const A1 = 45 // direction (degrees) of the first line's normal
+
+function nudges(seed: number): V2[] {
+  const rnd = mulberry32(seed)
+  return Array.from({ length: BATCH }, () => {
+    const rr = EPS * Math.sqrt(rnd())
+    const t = 2 * Math.PI * rnd()
+    return [rr * Math.cos(t), rr * Math.sin(t)] as V2
+  })
+}
+
+export default function ConditionNumberWobble() {
+  const [theta, setTheta] = useState(45)
+  const [batches, setBatches] = useState(1)
+  const [showCircle, setShowCircle] = useState(false)
+
+  const a1 = (A1 * Math.PI) / 180
+  const a2 = ((A1 + theta) * Math.PI) / 180
+  const A = [
+    [Math.cos(a1), Math.sin(a1)],
+    [Math.cos(a2), Math.sin(a2)],
+  ]
+  const D = A[0][0] * A[1][1] - A[0][1] * A[1][0]
+  const inv = [
+    [A[1][1] / D, -A[0][1] / D],
+    [-A[1][0] / D, A[0][0] / D],
+  ]
+  const solveDelta = (d: V2): V2 => [P[0] + inv[0][0] * d[0] + inv[0][1] * d[1], P[1] + inv[1][0] * d[0] + inv[1][1] * d[1]]
+  const [smax, smin] = singular2(A)
+  const kappa = smax / smin
+  const b = [A[0][0] * P[0] + A[0][1] * P[1], A[1][0] * P[0] + A[1][1] * P[1]]
+
+  const allNudges = useMemo(() => Array.from({ length: batches }, (_, i) => nudges(1000 + i * 17)).flat(), [batches])
+  const sols = allNudges.map(solveDelta)
+  const ellipse = Array.from({ length: 73 }, (_, i) => {
+    const t = (i / 72) * 2 * Math.PI
+    return solveDelta([EPS * Math.cos(t), EPS * Math.sin(t)])
+  })
+  // each line: points x with row·x = b_i; direction is perpendicular to the row
+  const line = (row: number[], bi: number): [V2, V2] => {
+    const base: V2 = [row[0] * bi, row[1] * bi]
+    const dir: V2 = [-row[1], row[0]]
+    return [
+      [base[0] - 30 * dir[0], base[1] - 30 * dir[1]],
+      [base[0] + 30 * dir[0], base[1] + 30 * dir[1]],
+    ]
+  }
+  const l1 = line(A[0], b[0])
+  const l2 = line(A[1], b[1])
+  const worst = EPS / smin
+  // put the two labels on opposite sides of the crossing point, 1.8 units along each line
+  const d1: V2 = [-A[0][1], A[0][0]]
+  let d2: V2 = [-A[1][1], A[1][0]]
+  if (d1[0] * d2[0] + d1[1] * d2[1] < 0) d2 = [-d2[0], -d2[1]]
+  const lab1: V2 = [P[0] + 1.8 * d1[0], P[1] + 1.8 * d1[1]]
+  const lab2: V2 = [P[0] - 1.8 * d2[0], P[1] - 1.8 * d2[1]]
+  const tone = kappa < 5 ? 'var(--viz-3)' : kappa < 30 ? 'var(--viz-2)' : 'var(--viz-neg)'
+
+  // what A does to the unit circle: the oval's longest and shortest radii are σmax and σmin
+  const onCircle = (t: number): V2 => [A[0][0] * Math.cos(t) + A[0][1] * Math.sin(t), A[1][0] * Math.cos(t) + A[1][1] * Math.sin(t)]
+  const circle = Array.from({ length: 73 }, (_, i) => [Math.cos((i / 72) * 2 * Math.PI), Math.sin((i / 72) * 2 * Math.PI)] as V2)
+  const oval = Array.from({ length: 145 }, (_, i) => onCircle((i / 144) * 2 * Math.PI))
+  let far: V2 = [0, 0]
+  let near: V2 = [9, 9]
+  for (let i = 0; i < 720; i++) {
+    const q = onCircle((i / 720) * Math.PI)
+    if (Math.hypot(...q) > Math.hypot(...far)) far = q
+    if (Math.hypot(...q) < Math.hypot(...near)) near = q
+  }
+  // unit vector along the short radius (perpendicular to the long one): labels sit on opposite sides of the long axis
+  const farLen = Math.hypot(...far) || 1
+  const nu: V2 = [-far[1] / farLen, far[0] / farLen]
+  // a circle (κ = 1) has no special directions: draw the short radius at right angles to the long one
+  if (smax - smin < 1e-3) near = [nu[0] * smin, nu[1] * smin]
+  if (nu[0] * near[0] + nu[1] * near[1] < 0) {
+    nu[0] = -nu[0]
+    nu[1] = -nu[1]
+  }
+
+  return (
+    <Figure
+      title="Nearly parallel lines make a wobbly answer"
+      caption={
+        <>
+          <b>Try:</b>
+          <ol className="try">
+            <li>
+              Press <b>Nudge b 30 more times</b>, then drag the angle down.
+            </li>
+            <li>
+              Turn on <b>Show what A does to the unit circle</b>.
+            </li>
+          </ol>
+          <b>Notice:</b> as the lines become nearly parallel, the same tiny nudges throw the answer far along the lines, and the oval gets thin: κ shoots up.
+          <span className="fine">
+            Each line is one equation of <i>Ax = b</i>; the answer is where they cross (hollow ring). Green dots are answers after nudging <i>b</i> by at most {EPS}; the
+            dashed ellipse holds every possible one, and its longest half-width divided by its shortest is exactly κ.
+          </span>
+        </>
+      }
+    >
+      <Plot
+        x={[-1.5, 3.5]}
+        y={[-1.5, 3.5]}
+        width={420}
+        height={420}
+        margin={{ top: 8, right: 8, bottom: 8, left: 8 }}
+        ariaLabel={`Two lines at ${theta} degrees; condition number ${fmt(kappa, 1)}`}
+      >
+        <Grid xTicks={10} yTicks={10} />
+        <Axes origin xTicks={5} yTicks={5} />
+        <Clip>
+          <Path points={l1} color="var(--viz-1)" width={2.5} />
+          <Path points={l2} color="var(--viz-2)" width={2.5} />
+          <Path points={ellipse} closed color={tone} width={1.8} dash="5 4" fill={`color-mix(in srgb, ${tone} 10%, transparent)`} />
+          <Dots
+            points={sols.map((p) => ({
+              x: p[0],
+              y: p[1],
+              r: 3.2,
+              color: 'var(--viz-3)',
+            }))}
+            stroke="none"
+          />
+          <Dots points={[{ x: P[0], y: P[1], r: 6, hollow: true, color: 'var(--viz-ink)' }]} />
+          <Label x={lab1[0]} y={lab1[1]} color="var(--viz-1)" anchor="middle" dy={-8}>
+            equation 1
+          </Label>
+          <Label x={lab2[0]} y={lab2[1]} color="var(--viz-2)" anchor="middle" dy={-8}>
+            equation 2
+          </Label>
+        </Clip>
+      </Plot>
+
+      {showCircle && (
+        <span className={s.muted} style={{ fontSize: 'var(--step--1)', textAlign: 'center' }}>
+          A turns the dashed unit circle into the oval: its longest radius is σmax, its shortest σmin.
+        </span>
+      )}
+      {showCircle && (
+        <Plot x={[-1.6, 1.6]} y={[-1.6, 1.6]} width={260} height={260} maxWidth={260} margin={{ top: 6, right: 6, bottom: 6, left: 6 }} ariaLabel={`The unit circle and the oval that A turns it into: longest radius ${fmt(smax, 2)}, shortest ${fmt(smin, 2)}`}>
+          <Grid xTicks={6} yTicks={6} />
+          <Axes origin xTicks={4} yTicks={4} hideXTicks hideYTicks />
+          <Path points={circle} closed color="var(--viz-muted)" width={1.6} dash="4 4" />
+          <Path points={oval} closed color="var(--viz-5)" width={2} fill="color-mix(in srgb, var(--viz-5) 14%, transparent)" />
+          <Arrow from={[0, 0]} to={far} color="var(--viz-4)" width={2.5} head={8} />
+          <Arrow from={[0, 0]} to={near} color="var(--viz-ink)" width={2.5} head={8} />
+          <Label x={far[0] * 0.5 - nu[0] * 0.15} y={far[1] * 0.5 - nu[1] * 0.15} color="var(--viz-4)" anchor={nu[0] > 0 ? 'end' : 'start'} dy={nu[1] > 0 ? 12 : 0}>
+            σmax {fmt(smax, 2)}
+          </Label>
+          <Label x={near[0] + nu[0] * 0.12} y={near[1] + nu[1] * 0.12} color="var(--viz-ink)" anchor={nu[0] > 0 ? 'start' : 'end'} dy={nu[1] > 0 ? 0 : 12}>
+            σmin {fmt(smin, 2)}
+          </Label>
+        </Plot>
+      )}
+
+      <div className={s.info} aria-live="polite">
+        <div className={s.eq}>
+          <M>{`A = \\begin{bmatrix} ${fmt(A[0][0], 2)} & ${fmt(A[0][1], 2)} \\\\ ${fmt(A[1][0], 2)} & ${fmt(A[1][1], 2)} \\end{bmatrix},\\quad b = \\begin{bmatrix} ${fmt(b[0], 2)} \\\\ ${fmt(b[1], 2)} \\end{bmatrix},\\quad x = \\begin{bmatrix} 1 \\\\ 1 \\end{bmatrix}`.replace(/−/g, '-')}</M>
+        </div>
+        <span className={s.muted}>Each row of A holds the two coefficients of one equation (one line); the answer x = (1, 1) is where the lines cross.</span>
+        <Readout
+          items={[
+            ['angle between lines', `${theta}°`],
+            ['σmax', fmt(smax, 3)],
+            ['σmin', fmt(smin, 3)],
+            ['κ = σmax / σmin', fmt(kappa, 1)],
+          ]}
+        />
+        <span className={`${s.badge} ${kappa < 5 ? '' : kappa < 30 ? s.badgeWarn : s.badgeBad}`}>
+          a nudge of {EPS} to b can move the answer by up to {fmt(worst, 2)}
+          {kappa >= 30 ? ': ill-conditioned' : kappa < 5 ? ': well-conditioned' : ''}
+        </span>
+      </div>
+
+      <Controls>
+        <Slider label="Angle between the two lines" value={theta} min={2} max={90} step={1} onChange={setTheta} format={(v) => `${v}°`} />
+        <Button primary onClick={() => setBatches((k) => Math.min(8, k + 1))}>
+          Nudge b 30 more times
+        </Button>
+        <Button onClick={() => setBatches(1)}>Clear</Button>
+        <Toggle label="Show what A does to the unit circle" checked={showCircle} onChange={setShowCircle} />
+      </Controls>
+    </Figure>
+  )
+}

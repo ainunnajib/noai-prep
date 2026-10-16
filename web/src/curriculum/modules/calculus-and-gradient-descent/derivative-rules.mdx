@@ -1,0 +1,277 @@
+import PowerRuleExplorer from './visuals/derivative-rules/PowerRuleExplorer'
+import ExpSelfSlope from './visuals/derivative-rules/ExpSelfSlope'
+import ProductRuleRectangle from './visuals/derivative-rules/ProductRuleRectangle'
+import SigmoidDerivation from './visuals/derivative-rules/SigmoidDerivation'
+import ActivationSlopes from './visuals/derivative-rules/ActivationSlopes'
+
+In [Derivatives are slopes](#/learn/calculus-and-gradient-descent/derivatives-as-slopes) you found the derivative of $x^2$ the slow way, with a limit. With about 36 seconds per Prelim question, a handful of **rules** must give the answer in one line. This lesson covers every rule NOAI expects, including the derivatives of the **sigmoid** and **ReLU**, found in almost every neural network.
+
+<Analogy title="Times tables for slopes">
+
+You do not work out $7 \times 8$ by adding seven eights; you just know it is 56. Each derivative rule is a pattern the limit always produces: know the pattern and you never need the limit again.
+
+</Analogy>
+
+## The power rule
+
+For any fixed number $n$,
+
+$$
+\frac{d}{dx}\, x^n = n\, x^{n-1}
+$$
+
+- $\frac{d}{dx}$ means "the derivative with respect to $x$ of": the left side is the slope of $y = x^n$.
+- In words: **bring the power down in front, then lower the power by one**.
+- $x^3$ becomes $3x^2$; $x^2$ becomes $2x$, as the limit gave last lesson; $x = x^1$ becomes $1 \cdot x^0 = 1$.
+
+It works for negative and fractional powers too. $\frac{1}{x} = x^{-1}$ becomes $-1 \cdot x^{-2} = -\frac{1}{x^2}$, and $\sqrt{x} = x^{1/2}$ becomes $\tfrac{1}{2}x^{-1/2} = \frac{1}{2\sqrt{x}}$.
+
+<PowerRuleExplorer />
+
+## Constants, multiples and sums
+
+Three helper rules let you differentiate any polynomial term by term:
+
+| Rule | In symbols | Why |
+|---|---|---|
+| A constant has slope 0 | $\frac{d}{dx}\, c = 0$ | A flat line never rises. |
+| Constant multiples stay | $\frac{d}{dx}\big[c\, f(x)\big] = c\, f'(x)$ | A graph 3 times taller is 3 times steeper. |
+| Sums split up | $\frac{d}{dx}\big[f(x) + g(x)\big] = f'(x) + g'(x)$ | The rise of a sum is the sum of the rises. |
+
+<Steps title="Differentiate $f(x) = 3x^4 - 2x^2 + 5x - 7$ term by term">
+  <Step title="$3x^4$">
+    The power rule gives $4x^3$, and the multiple 3 stays: $3 \times 4x^3 = 12x^3$.
+  </Step>
+  <Step title="$-2x^2$ and $5x$">
+    $-2 \times 2x = -4x$, and $5 \times 1 = 5$.
+  </Step>
+  <Step title="$-7$">
+    A constant: its derivative is $0$.
+  </Step>
+  <Step title="Add up">
+    $f'(x) = 12x^3 - 4x + 5$. At $x = 1$ the slope is $12 - 4 + 5 = 13$.
+  </Step>
+</Steps>
+
+<QuickCheck
+  id="calculus-and-gradient-descent.derivative-rules.qc1"
+  q="What is the derivative of $f(x) = 4x^3 - 6x + 9$?"
+  options={['$12x^2 - 6 + 9$', '$12x^2 - 6$', '$12x^3 - 6x$', '$x^4 - 3x^2 + 9x$']}
+  answer={1}
+  explain="Term by term: $4 \times 3x^2 = 12x^2$, then $-6x$ gives $-6$, and the constant $9$ gives $0$. Keeping the $+9$ forgets that constants vanish, $12x^3$ forgets to lower the power, and $x^4 - 3x^2 + 9x$ goes the wrong way: it undoes a derivative (called *integrating*, which NOAI does not need) instead of taking one."
+/>
+
+## The second derivative
+
+The derivative $f'(x)$ is itself a function, so you can differentiate it again. The result is the <Term def="The derivative of the derivative. It tells you how fast the slope is changing, which is how sharply the graph bends.">second derivative</Term>, written $f''(x)$ or $\frac{d^2y}{dx^2}$. It measures how fast the **slope** changes, which is how sharply the curve bends:
+
+- $f''(x) > 0$: the slope is increasing, so the curve bends **upwards**, like a bowl ($\cup$).
+- $f''(x) < 0$: the slope is decreasing, so the curve bends **downwards**, like a cap ($\cap$).
+
+For $f(x) = x^3$: $f'(x) = 3x^2$, then $f''(x) = 6x$. A loss that bends like a bowl ($L'' > 0$) where $L' = 0$ is at a minimum: [Curvature: second derivatives, convexity and the Hessian](#/learn/calculus-and-gradient-descent/curvature-convexity) builds on this.
+
+<PastPaperQuestion paper="prelim2026" n={32} />
+
+## $e^x$: the function that is its own slope
+
+The number $e \approx 2.718$ is special for one reason:
+
+$$
+\frac{d}{dx}\, e^x = e^x
+$$
+
+At every point, the **slope of $e^x$ equals its height**. At $x = 0$ the height is $1$ and so is the slope; at $x = 2$ both are about $7.39$.
+
+Other bases miss: the slope of $2^x$ is about $0.69$ times its height, and that of $3^x$ about $1.10$ times. $e$ is the base where the factor is exactly 1. (In general $\frac{d}{dx} b^x = (\ln b)\, b^x$, and $\ln e = 1$.)
+
+<ExpSelfSlope />
+
+You will also need $e^{-x}$, the mirror image of $e^x$ in the $y$-axis. A mirror keeps every height but turns uphill into downhill, so its slope is **minus** its height:
+
+$$
+\frac{d}{dx}\, e^{-x} = -e^{-x}
+$$
+
+(The next lesson's chain rule proves this in one line.)
+
+<Mistake title="Do not use the power rule on $e^x$">
+
+The power rule needs a fixed **power**, as in $x^3$. In $e^x$ the variable is in the power, so "bring the power down" gives the wrong $x e^{x-1}$. The answer is simply $e^x$.
+
+</Mistake>
+
+<PastPaperQuestion paper="prelim2026" n={31} />
+
+## $\ln x$: slope $1/x$
+
+The natural log $\ln x$ undoes $e^x$: its graph is $e^x$ reflected in the line $y = x$, which swaps rise and run. The point $(2,\ 7.39)$ on $e^x$ has slope $7.39$; reflected, $(7.39,\ 2)$ on $\ln x$ has slope $\frac{1}{7.39}$. So at input $x$, the slope of $\ln x$ is one over $x$:
+
+$$
+\frac{d}{dx} \ln x = \frac{1}{x} \qquad (x > 0).
+$$
+
+Switch the visual above to **ln x** to see it. This rule is behind <Term def="A loss for classification: −ln p, where p is the probability the model gave to the correct class. You will meet it properly in the classification module.">cross-entropy</Term>: the loss $-\ln p$ has slope $-\frac{1}{p}$, so a correct class given only $p = 0.1$ gets a strong push ($-10$), and one given $p = 0.9$ a gentle one (about $-1.1$).
+
+## Products and quotients
+
+For two functions $u(x)$ and $v(x)$ multiplied together, the <Term def="The rule for differentiating a product: (uv)′ = u′v + uv′.">product rule</Term> says
+
+$$
+(uv)' = u'v + uv'.
+$$
+
+It is **not** $u'v'$. Picture $u$ and $v$ as the sides of a rectangle whose area is $uv$. When both sides grow a little, the area gains a strip along each side, and the tiny corner piece is too small to count.
+
+<ProductRuleRectangle />
+
+For a fraction, the <Term def="The rule for differentiating a fraction: (u/v)′ = (u′v − uv′)/v².">quotient rule</Term> is
+
+$$
+\left(\frac{u}{v}\right)' = \frac{u'v - uv'}{v^2}.
+$$
+
+The order matters because of the minus sign: say "bottom times derivative of top, minus top times derivative of bottom, all over bottom squared".
+
+<Steps title="Two quick examples">
+  <Step title="Product: $x^2 e^x$">
+    $u = x^2$, $u' = 2x$; $v = e^x$, $v' = e^x$. So $(x^2 e^x)' = 2x\,e^x + x^2 e^x = x e^x (2 + x)$.
+  </Step>
+  <Step title="Quotient: $\dfrac{1}{x}$, as a check">
+    $u = 1$, $u' = 0$; $v = x$, $v' = 1$. So $\left(\frac{1}{x}\right)' = \dfrac{0 \cdot x - 1 \cdot 1}{x^2} = -\dfrac{1}{x^2}$, matching the power rule.
+  </Step>
+</Steps>
+
+<QuickCheck
+  id="calculus-and-gradient-descent.derivative-rules.qc2"
+  q="What is the derivative of $x \ln x$ (for $x > 0$)?"
+  options={['$\\dfrac{1}{x}$', '$\\ln x$', '$\\ln x + 1$', '$x + \\dfrac{1}{x}$']}
+  answer={2}
+  explain="Product rule with $u = x$ ($u' = 1$) and $v = \ln x$ ($v' = \frac{1}{x}$): $1 \cdot \ln x + x \cdot \frac{1}{x} = \ln x + 1$. Multiplying the two derivatives, $1 \times \frac{1}{x}$, is the classic wrong move."
+/>
+
+## The sigmoid's famous derivative
+
+The <Term def="The S-shaped function σ(x) = 1/(1 + e^(−x)). It squashes any number into the range 0 to 1, so it is used to turn a score into a probability.">sigmoid</Term> $\sigma(x) = \frac{1}{1 + e^{-x}}$ squashes any score into a probability between 0 and 1. It is a fraction, so the quotient rule finds its slope. Step through the algebra:
+
+<SigmoidDerivation />
+
+<KeyIdea>
+
+$$
+\sigma'(x) = \sigma(x)\,\big(1 - \sigma(x)\big)
+$$
+
+The slope of the sigmoid is "output times one minus output". A network has already computed $\sigma(x)$ on its way forward, so the slope costs just one subtraction and one multiplication.
+
+</KeyIdea>
+
+**How big can it get?** $\sigma(x)$ and $1 - \sigma(x)$ add up to 1, and two such numbers have the largest product when equal: $0.5 \times 0.5 = 0.25$, at $x = 0$. So the sigmoid's slope is **never more than 0.25**. Far from 0 it is tiny: at $x = 5$, $\sigma \approx 0.9933$ and the slope is about $0.0066$. Such a neuron is <Term def="Pushed so far into the flat part of an S-shaped activation that its slope is almost 0, so it hardly learns.">saturated</Term>: changing its input barely changes its output.
+
+<ActivationSlopes />
+
+Its cousin $\tanh(x)$, which squashes to the range $-1$ to $1$, has slope $1 - \tanh^2(x)$, peaking at $1$ at $x = 0$. Remember the sigmoid's **0.25**: the next lesson, [The chain rule](#/learn/calculus-and-gradient-descent/chain-rule), shows how multiplying many such slopes makes deep sigmoid networks stop learning.
+
+<QuickCheck
+  id="calculus-and-gradient-descent.derivative-rules.qc3"
+  q="A sigmoid neuron outputs $\sigma(z) = 0.9$. What is the slope $\sigma'(z)$ at that input?"
+  options={['0.9', '0.25', '0.81', '0.09']}
+  answer={3}
+  explain="$\sigma'(z) = \sigma(z)(1 - \sigma(z)) = 0.9 \times 0.1 = 0.09$. 0.9 confuses the sigmoid with $e^x$ (whose slope equals its height), 0.25 is the maximum slope, reached only when the output is 0.5, and 0.81 is $0.9^2$."
+/>
+
+<PastPaperQuestion paper="prelim2026" n={34} />
+
+## Corners: ReLU and $|x|$
+
+Some functions have a sharp corner, a <Term def="A sharp corner in a graph. Zooming in never makes it look straight, so there is no single tangent there.">kink</Term>. However far you zoom in, it never looks straight, because the slopes on the two sides disagree: the derivative there is **undefined**.
+
+- **ReLU**, $\text{ReLU}(x) = \max(0, x)$: slope $0$ for $x < 0$, slope $1$ for $x > 0$, and a kink at $x = 0$ (switch the visual above to ReLU).
+- **Absolute value** $|x|$: slope $-1$ on the left and $+1$ on the right, so its derivative is the <Term def="sign(x) is −1 for negative x, +1 for positive x, and 0 at x = 0.">sign</Term> of $x$, written $\text{sign}(x)$.
+
+Training code still needs *some* number at exactly 0. For $|x|$, any slope between $-1$ and $1$ gives a line through the corner that stays below the graph; each such slope is a <Term def="At a kink, any slope of a line through the corner that stays on or below the graph everywhere. Optimisers can use it in place of the missing derivative.">subgradient</Term>, and $\text{sign}(0) = 0$ is the usual choice. PyTorch uses 0 for both ReLU and $|x|$ at 0.
+
+You will learn PyTorch properly in [its own module](#/learn/pytorch/autograd). Here, `requires_grad=True` asks PyTorch to keep track of `x`, `.sum().backward()` works out the slope of the total with respect to every entry of `x`, and `x.grad` holds those slopes. Each entry changes only its own term of the total, so its slope is simply the ReLU (or $|x|$) slope at that entry. The next lesson, on [the chain rule](#/learn/calculus-and-gradient-descent/chain-rule), shows how `.backward()` works.
+
+```python
+import torch
+
+x = torch.tensor([-2.0, 0.0, 3.0], requires_grad=True)
+torch.relu(x).sum().backward()
+print(x.grad)
+
+x = torch.tensor([-2.0, 0.0, 3.0], requires_grad=True)
+torch.abs(x).sum().backward()
+print(x.grad)
+```
+
+```text
+tensor([0., 0., 1.])
+tensor([-1.,  0.,  1.])
+```
+
+<PastPaperQuestion paper="prelim2026" n={36} />
+
+<Note title="Seen in the 2026 Final">
+
+If a prediction $F$ is scored by the absolute error $|y - F|$, the slope with respect to $F$ is $-1$ when $F$ is too small and $+1$ when it is too big (undefined at $F = y$). So the way to lower the loss is the sign of $y - F$: raise $F$ ($+1$) or lower it ($-1$), however big the error.
+
+</Note>
+
+## Check any rule with code
+
+Test any rule by zooming in numerically: compare the rise over a tiny run either side of $x$, $\frac{f(x+h) - f(x-h)}{2h}$, with the formula. Run this and change the functions:
+
+<PyRunner packages={['numpy']} code={`import numpy as np
+
+def slope(f, x, h=1e-5):
+    """Estimate f'(x) by zooming in: rise over a tiny run either side of x."""
+    return (f(x + h) - f(x - h)) / (2 * h)
+
+def sigmoid(x):
+    return 1 / (1 + np.exp(-x))
+
+for x in [0.0, 2.0, 5.0]:
+    s = sigmoid(x)
+    print(f"x = {x}:  measured slope {slope(sigmoid, x):.5f},  formula s(1 - s) = {s * (1 - s):.5f}")
+
+print("e^x at x = 1:", round(slope(np.exp, 1.0), 5), "vs", round(np.exp(1.0), 5))
+print("ln x at x = 4:", round(slope(np.log, 4.0), 5), "vs 1/4 =", 1 / 4)
+print("x^3 at x = 2:", round(slope(lambda x: x**3, 2.0), 5), "vs 3 * 2^2 =", 3 * 2**2)
+print("sign:", np.sign(np.array([-3.0, 0.0, 2.5])))`} />
+
+## The cheat sheet
+
+| Function | Derivative | Memory hook |
+|---|---|---|
+| $c$ (constant) | $0$ | flat line |
+| $x^n$ | $n x^{n-1}$ | power down, power minus one |
+| $e^x$ | $e^x$ | slope = height |
+| $e^{-x}$ | $-e^{-x}$ | mirror flips the slope |
+| $\ln x$ | $\dfrac{1}{x}$ | reflection of $e^x$ |
+| $uv$ | $u'v + uv'$ | two strips |
+| $\dfrac{u}{v}$ | $\dfrac{u'v - uv'}{v^2}$ | bottom-dee-top minus top-dee-bottom |
+| $\sigma(x)$ | $\sigma(x)(1 - \sigma(x))$ | at most $0.25$, at $x = 0$ |
+| $\tanh(x)$ | $1 - \tanh^2(x)$ | at most $1$, at $x = 0$ |
+| $\text{ReLU}(x)$ | $0$ if $x < 0$, $1$ if $x > 0$ | undefined at 0 (code uses 0) |
+| $\lvert x \rvert$ | $\text{sign}(x)$ | subgradient $0$ at the corner |
+
+<ExamTip>
+
+Typical NOAI calculus items take seconds if you know the table:
+
+- "Second derivative of $x^3$?" $6x$, not $3x^2$.
+- "Derivative of the sigmoid?" $\sigma(x)(1 - \sigma(x))$, never just $\sigma(x)$.
+- "Why is ReLU's derivative a problem at 0?" It is undefined there (a kink).
+
+Traps: the power rule applied to $e^x$, a constant term that survives, or stopping at the first derivative.
+
+</ExamTip>
+
+<Takeaways>
+
+- Learn the cheat sheet cold: it answers most NOAI calculus questions in seconds.
+- Power rule $x^n \to n x^{n-1}$; constants vanish, multiples stay, sums split; $f''$ measures bending.
+- $e^x$ is its own slope, $\ln x$ has slope $\frac{1}{x}$, and products need $u'v + uv'$, not $u'v'$.
+- $\sigma' = \sigma(1 - \sigma) \le 0.25$; ReLU has slope 0 or 1, with a kink at 0 where code uses 0.
+
+</Takeaways>

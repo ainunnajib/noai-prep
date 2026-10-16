@@ -1,0 +1,367 @@
+{
+  "slug": "calculus-and-gradient-descent",
+  "order": 13,
+  "part": "classical-ml",
+  "domain": "mathematics",
+  "title": "Calculus and gradient descent",
+  "tagline": "Slopes that tell models where to go",
+  "summary": "Derivatives as slopes, the rules you need without a calculator (including sigmoid and ReLU), the chain rule behind backpropagation, partial derivatives and gradients, gradient descent on loss landscapes, and curvature: convexity, the Hessian, saddle points and Newton's method.",
+  "prerequisites": [
+    "vectors-and-matrices",
+    "ai-first-look",
+    "maths-foundations"
+  ],
+  "syllabus": [
+    "NOAI Mathematics: Calculus",
+    "Derivatives and the power, exponential, log rules",
+    "Sigmoid and ReLU derivatives",
+    "Chain rule and computational graphs",
+    "Partial derivatives, gradient vector, gradient of squared norm",
+    "NOAI Mathematics: Optimisation",
+    "IOAI 2A2 Gradient Descent",
+    "Convexity, critical points, the Hessian, saddle points, Taylor approximation and Newton's method"
+  ],
+  "paper_subtopics": [
+    "calculus",
+    "optimisation",
+    "linear-algebra"
+  ],
+  "lessons": [
+    {
+      "slug": "derivatives-as-slopes",
+      "title": "Derivatives are slopes",
+      "summary": "The derivative is the slope of the tangent line, found by zooming in until a curve looks straight.",
+      "minutes": 15,
+      "objectives": [
+        "You can explain a derivative as an instantaneous rate of change",
+        "You can estimate a derivative from a graph",
+        "You can say where a derivative is positive, negative or zero"
+      ],
+      "concepts": [
+        {
+          "name": "Secant to tangent",
+          "explain": "The slope between two points on a curve is rise over run. As the second point slides towards the first, that secant line turns into the tangent line, and its slope is the derivative f′(x).",
+          "analogy": "Your average speed between Jurong East and Tampines versus the speedometer reading at one instant: the derivative is the speedometer.",
+          "visual": {
+            "component": "TangentZoom",
+            "kind": "interactive",
+            "shows": "A curve with a fixed point and a second point joined by a secant; as h shrinks the secant turns into the tangent, with the slope readout converging. A zoom inset shows the curve looking straight.",
+            "interaction": "Drag the second point or slide h towards 0; drag the fixed point along the curve.",
+            "aha": "Every smooth curve looks like a straight line when you zoom in enough, and the derivative is that line's slope."
+          }
+        },
+        {
+          "name": "The derivative as its own graph",
+          "explain": "Computing the slope at every x gives a new function f′(x). Where f is rising f′ is positive, where f is falling f′ is negative, and at flat peaks and valleys f′ = 0, which is how we find minima.",
+          "analogy": "A hiking map's elevation profile versus the gradient sign on each section: uphill, downhill or flat at the summit.",
+          "visual": {
+            "component": "DerivativeTracer",
+            "kind": "interactive",
+            "shows": "Two stacked Plots sharing an x-axis: f(x) on top with a tangent at a draggable point, and f′(x) traced below as the point moves.",
+            "interaction": "Drag the point along f; choose f from presets (x², x³ − 3x, sin x, a loss-like curve).",
+            "aha": "Minima of f sit exactly where f′ crosses zero, the key to training models."
+          }
+        }
+      ],
+      "code": "none",
+      "checkpoint_focus": [
+        "Slope of a tangent",
+        "Sign of the derivative and increasing/decreasing",
+        "Derivative zero at peaks and valleys"
+      ]
+    },
+    {
+      "slug": "derivative-rules",
+      "title": "Derivative rules you must know cold",
+      "summary": "Power, constant, sum, exponential and log rules, plus the sigmoid and ReLU derivatives that appear in NOAI questions.",
+      "minutes": 22,
+      "objectives": [
+        "You can differentiate polynomials, eˣ and ln x without a calculator",
+        "You can state σ′(x) = σ(x)(1 − σ(x)) and its maximum",
+        "You can explain ReLU's derivative and its kink at 0",
+        "You can apply the product and quotient rules and derive σ′(x) = σ(x)(1 − σ(x))"
+      ],
+      "concepts": [
+        {
+          "name": "Power rule and friends",
+          "explain": "The power rule says d/dx xⁿ = n·xⁿ⁻¹, so x³ becomes 3x². Constants vanish, constant multiples stay, and derivatives of sums are sums of derivatives. Differentiating twice gives the second derivative, which measures curvature.",
+          "analogy": "Like a pattern in a times-table: once you see it, you never compute from scratch again.",
+          "visual": {
+            "component": "PowerRuleExplorer",
+            "kind": "interactive",
+            "shows": "The curve xⁿ with its derivative n·xⁿ⁻¹ overlaid, plus the tangent slope at a draggable point matching the derivative's value.",
+            "interaction": "Slide n from 0 to 4 (including fractional values) and a coefficient; drag the point to compare tangent slope with the formula.",
+            "aha": "The formula and the measured slope always agree, so the rule is a shortcut for the zoom-in picture."
+          }
+        },
+        {
+          "name": "Exponentials and logs",
+          "explain": "eˣ is the only function (up to scaling) that is its own derivative: its slope at every point equals its height. The derivative of ln x is 1/x. These two rules power softmax, cross-entropy and log-likelihood calculations.",
+          "analogy": "Money with continuous compound interest grows at a rate equal to the amount you already have.",
+          "visual": {
+            "component": "ExpSelfSlope",
+            "kind": "interactive",
+            "shows": "The curve eˣ with a tangent at a draggable point; a vertical bar for the height and a slope triangle are shown equal. A tab shows ln x with slope 1/x.",
+            "interaction": "Drag the point and compare the height and slope readouts; switch to the ln x tab.",
+            "aha": "Height equals slope for eˣ, which is why exponentials appear everywhere in ML maths."
+          }
+        },
+        {
+          "name": "Sigmoid and ReLU derivatives",
+          "explain": "The sigmoid σ(x) = 1/(1 + e⁻ˣ) has derivative σ(x)(1 − σ(x)), which is at most 0.25 (at x = 0) and nearly 0 for large |x|. ReLU(x) = max(0, x) has slope 0 for x < 0 and 1 for x > 0, with a kink at 0 where frameworks just pick a value.",
+          "analogy": "Sigmoid is like a volume knob that barely responds at its ends; ReLU is like a tap that is either shut or flowing freely.",
+          "visual": {
+            "component": "ActivationSlopes",
+            "kind": "interactive",
+            "shows": "Sigmoid and ReLU curves with their derivative curves below; at a draggable x, bars show σ, 1 − σ and their product.",
+            "interaction": "Drag x; toggle between sigmoid, tanh and ReLU; the 'saturation zone' where the derivative is below 0.01 is shaded.",
+            "aha": "Sigmoid's slope never exceeds 0.25, which will explain vanishing gradients in deep networks."
+          }
+        },
+        {
+          "name": "Product and quotient rules",
+          "explain": "For a product, (uv)′ = u′v + uv′; for a quotient, (u/v)′ = (u′v − uv′)/v². Applying the quotient rule to σ(x) = 1/(1 + e⁻ˣ) gives σ′(x) = e⁻ˣ/(1 + e⁻ˣ)², which simplifies to σ(x)(1 − σ(x)). For |x| the slope is −1 on the left and +1 on the right, so its derivative is sign(x); at the corner any value between −1 and 1 is a valid subgradient, and np.sign(0) = 0 is the usual choice, as in the L1 negative gradient of the 2026 Final.",
+          "analogy": "The area of a rectangle whose sides are both growing increases by two strips, one from each side's growth: that is the product rule.",
+          "visual": {
+            "component": "ProductRuleRectangle",
+            "kind": "interactive",
+            "shows": "A rectangle with sides u and v that both grow, with the two added strips (u′v and uv′) shaded in different colours and the tiny corner piece shown vanishing; a second tab steps through the quotient rule applied to the sigmoid.",
+            "interaction": "Slide time to grow the sides; switch to the sigmoid tab and step through each line of algebra.",
+            "aha": "The product rule is just the two growing strips, and the sigmoid's famous derivative falls out of the quotient rule in three lines."
+          }
+        }
+      ],
+      "code": "snippet",
+      "checkpoint_focus": [
+        "Power rule and second derivatives",
+        "d/dx eˣ and ln x",
+        "Sigmoid derivative and max value 0.25",
+        "ReLU derivative, non-differentiable at 0",
+        "Quotient rule on σ(x); d|x|/dx = sign(x) with a subgradient at 0"
+      ]
+    },
+    {
+      "slug": "chain-rule",
+      "title": "The chain rule",
+      "summary": "How to differentiate a function inside a function by multiplying rates, the engine of backpropagation.",
+      "minutes": 18,
+      "objectives": [
+        "You can apply the chain rule to compositions like (3x + 1)² and σ(wx + b)",
+        "You can compute a derivative along a computational graph",
+        "You can explain why multiplying many small factors vanishes"
+      ],
+      "concepts": [
+        {
+          "name": "Rates multiply along a chain",
+          "explain": "If y depends on u and u depends on x, then dy/dx = (dy/du)·(du/dx). For y = (3x + 1)², the outer square gives 2(3x + 1) and the inner part gives 3, so dy/dx = 6(3x + 1).",
+          "analogy": "Gears: if gear B turns 3 times per turn of A, and C turns 2 times per turn of B, then C turns 6 times per turn of A.",
+          "visual": {
+            "component": "ChainGears",
+            "kind": "animation",
+            "shows": "Three meshed gears labelled x, u, y with their turning ratios; rotating x spins the others at the multiplied rate, and the formula builds up beside them.",
+            "interaction": "Drag gear x to turn it; adjust each gear ratio with sliders and see the total ratio update as the product.",
+            "aha": "The chain rule is just multiplying local rates, which is all backprop ever does."
+          }
+        },
+        {
+          "name": "The chain rule on a computational graph",
+          "explain": "Write a calculation as a graph of small steps, like z = wx + b, a = σ(z), L = (a − y)². Going backwards, each node multiplies the gradient arriving from above by its own local derivative, giving ∂L/∂w = 2(a − y)·σ′(z)·x.",
+          "analogy": "Tracing the cost of a delayed MRT train back through each station: each delay passes on, scaled, to the next.",
+          "visual": {
+            "component": "GraphChainStepper",
+            "kind": "stepper",
+            "shows": "A left-to-right graph of nodes (x, w, b → z → a → L) with numbers filled during a forward pass, then gradients filled right-to-left on the backward pass, each edge showing 'upstream × local'.",
+            "interaction": "Step forward then backward; edit x, w, b, y and re-run.",
+            "aha": "Every gradient in a network is a product of simple local derivatives along a path."
+          }
+        },
+        {
+          "name": "Many small factors vanish",
+          "explain": "In a deep chain, the derivative is a product of many factors. If each is about 0.25 (sigmoid's maximum), ten layers give 0.25¹⁰ ≈ 0.000001, so early layers barely learn; factors above 1 explode instead.",
+          "analogy": "Photocopying a photocopy many times: each copy loses a little, and after ten copies the picture is gone.",
+          "visual": {
+            "component": "VanishingProduct",
+            "kind": "interactive",
+            "shows": "A row of layer boxes, each with a factor, and a log-scale bar showing the running product.",
+            "interaction": "Slide the per-layer factor (0.1 to 2) and number of layers (1 to 30); watch the product shrink to nothing or explode.",
+            "aha": "Depth turns tiny per-layer effects into huge ones, motivating ReLU, good initialisation and residual connections."
+          }
+        }
+      ],
+      "code": "snippet",
+      "checkpoint_focus": [
+        "d/dx f(g(x)) = f′(g(x))·g′(x)",
+        "Chain rule on a squared-error loss",
+        "Product of many derivatives (vanishing)"
+      ]
+    },
+    {
+      "slug": "partial-derivatives-gradients",
+      "title": "Partial derivatives and the gradient",
+      "summary": "Slopes for functions of many inputs, combined into the gradient vector that points uphill.",
+      "minutes": 20,
+      "objectives": [
+        "You can compute partial derivatives by treating other variables as constants",
+        "You can assemble the gradient vector",
+        "You can explain why the gradient is perpendicular to contour lines and points uphill",
+        "You can state ∇(||w||²) = 2w"
+      ],
+      "concepts": [
+        {
+          "name": "Partial derivatives are slices",
+          "explain": "For f(x, y), the partial derivative ∂f/∂x is the ordinary derivative when y is frozen. For f = x²y + 3y, ∂f/∂x = 2xy and ∂f/∂y = x² + 3.",
+          "analogy": "Standing on a hill: the slope if you walk only east is one partial derivative, the slope walking only north is the other.",
+          "visual": {
+            "component": "SliceExplorer",
+            "kind": "interactive",
+            "shows": "A heat-map of f(x, y) with a horizontal line marking a fixed y, and a side Plot of the 1D slice f(x, y₀) with its tangent.",
+            "interaction": "Drag the slice line up and down and a point along it; switch to slicing in y.",
+            "aha": "A partial derivative is just a normal derivative on a 1D slice of a higher-dimensional surface."
+          }
+        },
+        {
+          "name": "The gradient points uphill",
+          "explain": "The gradient ∇f collects all partial derivatives into a vector. It points in the direction of steepest increase and is perpendicular to the contour lines; its length says how steep the slope is. Gradient descent walks in the opposite direction.",
+          "analogy": "Water on the slopes of Bukit Timah flows straight downhill, at right angles to the contour lines on a map.",
+          "visual": {
+            "component": "GradientField",
+            "kind": "interactive",
+            "shows": "A contour map of a bowl-like or two-valley function with a draggable point showing the gradient arrow and the negative gradient arrow; a faint field of small arrows covers the map.",
+            "interaction": "Drag the point; toggle the arrow field; pick different functions.",
+            "aha": "Following the negative gradient is the fastest way down, which is the whole idea of training."
+          }
+        },
+        {
+          "name": "Gradients of vector expressions",
+          "explain": "Two results come up repeatedly: the gradient of wᵀx with respect to w is x, and the gradient of ||w||² = w₁² + … + wₙ² is 2w. These give the gradient of the MSE loss and of L2 regularisation in one line.",
+          "analogy": "Like knowing that each ingredient's effect on the bill is its own price: no need to recompute the whole bill.",
+          "visual": {
+            "component": "VectorGradientCheck",
+            "kind": "interactive",
+            "shows": "A 2D w with contour circles of ||w||², the arrow 2w drawn at w, and a numerical finite-difference estimate next to the formula.",
+            "interaction": "Drag w; adjust the finite-difference step size; compare numeric and formula values.",
+            "aha": "Vector calculus rules are component-wise single-variable rules in disguise, and numerical checks confirm them."
+          }
+        }
+      ],
+      "code": "runnable",
+      "checkpoint_focus": [
+        "Partial derivative computation",
+        "Gradient direction = steepest ascent",
+        "Contour maps",
+        "Gradient of a squared norm and of wᵀx"
+      ]
+    },
+    {
+      "slug": "gradient-descent",
+      "title": "Gradient descent on a loss landscape",
+      "summary": "The loss as a landscape over the parameters, the update rule w ← w − η∇L, and why long narrow valleys make gradient descent zig-zag.",
+      "minutes": 20,
+      "objectives": [
+        "You can write and apply the gradient-descent update rule",
+        "You can predict the effect of a too-small or too-large learning rate",
+        "You can explain why elongated contours cause zig-zagging"
+      ],
+      "concepts": [
+        {
+          "name": "The loss landscape",
+          "explain": "A loss function scores how wrong a model is for given parameter values; plotting it over the parameters gives a landscape. Training means finding parameters at a low point. A local minimum is lowest only nearby, while the global minimum is lowest everywhere.",
+          "analogy": "Looking for the lowest spot in a hilly park while blindfolded: you can feel the slope under your feet but cannot see the whole park.",
+          "visual": {
+            "component": "LandscapeHiker",
+            "kind": "interactive",
+            "shows": "A 1D bumpy loss curve with a ball; local and global minima are marked once found.",
+            "interaction": "Drag the ball to a start point and release; it rolls downhill and stops in whichever valley it started above.",
+            "aha": "Where you start can decide which minimum you end in, unless the landscape is a single bowl."
+          }
+        },
+        {
+          "name": "One step downhill",
+          "explain": "Gradient descent repeats w ← w − η·∇L(w): compute the slope, then take a step of size η (the learning rate) in the downhill direction. For L(w) = w² starting at w = 3 with η = 0.1, the gradient is 6 and the new w is 3 − 0.6 = 2.4.",
+          "analogy": "Walking down a foggy hill by feeling the slope and taking a step proportional to its steepness.",
+          "visual": {
+            "component": "GradientDescentBall",
+            "kind": "interactive",
+            "shows": "A parabola-shaped loss with a ball, a trail of steps and the update arithmetic for the latest step.",
+            "interaction": "Slide the learning rate from 0.01 to 1.2; press step or play; drag the start point.",
+            "aha": "Small η crawls, moderate η converges, and above a threshold (η > 1 for w² here) the ball overshoots further each step and diverges."
+          }
+        },
+        {
+          "name": "Zig-zags in long valleys",
+          "explain": "When the loss is steep in one direction and shallow in another (an elongated bowl), the gradient points mostly across the valley, so gradient descent bounces from side to side. The largest stable learning rate is set by the steepest direction (η < 2/λmax), so progress along the shallow direction is slow. Scaling features makes the bowl rounder.",
+          "analogy": "A ball rolling down a narrow, sloping drain bangs side to side instead of rolling straight along it.",
+          "visual": {
+            "component": "GD2DContours",
+            "kind": "interactive",
+            "shows": "Contour ellipses of a 2D quadratic loss with a gradient descent path from a draggable start point.",
+            "interaction": "Slide the learning rate and the elongation (condition number); toggle 'standardise features' to make the contours circular.",
+            "aha": "Elongated valleys force a small learning rate and zig-zag paths; rescaling fixes the geometry, not the algorithm."
+          }
+        }
+      ],
+      "code": "runnable",
+      "checkpoint_focus": [
+        "One GD step by hand",
+        "Learning rate too large → divergence",
+        "Zig-zag in ravines and why scaling helps"
+      ]
+    },
+    {
+      "slug": "curvature-convexity",
+      "title": "Curvature: second derivatives, convexity and the Hessian",
+      "summary": "How curvature tells minima from maxima and saddles, and how Newton's method uses it.",
+      "minutes": 18,
+      "objectives": [
+        "You can classify critical points using second derivatives or the Hessian",
+        "You can explain why convex functions are easy to optimise",
+        "You can describe Taylor approximation and why Newton's method is costly"
+      ],
+      "concepts": [
+        {
+          "name": "Second derivatives and convexity",
+          "explain": "f'' measures curvature: positive means the curve bends upward like a bowl, negative means it bends downward like a cap. A convex function is a bowl everywhere, so any local minimum is the global minimum, and gradient descent is guaranteed to reach it with a suitable step size.",
+          "analogy": "Like a wok: wherever a marble starts, it rolls to the single bottom.",
+          "visual": {
+            "component": "CurvatureExplorer",
+            "kind": "interactive",
+            "shows": "A curve shaded green where f'' > 0 and red where f'' < 0, with its minima and maxima marked.",
+            "interaction": "Pick or edit a function and see the convex regions, then drop marbles to see where they settle.",
+            "aha": "Convex means a single valley, so there is no risk of getting stuck."
+          }
+        },
+        {
+          "name": "Critical points and the Hessian",
+          "explain": "At a critical point, the gradient is zero. The Hessian is the matrix of second partial derivatives. If it is positive definite (all eigenvalues positive), the point is a local minimum; if negative definite, a maximum; and with mixed signs, it is a saddle point.",
+          "analogy": "A saddle point is like a mountain pass: it is the lowest point along the ridge but the highest point along the valley crossing it.",
+          "visual": {
+            "component": "SaddleSurface",
+            "kind": "interactive",
+            "shows": "Contour plots of x² + y² (a bowl), −x² − y² (a cap) and x² − y² (a saddle), each with its Hessian and the signs of its eigenvalues.",
+            "interaction": "Toggle between the surfaces and drag a point to watch the curvature along x and along y.",
+            "aha": "The signs of the Hessian's eigenvalues tell you what kind of critical point you are at."
+          }
+        },
+        {
+          "name": "Taylor approximation and Newton's method",
+          "explain": "Near a point, any smooth function looks like its Taylor approximation: a line (first order) or a parabola (second order). Newton's method jumps straight to the bottom of that parabola, which uses curvature and converges fast. For n parameters it needs the n×n Hessian and its inverse, about O(n³) work, which is far too costly for networks with millions of weights.",
+          "analogy": "Like using the curve of a bowl to guess where its bottom is, instead of shuffling downhill step by step.",
+          "visual": {
+            "component": "TaylorFit",
+            "kind": "interactive",
+            "shows": "A curve with its tangent-line and parabola approximations at a draggable point, and the Newton step arrow pointing to the parabola's minimum.",
+            "interaction": "Drag the point and step Newton's method alongside gradient descent, comparing their iteration counts.",
+            "aha": "Curvature gives smarter steps, but computing it is too expensive at deep-learning scale."
+          }
+        }
+      ],
+      "code": "snippet",
+      "checkpoint_focus": [
+        "Hessian contents and positive definite meaning (cf. 2026 Prelim Q37-38)",
+        "Taylor series use (cf. Q39)",
+        "Newton's method cost (cf. Q45, Q74)",
+        "Convex guarantees (cf. Q75)"
+      ]
+    }
+  ]
+}

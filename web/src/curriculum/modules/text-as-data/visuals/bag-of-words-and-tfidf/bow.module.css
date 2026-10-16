@@ -1,0 +1,236 @@
+/* Shared styles for the bag-of-words / TF-IDF visuals. */
+
+.field {
+  width: 100%;
+  display: grid;
+  gap: 0.3rem;
+  align-content: start;
+}
+.fieldLabel {
+  font-size: var(--step--1);
+  font-weight: 700;
+  color: var(--ink-2);
+}
+.input {
+  width: 100%;
+  min-width: 0;
+  font-family: var(--font-mono);
+  font-size: 0.88rem;
+  padding: 0.4rem 0.55rem;
+  border-radius: 8px;
+  border: 1.5px solid var(--rule);
+  background: var(--surface-2);
+  color: var(--ink);
+}
+.input:focus-visible {
+  outline: 3px solid var(--accent);
+  outline-offset: 1px;
+}
+.docRow {
+  display: grid;
+  grid-template-columns: 2.1rem minmax(0, 1fr);
+  gap: 0.4rem;
+  align-items: center;
+}
+.docTag {
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  font-weight: 800;
+  color: var(--ink-2);
+  text-align: right;
+}
+
+/* ---------- tables ---------- */
+.scroll {
+  width: 100%;
+  overflow-x: auto;
+  padding-bottom: 2px;
+}
+.table {
+  display: grid;
+  gap: 2px;
+  width: max-content;
+  margin: 0 auto;
+  font-family: var(--font-mono);
+  font-size: 12px;
+}
+.th {
+  font-family: var(--font-body);
+  font-size: 0.75rem;
+  font-weight: 800;
+  color: var(--ink-2);
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  text-align: center;
+  padding: 0 2px 3px;
+  line-height: 1.15;
+}
+.term {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  padding-right: 6px;
+  color: var(--ink);
+  font-weight: 700;
+  white-space: nowrap;
+}
+.td {
+  display: grid;
+  place-items: center;
+  min-height: 24px;
+  border-radius: 4px;
+  color: var(--ink);
+  background: var(--surface-2);
+  font-variant-numeric: tabular-nums;
+}
+.tdMuted {
+  color: var(--ink-3);
+}
+.tdStat {
+  background: transparent;
+  color: var(--ink-2);
+}
+.tdStrong {
+  font-weight: 800;
+  outline: 2px solid var(--viz-2);
+  outline-offset: -2px;
+}
+.sep {
+  border-left: 1.5px dashed var(--rule);
+}
+.foot {
+  font-family: var(--font-body);
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: color-mix(in srgb, var(--viz-2) 65%, var(--ink));
+  text-align: center;
+  padding-top: 3px;
+  line-height: 1.2;
+  white-space: nowrap;
+}
+
+/* ---------- chips ---------- */
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 6px;
+  align-items: center;
+}
+.chip {
+  display: inline-grid;
+  justify-items: center;
+  padding: 2px 6px;
+  border-radius: 6px;
+  font-family: var(--font-mono);
+  font-size: 13px;
+  line-height: 1.2;
+  background: color-mix(in srgb, var(--viz-1) 15%, var(--surface));
+  color: var(--ink);
+  border: 1.5px solid transparent;
+}
+.chipSub {
+  font-size: 10.5px;
+  color: var(--ink-3);
+}
+.chipOff {
+  background: transparent;
+  border: 1.5px dashed var(--rule);
+  color: var(--ink-3);
+  text-decoration: line-through;
+}
+.chipOut {
+  background: transparent;
+  border: 1.5px dashed var(--rule);
+  color: var(--ink-3);
+}
+.small {
+  font-size: 0.78rem;
+  color: var(--ink-3);
+}
+.status {
+  width: 100%;
+  margin: 0;
+  padding: 0.45rem 0.7rem;
+  border-radius: 8px;
+  font-size: var(--step--1);
+  color: var(--ink);
+}
+/* identical vectors are the limitation being taught (warning); different vectors are neutral */
+.same {
+  background: var(--warn-soft);
+  border-left: 4px solid var(--viz-2);
+}
+.diff {
+  background: var(--surface-2);
+  border-left: 4px solid var(--accent);
+}
+
+/* ---------- search results ---------- */
+.results {
+  width: 100%;
+  display: grid;
+  gap: 0.45rem;
+}
+.result {
+  display: grid;
+  grid-template-columns: 1.8rem minmax(0, 1fr) 3.4rem;
+  gap: 0.15rem 0.5rem;
+  align-items: center;
+  padding: 0.4rem 0.5rem;
+  border-radius: 8px;
+  border: 1.5px solid transparent;
+  background: var(--surface-2);
+}
+.resultTop {
+  border-color: var(--viz-2);
+  background: color-mix(in srgb, var(--viz-2) 10%, var(--surface));
+}
+.rank {
+  font-family: var(--font-mono);
+  font-weight: 800;
+  font-size: 0.8rem;
+  color: var(--ink-3);
+  text-align: center;
+}
+.resultTop .rank {
+  color: color-mix(in srgb, var(--viz-2) 65%, var(--ink));
+}
+.weak {
+  display: block;
+  font-size: 0.74rem;
+  font-style: italic;
+  color: var(--ink-2);
+}
+.docText {
+  font-size: 0.86rem;
+  color: var(--ink);
+  line-height: 1.4;
+}
+.hit {
+  background: var(--highlight-soft);
+  color: var(--highlight-ink);
+  box-shadow: inset 0 -2px 0 var(--highlight);
+  border-radius: 3px;
+  padding: 0 1px;
+}
+.score {
+  font-family: var(--font-mono);
+  font-weight: 700;
+  font-size: 0.85rem;
+  text-align: right;
+  color: var(--ink);
+}
+.barTrack {
+  grid-column: 2 / 4;
+  height: 7px;
+  border-radius: 4px;
+  background: var(--surface-3);
+  overflow: hidden;
+}
+.barFill {
+  display: block;
+  height: 100%;
+  border-radius: 4px;
+  transition: width 0.25s ease;
+}

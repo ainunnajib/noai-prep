@@ -1,0 +1,440 @@
+/* Shared styles for the bert-and-gpt visuals. Colours come only from theme tokens. */
+
+.stack {
+  width: 100%;
+  display: grid;
+  gap: 0.8rem;
+  min-width: 0;
+}
+
+.hint {
+  font-size: var(--step--1);
+  color: var(--ink-2);
+  line-height: 1.45;
+  margin: 0;
+}
+.hint b {
+  color: var(--ink);
+}
+
+/* ---------- token chips ---------- */
+.tokens {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  align-items: center;
+  min-width: 0;
+}
+.tok {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 2rem;
+  padding: 0.15rem 0.55rem;
+  border-radius: 7px;
+  border: 1.5px solid var(--rule);
+  background: var(--surface-2);
+  color: var(--ink);
+  font: inherit;
+  font-size: 0.95rem;
+  line-height: 1.2;
+  white-space: nowrap;
+}
+.tokBtn {
+  cursor: pointer;
+}
+.tokBtn:hover {
+  border-color: var(--accent-line);
+}
+.tokBtn:focus-visible {
+  outline: 3px solid var(--accent);
+  outline-offset: 1px;
+}
+.tokSpecial {
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--ink-3);
+  background: var(--surface);
+  border-style: dashed;
+}
+.tokMask {
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  font-weight: 800;
+  color: var(--accent-ink);
+  background: var(--accent);
+  border-color: var(--accent);
+}
+.tokHidden {
+  color: var(--ink-3);
+  background: transparent;
+  border-style: dashed;
+  text-decoration: line-through;
+  opacity: 0.55;
+}
+.tokSeen {
+  border-color: color-mix(in srgb, var(--viz-3) 70%, var(--surface));
+  background: color-mix(in srgb, var(--viz-3) 16%, var(--surface));
+}
+.tokSel {
+  border-color: var(--viz-2);
+  background: color-mix(in srgb, var(--viz-2) 22%, var(--surface));
+  font-weight: 700;
+}
+
+/* ---------- prediction / probability rows (clickable bars) ---------- */
+.rows {
+  display: grid;
+  gap: 0.3rem;
+  width: 100%;
+  min-width: 0;
+}
+.row {
+  display: grid;
+  grid-template-columns: minmax(4.5rem, 7.5rem) minmax(0, 1fr) 3.4rem;
+  gap: 0.5rem;
+  align-items: center;
+  font: inherit;
+  font-size: 0.92rem;
+  color: var(--ink);
+  background: transparent;
+  border: 1.5px solid transparent;
+  border-radius: 7px;
+  padding: 0.15rem 0.3rem;
+  text-align: left;
+  min-width: 0;
+}
+button.row {
+  cursor: pointer;
+}
+button.row:hover {
+  background: var(--surface-2);
+  border-color: var(--viz-1);
+}
+.plus {
+  display: inline-block;
+  width: 1.1rem;
+  color: var(--accent);
+  font-weight: 800;
+}
+.linkNext {
+  color: var(--ink-3);
+  background: transparent;
+  border-style: dashed;
+}
+button.row:focus-visible {
+  outline: 3px solid var(--accent);
+  outline-offset: 1px;
+}
+.rowStrong {
+  border-color: var(--viz-3);
+  background: color-mix(in srgb, var(--viz-3) 10%, var(--surface));
+}
+.rowLabel {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: 650;
+}
+.track {
+  height: 0.9rem;
+  border-radius: 4px;
+  background: var(--surface-2);
+  overflow: hidden;
+  min-width: 2rem;
+}
+.fill {
+  display: block;
+  height: 100%;
+  border-radius: 4px;
+  transition: width 0.25s ease;
+}
+.val {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  font-size: 0.85rem;
+  text-align: right;
+  color: var(--ink-2);
+}
+
+/* ---------- panels side by side, stacking on phones ---------- */
+.pair {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(250px, 100%), 1fr));
+  gap: 0.9rem;
+  width: 100%;
+  min-width: 0;
+}
+.panel {
+  border: 1px solid var(--rule);
+  border-radius: var(--radius-m);
+  padding: 0.7rem 0.75rem;
+  background: var(--surface);
+  min-width: 0;
+  display: grid;
+  gap: 0.55rem;
+  align-content: start;
+}
+.panelOn {
+  border-color: var(--accent-line);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent) 18%, transparent);
+}
+.panelTitle {
+  font-weight: 800;
+  font-size: 0.95rem;
+  color: var(--ink);
+  display: flex;
+  justify-content: space-between;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  align-items: baseline;
+}
+.panelSub {
+  font-weight: 600;
+  font-size: 0.8rem;
+  color: var(--ink-3);
+}
+
+/* ---------- status line ---------- */
+.status {
+  width: 100%;
+  font-size: var(--step--1);
+  line-height: 1.45;
+  padding: 0.5rem 0.7rem;
+  border-radius: var(--radius-s);
+  background: var(--surface-2);
+  color: var(--ink);
+  border-left: 4px solid var(--accent);
+}
+.statusOk {
+  border-left-color: var(--ok);
+  background: var(--ok-soft);
+}
+.statusBad {
+  border-left-color: var(--bad);
+  background: var(--bad-soft);
+}
+
+/* ---------- masking sampler units ---------- */
+.units {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  width: 100%;
+  min-width: 0;
+}
+.unit {
+  display: grid;
+  grid-template-rows: auto auto auto;
+  gap: 2px;
+  border-radius: 8px;
+  padding: 3px;
+  border: 1.5px solid transparent;
+  min-width: 3.1rem;
+}
+.unitChosen {
+  border-color: var(--viz-2);
+  background: color-mix(in srgb, var(--viz-2) 8%, var(--surface));
+}
+.cellOrig,
+.cellIn,
+.cellLab {
+  text-align: center;
+  font-size: 0.85rem;
+  line-height: 1.15;
+  padding: 0.2rem 0.35rem;
+  border-radius: 5px;
+  white-space: nowrap;
+}
+.cellOrig {
+  color: var(--ink-2);
+}
+.cellIn {
+  background: var(--surface-2);
+  color: var(--ink);
+  font-weight: 650;
+}
+.cellLab {
+  font-family: var(--font-mono);
+  font-size: 0.74rem;
+  color: var(--ink-3);
+}
+.cellLabOn {
+  color: var(--ink);
+  font-weight: 800;
+  background: color-mix(in srgb, var(--viz-2) 22%, var(--surface));
+}
+.inMask {
+  background: var(--accent);
+  color: var(--accent-ink);
+  font-family: var(--font-mono);
+  font-size: 0.74rem;
+  font-weight: 800;
+}
+/* a full-colour edge keeps the random / unchanged cells (and their legend swatches) visible on the dark surface */
+.inRandom {
+  background: color-mix(in srgb, var(--viz-4) 30%, var(--surface));
+  box-shadow: inset 0 0 0 1.5px var(--viz-4);
+  color: var(--ink);
+}
+.inSame {
+  background: color-mix(in srgb, var(--viz-3) 30%, var(--surface));
+  box-shadow: inset 0 0 0 1.5px var(--viz-3);
+  color: var(--ink);
+}
+.legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem 1rem;
+  font-size: 0.8rem;
+  color: var(--ink-2);
+  width: 100%;
+}
+.legend span {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+.sw {
+  display: inline-block;
+  width: 0.95rem;
+  height: 0.95rem;
+  border-radius: 4px;
+  border: 1px solid color-mix(in srgb, var(--ink) 25%, transparent);
+}
+
+/* ---------- chain-rule strip ---------- */
+.chain {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+  width: 100%;
+  min-width: 0;
+  align-items: stretch;
+}
+.link {
+  display: grid;
+  justify-items: center;
+  gap: 1px;
+  padding: 0.2rem 0.4rem;
+  border-radius: 7px;
+  background: var(--surface-2);
+  border: 1.5px solid var(--rule);
+  min-width: 2.6rem;
+}
+.linkWord {
+  font-weight: 700;
+  font-size: 0.92rem;
+  color: var(--ink);
+  white-space: nowrap;
+}
+.linkP {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  font-size: 0.74rem;
+  color: var(--ink-3);
+  white-space: nowrap;
+}
+.linkZero {
+  border-color: var(--bad);
+  background: var(--bad-soft);
+}
+.formula {
+  width: 100%;
+  font-family: var(--font-mono);
+  font-size: 0.82rem;
+  color: var(--ink-2);
+  overflow-wrap: anywhere;
+  line-height: 1.5;
+}
+
+/* ---------- attention-mask grids ---------- */
+.maskGrid {
+  display: grid;
+  gap: 3px;
+  align-items: center;
+  justify-content: start;
+  min-width: 0;
+}
+.mLab {
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--ink-3);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  line-height: 1.1;
+}
+.mColLab {
+  text-align: center;
+  writing-mode: horizontal-tb;
+}
+.mRowLab {
+  text-align: right;
+  padding-right: 3px;
+  background: none;
+  border: none;
+  font: inherit;
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--ink-3);
+  cursor: pointer;
+}
+.mRowLab:focus-visible {
+  outline: 2px solid var(--accent);
+}
+.mLabOn {
+  color: color-mix(in srgb, var(--viz-2) 70%, var(--ink));
+}
+.mCell {
+  display: grid;
+  place-items: center;
+  border-radius: 4px;
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  font-weight: 700;
+  border: 1.5px solid transparent;
+  padding: 0;
+  cursor: pointer;
+}
+.mOn {
+  background: color-mix(in srgb, var(--viz-3) 30%, var(--surface));
+  color: var(--ink);
+}
+.mOff {
+  background: var(--surface-2);
+  color: var(--ink-3);
+}
+.mRowSel {
+  border-color: var(--viz-2);
+}
+.mOnSel {
+  /* 48% keeps the ink text above 4.5:1 in both themes; the orange row border marks the selection */
+  background: color-mix(in srgb, var(--viz-3) 48%, var(--surface));
+  font-weight: 800;
+}
+
+/* ---------- small tables ---------- */
+.mini {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.86rem;
+}
+.mini th,
+.mini td {
+  padding: 0.25rem 0.4rem;
+  border-bottom: 1px solid var(--rule);
+  text-align: left;
+}
+.mini th {
+  color: var(--ink-3);
+  font-weight: 700;
+  font-size: 0.78rem;
+}
+.num {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  text-align: right !important;
+  white-space: nowrap;
+}

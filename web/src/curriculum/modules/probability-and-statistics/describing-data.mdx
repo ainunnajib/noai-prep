@@ -1,0 +1,232 @@
+import BalanceBeam from './visuals/describing-data/BalanceBeam'
+import SkewTail from './visuals/describing-data/SkewTail'
+import VarianceSquares from './visuals/describing-data/VarianceSquares'
+
+Before any model learns from data, someone has to *look* at it. The first two questions are always the same: **what is a typical value?** and **how spread out are the values?** This lesson gives you the handful of numbers that answer them. They come back everywhere in AI (averaging a loss, standardising features), and NOAI papers use them for several quick marks.
+
+<Analogy>
+Two hawker stalls both have an *average* queue of 4 minutes. At the first stall you always wait 3 to 5 minutes. At the second you sometimes walk straight up to the counter and sometimes wait 8 minutes. Same centre, very different experience. To describe data honestly you need one number for the **centre** and another for the **spread**.
+</Analogy>
+
+## The mean: add up, then share out equally
+
+The <Term def="The sum of all the values divided by how many values there are. Also called the average or arithmetic mean.">mean</Term> is the everyday "average": add all the values, then divide by how many there are.
+
+$$
+\bar{x} \;=\; \frac{1}{n}\sum_{i=1}^{n} x_i \;=\; \frac{x_1 + x_2 + \dots + x_n}{n}
+$$
+
+Reading the symbols one at a time:
+
+- $x_1, x_2, \dots, x_n$ are the data values, and $x_i$ means "the $i$-th value".
+- $n$ is how many values there are.
+- $\sum$ (capital Greek sigma) means "add up": $\sum_{i=1}^{n} x_i$ says "add $x_i$ for every $i$ from 1 to $n$".
+- $\bar{x}$ (read "x-bar") is the mean. For a whole population it is often written $\mu$ ("mu").
+
+Seven friends wait for a bus for 2, 3, 5, 5, 5, 7 and 8 minutes. The total is 35 minutes, so the mean is $35 \div 7 = 5$ minutes.
+
+Why is the mean called the **balance point**? Picture each value as an equal weight sitting on a see-saw. There is exactly one place to put the pivot so that the see-saw stays level, and that place is the mean.
+
+<BalanceBeam />
+
+The see-saw balances because the distances below the mean cancel the distances above it. A value's <Term def="How far a value is from the mean, with a sign: positive above the mean, negative below. Written x_i minus x-bar.">deviation</Term> is $x_i - \bar{x}$. For the bus data the deviations are $-3, -2, 0, 0, 0, +2, +3$, and they add up to exactly 0. This happens for **every** data set:
+
+$$
+\sum_{i=1}^{n} (x_i - \bar{x}) = 0
+$$
+
+Remember this fact. In a few minutes it will explain why variance has to use squares.
+
+## The median: the middle of the sorted list
+
+The <Term def="The middle value once the data is sorted. With an even number of values, it is the mean of the two middle values.">median</Term> is the value in the middle once you sort the data.
+
+- **Odd** number of values: take the middle one. $2, 3, 5, \mathbf{5}, 5, 7, 8$ has median 5.
+- **Even** number of values: take the mean of the two middle ones. $2, 3, 5, \mathbf{5}, \mathbf{5}, 7, 8, 21$ has median $\frac{5 + 5}{2} = 5$.
+
+That second list is the bus data plus one friend whose bus broke down (21 minutes). The mean jumped from 5 to $56 \div 8 = 7$ minutes, but the median did not move at all: it only cares about the *order* of the values, so a huge value is just "one more value on the right". We say the median is <Term def="Hardly affected by a few extreme values. The median is robust; the mean is not.">robust</Term> to <Term def="A value far away from the rest of the data, such as a typing error or a rare extreme case.">outliers</Term>, and the mean is not. That is why reports on incomes and house prices quote the **median**: one billionaire moving in would drag the mean up by millions.
+
+<PastPaperQuestion paper="prelim2026" n={47} />
+
+## The mode: the most common value
+
+The <Term def="The value that appears most often in the data. There can be more than one mode, or none.">mode</Term> is the value that appears most often: 5 in the bus data. A data set can have two modes (it is then *bimodal*), or none at all if every value appears once. The mode is also the only "average" that works for categories: there is no mean bubble-tea flavour, but there is a most popular one.
+
+<QuickCheck
+  id="probability-and-statistics.describing-data.qc1"
+  q="Five students sleep 1, 2, 3, 4 and 100 hours (someone made a typing error). What are the mean and the median?"
+  options={['Mean 3, median 3', 'Mean 22, median 22', 'Mean 22, median 3', 'Mean 20, median 4']}
+  answer={2}
+  explain="The mean is $(1 + 2 + 3 + 4 + 100) \div 5 = 110 \div 5 = 22$. The sorted middle value is 3. The single bad value drags the mean far above every sensible value, while the median ignores it."
+/>
+
+## Skew: which way does the tail point?
+
+Many real data sets are lopsided: most people earn a modest income and a few earn enormous amounts. A distribution like this is <Term def="Lopsided: one side has a long, thin tail of extreme values. Right-skewed (positive skew) means the long tail is on the side of large values.">skewed</Term>. We name the skew after the side where the long tail is:
+
+- **Right-skewed** (positive skew): a long tail of large values on the right.
+- **Left-skewed** (negative skew): a long tail of small values on the left.
+- **Symmetric**: both sides are mirror images, like a bell.
+
+Slide between the three shapes and watch where the mean, median and mode sit.
+
+<SkewTail />
+
+<KeyIdea>
+The mean is dragged towards the tail, the median follows a little, and the mode stays at the peak. Right-skewed data typically has **mean > median > mode**, left-skewed data has **mean < median < mode**, and symmetric, single-peaked data has all three equal.
+</KeyIdea>
+
+The *skewness* readout turns this into one number: the average **cube** of the standardised distances, $\frac{1}{n}\sum \big(\frac{x_i - \bar{x}}{\sigma}\big)^3$, where $\sigma$ is the standard deviation (coming up next). Cubing keeps the sign, so a long right tail makes it positive. For NOAI you only need the sign and the ordering rule.
+
+<QuickCheck
+  id="probability-and-statistics.describing-data.qc2"
+  q="In a company, the mean monthly salary is 6000 dollars and the median is 4500 dollars. What is the most likely shape of the salary distribution?"
+  options={['Left-skewed: a few very low salaries pull the median down', 'Symmetric: the mean and median are close enough', 'Impossible to say without knowing the mode', 'Right-skewed: a few very high salaries pull the mean up']}
+  answer={3}
+  explain="The mean sits above the median, so something is pulling the mean towards large values. That is a long right tail. A few extreme values barely move the median, and a left tail would pull the mean *below* the median, not above it. A gap of 1500 dollars is far too big to call symmetric."
+/>
+
+<ExamTip>
+NOAI likes the ordering question: "In a right-skewed distribution, which is typically largest?" The mean, because it chases the tail: **mean > median > mode**. Incomes, house prices, waiting times and follower counts are the standard right-skewed examples. *Typically* matters: it is a rule of thumb, and odd shapes can break it.
+</ExamTip>
+
+<PastPaperQuestion paper="prelim2026" n={58} />
+
+## Spread: how far do values wander from the centre?
+
+The quickest measure of spread is the <Term def="The largest value minus the smallest value.">range</Term>, the largest value minus the smallest, but a single outlier wrecks it. A more robust partner for the median is the <Term def="Interquartile range: the spread of the middle half of the sorted data (the third quartile minus the first quartile). Outliers barely affect it.">interquartile range (IQR)</Term>, the width of the middle half of the data. Sort the data and split it into a lower and an upper half: the first quartile $Q_1$ is the median of the lower half, the third quartile $Q_3$ the median of the upper half, and $\text{IQR} = Q_3 - Q_1$. For $1, 2, \dots, 8$ that gives $Q_1 = 2.5$, $Q_3 = 6.5$ and an IQR of 4. (This "median of each half" rule is the usual by-hand method. NumPy and pandas use another rule: they put the $p$ quantile at position $p \times (n - 1)$ of the sorted list, counting from 0, and interpolate between neighbours, which gives 2.75 and 6.25 here. You will use it in the [pandas module](#/learn/pandas-and-plotting/dataframes-and-selection). In the exam, use the method the question gives.)
+
+The measure used most in maths and AI, though, is built from the deviations. A natural first idea is to average the deviations $x_i - \bar{x}$, but you already know they always add up to 0, whatever the data. The fix is to **square** each deviation first. Squares are never negative, so nothing cancels.
+
+$$
+\sigma^2 \;=\; \frac{1}{n}\sum_{i=1}^{n} \left(x_i - \bar{x}\right)^2
+\qquad\qquad
+\sigma \;=\; \sqrt{\sigma^2}
+$$
+
+In words:
+
+- $(x_i - \bar{x})^2$ squares each deviation, so it is positive and far values count much more.
+- $\frac{1}{n}\sum$ averages those squares. The result $\sigma^2$ ("sigma squared") is the <Term def="The average of the squared distances from the mean. Its units are the data's units squared.">variance</Term>.
+- Squaring also squares the units (minutes become "minutes²"), so taking the square root gives the <Term def="The square root of the variance. It measures a typical distance from the mean, in the same units as the data.">standard deviation</Term> $\sigma$, back in minutes.
+
+Drag the points below and watch the squares.
+
+<VarianceSquares />
+
+<KeyIdea>
+**Variance** is the average squared distance from the mean. The **standard deviation** is its square root, in the same units as the data. A point twice as far from the mean adds four times as much to the variance, so far-out points dominate it.
+</KeyIdea>
+
+<PastPaperQuestion paper="prelim2026" n={53} />
+
+<Steps title="Variance and SD of the queue times 1, 3, 4, 5, 7 minutes (the visual's starting data)">
+  <Step title="Find the mean">
+    $1 + 3 + 4 + 5 + 7 = 20$, and $20 \div 5 = 4$. So $\bar{x} = 4$.
+  </Step>
+  <Step title="Find each deviation">
+    Subtract the mean from each value: $-3, -1, 0, +1, +3$. Check: they add to 0.
+  </Step>
+  <Step title="Square each deviation">
+    $9, 1, 0, 1, 9$. Every square is positive, and the two values 3 away contribute 9 each, far more than the two values 1 away.
+  </Step>
+  <Step title="Average the squares">
+    $9 + 1 + 0 + 1 + 9 = 20$, and $20 \div 5 = 4$. The variance is $\sigma^2 = 4$ minutes².
+  </Step>
+  <Step title="Take the square root">
+    $\sigma = \sqrt{4} = 2$ minutes. A typical queue time is about 2 minutes away from the mean of 4.
+  </Step>
+</Steps>
+
+<QuickCheck
+  id="probability-and-statistics.describing-data.qc3"
+  q="What is the variance of $[2, 4, 6]$, dividing by $n$?"
+  options={['$4$', '$8/3$', '$8$', '$4/3$']}
+  answer={1}
+  explain="The mean is 4, so the deviations are $-2, 0, 2$ and their squares are $4, 0, 4$. Their sum is 8, and $8 \div 3 = 8/3 \approx 2.67$. Answering 8 forgets to divide by $n$; 4 divides by $n - 1 = 2$ instead of $n = 3$; $4/3$ averages the distances $2, 0, 2$ without squaring them."
+/>
+
+Before the next exam question, think about the extreme case: what happens to every deviation, and so to the variance, if all the values are the same?
+
+<PastPaperQuestion paper="prelim2026" n={48} />
+
+### Divide by n, or by n − 1?
+
+The visual's toggle shows two versions of the variance.
+
+- Divide by $n$ when your numbers are the **whole population** you care about (every student in the class). This is the <Term def="Variance computed by dividing the sum of squared deviations by n. Used when the data is the entire population.">population variance</Term> $\sigma^2$.
+- Divide by $n - 1$ when your numbers are a **sample** used to estimate a bigger population (50 students surveyed out of a whole school). This is the <Term def="Variance computed by dividing by n minus 1. Used when the data is a sample and you want to estimate the population's variance.">sample variance</Term>, usually written $s^2$.
+
+Careful with the word: in statistics a **sample** is the whole group of $n$ values you collected (all 50 survey answers). ML books often call a single row of a dataset "a sample" too, as in [Matrices](#/learn/vectors-and-matrices/matrices-and-multiplication) ("rows are samples"). In this module it always means the whole group.
+
+Why $n - 1$? A sample's points sit a little closer to their own mean than to the true population mean, so dividing by $n$ comes out slightly too small on average; the smaller divisor $n - 1$ corrects this. For large $n$ the two are almost identical.
+
+<Mistake>
+Python libraries disagree about the default. NumPy's `np.var` and `np.std` divide by $n$ unless you pass `ddof=1`. pandas' `.var()` and `.std()` divide by $n - 1$ by default. PyTorch's `torch.var` and `torch.std` also divide by $n - 1$ by default. If a result doesn't match the expected output, check the divisor first.
+</Mistake>
+
+### Shifting and scaling
+
+Two facts save time in the exam:
+
+- **Add** the same number $c$ to every value: the mean goes up by $c$, but the variance and standard deviation do **not** change, because the distances between values stay the same.
+- **Multiply** every value by $k$: the mean is multiplied by $k$, the standard deviation by $|k|$ and the variance by $k^2$. Doubling every mark doubles the SD and multiplies the variance by 4.
+
+These two facts are why <Term def="Rescaling a feature as (x minus mean) divided by standard deviation, so it has mean 0 and standard deviation 1.">standardising</Term> a feature with $z = (x - \bar{x}) / \sigma$ gives mean 0 and standard deviation 1. You already standardised whole columns this way in [Broadcasting](#/learn/numpy/broadcasting); the [lesson on the normal curve](#/learn/probability-and-statistics/distributions-and-clt) explains what a $z$-score tells you.
+
+## In Python
+
+Here is the whole lesson in a few lines of NumPy and pandas. pandas is Python's table library, taught in the [pandas module](#/learn/pandas-and-plotting/dataframes-and-selection); here `pd.Series(x)` simply wraps the numbers as one table column so we can call its `.var()`. Predict what each line prints, then press Run to check.
+
+<PyRunner packages={['numpy', 'pandas']} code={`import numpy as np
+import pandas as pd
+
+waits = np.array([2, 3, 5, 5, 5, 7, 8])
+print("mean:  ", waits.mean())
+print("median:", np.median(waits))
+values, counts = np.unique(waits, return_counts=True)
+print("mode:  ", values[counts.argmax()])
+
+with_outlier = np.append(waits, 21)
+print("with the outlier -> mean", with_outlier.mean(), " median", np.median(with_outlier))
+
+x = np.array([1, 3, 4, 5, 7])
+print("np.var  (divides by n):  ", x.var())
+print("np.std  (divides by n):  ", x.std())
+print("np.var  with ddof=1:     ", x.var(ddof=1))
+print("pandas .var() (n - 1):   ", pd.Series(x).var())`} />
+
+<Reveal label="Show the expected output">
+
+```text
+mean:   5.0
+median: 5.0
+mode:   5
+with the outlier -> mean 7.0  median 5.0
+np.var  (divides by n):   4.0
+np.std  (divides by n):   2.0
+np.var  with ddof=1:      5.0
+pandas .var() (n - 1):    5.0
+```
+
+</Reveal>
+
+<Note title="Why AI cares: squared error versus absolute error">
+The mean is the number $c$ that makes the total squared distance $\sum (x_i - c)^2$ smallest; a median makes the total absolute distance $\sum |x_i - c|$ smallest. So a model trained with mean squared error (MSE) gets pulled around by outliers, like the mean, while one trained with mean absolute error (MAE) is more robust, like the median.
+</Note>
+
+<ExamTip>
+Speed tricks for a 36-second question:
+- The mean of evenly spaced numbers is $(\text{first} + \text{last}) / 2$: the mean of $2, 4, 6, 8$ is 5.
+- If every value is identical, the variance and standard deviation are 0.
+- The SD is the **square root** of the variance: variance 9 means SD 3, and a distractor of 81 is a trap.
+- To find the median, sort first. Unsorted lists are a favourite trap.
+</ExamTip>
+
+<Takeaways>
+- **Mean** = sum ÷ count, the balance point. One outlier can drag it a long way.
+- **Median** = middle of the sorted data, robust to outliers. **Mode** = most common value, and the only one that works for categories.
+- In skewed data the mean chases the tail: right skew typically gives **mean > median > mode**.
+- **Variance** = average squared distance from the mean. **Standard deviation** = its square root, in the data's own units.
+- NumPy divides by $n$ by default; pandas and PyTorch divide by $n - 1$.
+</Takeaways>
