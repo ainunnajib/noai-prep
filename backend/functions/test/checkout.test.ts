@@ -218,13 +218,13 @@ describe('confirmCheckout', () => {
     expect(deps.db.read('payments/cs_test_a1b2c3')?.status).toBe('refunded')
   })
 
-  it('keeps whitelist access as it is if an invited person somehow pays', async () => {
+  it('gives an invited person who somehow pays a paid unlock (so leaving the whitelist later keeps it)', async () => {
     const deps = makeDeps()
     deps.stripe.sessions.set('cs_test_a1b2c3', session())
     deps.db.seed('entitlements/user-1', { access: 'whitelist', source: 'whitelist', email: INVITED, grantedAt: 'x' })
     const result = await confirmCheckout(deps, signedIn('user-1', INVITED, true, { sessionId: 'cs_test_a1b2c3' }))
-    expect(result).toEqual({ access: 'whitelist', status: 'paid' })
-    expect(deps.db.read('entitlements/user-1')?.access).toBe('whitelist')
+    expect(result).toEqual({ access: 'paid', status: 'paid' })
+    expect(deps.db.read('entitlements/user-1')).toMatchObject({ access: 'paid', source: 'stripe', paymentIntent: 'pi_111' })
     expect(deps.db.read('payments/cs_test_a1b2c3')?.status).toBe('paid')
   })
 })

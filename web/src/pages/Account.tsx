@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { Avatar } from '../components/account/AccountControl'
+import { BreakableEmail } from '../components/account/BreakableEmail'
+import { useSavedWhere } from '../components/account/copy'
 import { ProviderButtons } from '../components/account/ProviderButtons'
 import { UNLOCK_FROM_KEY, UnlockButton } from '../components/account/UnlockButton'
 import { PageSkeleton } from '../components/layout/AppShell'
@@ -16,7 +18,7 @@ import {
   type AccountState,
   type AccountUser,
 } from '../lib/accounts'
-import { SYNC_ERROR } from '../lib/accounts/errors'
+import { CONFIRM_ERROR, CONFIRM_WRONG_ACCOUNT_ERROR, SIGN_OUT_UNSAVED_ERROR, SYNC_ERROR } from '../lib/accounts/errors'
 import { lessonKey, useProgress, type ProgressState } from '../lib/progress'
 import { useDocumentTitle } from '../lib/useDocumentTitle'
 import { nextLesson } from './Roadmap'
@@ -100,12 +102,21 @@ function useCheckoutReturn(s: AccountState) {
     setPhase('confirming')
     void account
       .confirmCheckout(ret.sessionId)
-      .then(() => waitForAccess(UNLOCK_WAIT_MS))
+      .then(() => {
+        // The payment check itself failed: say so in the banner now (not under an "unlocking…" spinner), but keep
+        // listening, as the webhook may still unlock the account.
+        if (isConfirmError(account.get().error)) setPhase('slow')
+        return waitForAccess(UNLOCK_WAIT_MS)
+      })
       .then((ok) => setPhase(ok ? 'done' : 'slow'))
   }, [ret, s.status])
 
-  return { ret, phase, from }
+  // the unlock can land after the wait has timed out (a late webhook): that is done too
+  return { ret, phase: phase === 'slow' && hasFullAccess(s) ? 'done' : phase, from }
 }
+
+/** The payment check's own messages, shown in the checkout banner rather than as a separate error. */
+const isConfirmError = (e: string | null) => e === CONFIRM_ERROR || e === CONFIRM_WRONG_ACCOUNT_ERROR
 
 interface CheckoutBannerProps {
   ret: CheckoutReturn
@@ -140,7 +151,7 @@ function CheckoutBanner({ ret, phase, from, error }: CheckoutBannerProps) {
     return (
       <div className="account-banner is-warn" role="alert">
         <strong>Your payment is still being confirmed.</strong>
-        <span>{error ?? "If you were charged, your access will switch on shortly. Refresh this page in a minute."}</span>
+        <span>{error ?? "If you were charged, your access will switch on here by itself shortly. You don't need to refresh or pay again."}</span>
       </div>
     )
   if (phase === 'sign-in')
@@ -170,7 +181,8 @@ function SyncStatus({ s }: { s: AccountState }) {
   }, [])
   // Only the state (saving / not saved / synced / connecting) is announced; the age ticks every minute, so it sits
   // outside the live region.
-  const failed = s.error === SYNC_ERROR
+  // (sign-out held back for unsaved progress replaces the sync error, and means the same here)
+  const failed = s.error === SYNC_ERROR || s.error === SIGN_OUT_UNSAVED_ERROR
   let label: string
   let age = ''
   if (s.syncing) label = 'Saving to your account…'
@@ -350,7 +362,25 @@ function DangerZone({ s, onAccountDeleted }: { s: AccountState; onAccountDeleted
   const [confirm, setConfirm] = useState<'progress' | 'account' | null>(null)
   const [busy, setBusy] = useState(false)
   const [done, setDone] = useState<string | null>(null)
+  const savedWhere = useSavedWhere()
   const paid = s.access === 'paid'
+  const progressBtn = useRef<HTMLButtonElement>(null)
+  const accountBtn = useRef<HTMLButtonElement>(null)
+  /** the button whose confirm box just closed: focus goes back to it */
+  const returnTo = useRef<'progress' | 'account' | null>(null)
+
+  // Only once the button is enabled again (busy false), so after the render that enables it: React batches the
+  // state changes made after an await, so the button is still disabled straight after them.
+  useEffect(() => {
+    if (confirm || busy || !returnTo.current) return
+    ;(returnTo.current === 'progress' ? progressBtn : accountBtn).current?.focus()
+    returnTo.current = null
+  }, [confirm, busy])
+
+  const close = (what: 'progress' | 'account') => {
+    returnTo.current = what
+    setConfirm(null)
+  }
 
   const run = async (what: 'progress' | 'account') => {
     setBusy(true)
@@ -358,7 +388,7 @@ function DangerZone({ s, onAccountDeleted }: { s: AccountState; onAccountDeleted
     // straight from the click: deleting the account may need a sign-in pop-up first
     await (what === 'progress' ? account.deleteCloudProgress() : account.deleteAccount())
     setBusy(false)
-    setConfirm(null)
+    close(what)
     if (!account.get().error && what === 'progress') setDone('Your saved progress has been deleted, from your account and this browser.')
     if (what === 'account' && !account.get().user) onAccountDeleted() // the store signed us out, so this view is about to unmount
   }
@@ -366,12 +396,15 @@ function DangerZone({ s, onAccountDeleted }: { s: AccountState; onAccountDeleted
   return (
     <section className="section account-danger" aria-labelledby="data-h">
       <h2 id="data-h">Your data</h2>
-      <p>Your progress is saved in this browser and to your account. You can delete it, or your whole account, at any time.</p>
+      <p>
+        Your progress is saved {savedWhere === 'to your account' ? 'in this browser and to your account' : 'in this browser'}. You can delete it,
+        or your whole account, at any time.
+      </p>
       <div className="account-actions">
-        <button type="button" className="btn" onClick={() => setConfirm('progress')} disabled={busy}>
+        <button type="button" className="btn" ref={progressBtn} onClick={() => setConfirm('progress')} disabled={busy}>
           Delete my saved progress
         </button>
-        <button type="button" className="btn" onClick={() => setConfirm('account')} disabled={busy}>
+        <button type="button" className="btn" ref={accountBtn} onClick={() => setConfirm('account')} disabled={busy}>
           Delete my account
         </button>
       </div>
@@ -383,7 +416,7 @@ function DangerZone({ s, onAccountDeleted }: { s: AccountState; onAccountDeleted
             <button type="button" className="btn btn-primary btn-small" onClick={() => run('progress')} disabled={busy}>
               {busy ? 'Deleting…' : 'Delete my progress'}
             </button>
-            <button type="button" className="btn btn-small" onClick={() => setConfirm(null)} disabled={busy}>
+            <button type="button" className="btn btn-small" onClick={() => close('progress')} disabled={busy}>
               Cancel
             </button>
           </div>
@@ -402,7 +435,7 @@ function DangerZone({ s, onAccountDeleted }: { s: AccountState; onAccountDeleted
             <button type="button" className="btn btn-primary btn-small" onClick={() => run('account')} disabled={busy}>
               {busy ? 'Deleting…' : 'Delete my account'}
             </button>
-            <button type="button" className="btn btn-small" onClick={() => setConfirm(null)} disabled={busy}>
+            <button type="button" className="btn btn-small" onClick={() => close('account')} disabled={busy}>
               Cancel
             </button>
           </div>
@@ -419,12 +452,21 @@ export default function Account() {
   const { ret, phase, from } = useCheckoutReturn(s)
   const [signingOut, setSigningOut] = useState(false)
   const [deleted, setDeleted] = useState(false)
+  const deletedRef = useRef<HTMLDivElement>(null)
   useDocumentTitle('Your account')
 
   // the "account deleted" note is for the sign-out that follows the delete, not a later one
   useEffect(() => {
     if (s.status === 'signed-in') setDeleted(false)
   }, [s.status])
+
+  // The sign-in view that replaces the dashboard is much shorter: show its confirmation from the top, as a page change
+  // would (on a phone the old scroll position leaves it under the sticky header).
+  useEffect(() => {
+    if (!deleted) return
+    window.scrollTo(0, 0)
+    deletedRef.current?.focus({ preventScroll: true })
+  }, [deleted])
 
   if (!ACCOUNTS_ENABLED)
     return (
@@ -439,7 +481,8 @@ export default function Account() {
 
   if (s.status === 'loading') return <PageSkeleton />
 
-  const banner = <CheckoutBanner ret={ret} phase={phase} from={from} error={s.error} />
+  const confirmError = isConfirmError(s.error) ? s.error : null
+  const banner = <CheckoutBanner ret={ret} phase={phase} from={from} error={confirmError} />
 
   if (s.status !== 'signed-in' || !s.user)
     return (
@@ -451,7 +494,7 @@ export default function Account() {
         </div>
         {banner}
         {deleted && (
-          <div className="account-banner is-ok" role="status">
+          <div ref={deletedRef} tabIndex={-1} className="account-banner is-ok" role="status">
             <strong>Your account has been deleted.</strong>
             <span>The progress saved with it has gone too. You can carry on with the free modules without signing in.</span>
           </div>
@@ -466,11 +509,13 @@ export default function Account() {
     )
 
   const user = s.user
-  const signOut = async () => {
+  const signOut = async (force = false) => {
     setSigningOut(true)
-    await account.signOut()
+    await account.signOut({ force })
     setSigningOut(false)
   }
+  // some progress couldn't be saved to the account, so signing out was held back: the person decides
+  const unsavedSignOut = s.error === SIGN_OUT_UNSAVED_ERROR
 
   return (
     <div className="page page-narrow">
@@ -488,20 +533,40 @@ export default function Account() {
           <div className="account-who">
             <Avatar user={user} large />
             <div className="account-who-text">
-              <strong className="account-name">{user.name || user.email || 'Signed in'}</strong>
-              {user.name && user.email && <span className="account-email">{user.email}</span>}
+              <strong className="account-name">{user.name || (user.email ? <BreakableEmail email={user.email} /> : 'Signed in')}</strong>
+              {user.name && user.email && (
+                <span className="account-email">
+                  <BreakableEmail email={user.email} />
+                </span>
+              )}
               <span className="fineprint">Signed in with {PROVIDER[user.provider]}</span>
             </div>
           </div>
-          <button type="button" className="btn btn-small" onClick={signOut} disabled={signingOut}>
+          <button type="button" className="btn btn-small" onClick={() => signOut()} disabled={signingOut}>
             {signingOut ? 'Signing out…' : 'Sign out'}
           </button>
-          <p className="fineprint">Signing out clears your progress from this browser. It stays saved in your account.</p>
+          {unsavedSignOut ? (
+            <div className="confirm-box">
+              <p role="alert">{s.error}</p>
+              <div className="confirm-actions">
+                <button type="button" className="btn btn-small" onClick={() => signOut(true)} disabled={signingOut}>
+                  Sign out anyway
+                </button>
+              </div>
+            </div>
+          ) : (
+            <p className="fineprint">
+              {s.error === SYNC_ERROR
+                ? "Your latest progress isn't saved to your account yet. Signing out now would clear it from this browser."
+                : 'Signing out clears your progress from this browser. It stays saved in your account.'}
+            </p>
+          )}
         </section>
         <AccessCard s={s} confirming={ret?.kind === 'success' && (phase === 'confirming' || phase === 'slow')} />
       </div>
 
-      {s.error && phase !== 'slow' && (
+      {/* the payment check's messages are in the checkout banner once it says so; the sign-out one is by its button */}
+      {s.error && !(phase === 'slow' && confirmError) && !unsavedSignOut && (
         <p className="account-error" role="alert">
           {s.error}
         </p>

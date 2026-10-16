@@ -104,6 +104,16 @@ test('an invited (whitelisted) account has full access, with no locks anywhere',
   await expect(page.getByText('Full access: invited')).toBeVisible()
 })
 
+test('the home page offers the unlock only to people without full access', async ({ page }) => {
+  await page.goto('#/')
+  await expect(page.locator('.hero-free')).toHaveText('The first two modules are free, no sign-in needed. Full access to everything is a one-time S$10.')
+  await seed(page, { 'mock-auth': STUDENT, 'mock-entitlements': { 'mock-google': 'paid' } })
+  await page.reload() // (the seed runs on the next load)
+  await expect(page.getByRole('link', { name: 'Your account' })).toBeVisible()
+  await page.waitForTimeout(500) // past the access check
+  await expect(page.locator('.hero-free')).toHaveCount(0)
+})
+
 test('a paid account opens practice, mock exams and past papers', async ({ page }) => {
   await seed(page, { 'mock-auth': STUDENT, 'mock-entitlements': { 'mock-google': 'paid' } })
   await page.goto('#/practice')
@@ -113,6 +123,50 @@ test('a paid account opens practice, mock exams and past papers', async ({ page 
   await page.goto('#/papers/noai2025')
   await expect(page.locator('.paper-q').first()).toBeVisible({ timeout: 30_000 })
   await expect(page.locator('.lock-panel')).toHaveCount(0)
+})
+
+/** The web fonts never arrive (a network that blocks them): the page uses its fallback fonts throughout. */
+const noWebFonts = (page: import('@playwright/test').Page) =>
+  page.route(/fonts\.(googleapis|gstatic)\.com/, (r) => r.fulfill({ status: 200, contentType: 'text/css', body: '' }))
+
+test("the header doesn't jump while sign-in is restored for a signed-out visitor", async ({ page }) => {
+  await noWebFonts(page) // the same fonts from first paint to last
+  await page.addInitScript(() => {
+    const w = window as unknown as { xs: Record<string, number[]>; sawLoading: boolean }
+    w.xs = { nav: [], menu: [] }
+    w.sawLoading = false
+    const poll = () => {
+      if (document.querySelector('.site-header .signin-btn[aria-hidden="true"]')) w.sawLoading = true // the stand-in while loading
+      for (const [k, sel] of [['nav', '.site-nav'], ['menu', '.menu-btn']] as const) {
+        const r = document.querySelector(sel)?.getBoundingClientRect()
+        if (r && r.width > 0 && w.xs[k].at(-1) !== Math.round(r.x)) w.xs[k].push(Math.round(r.x))
+      }
+      requestAnimationFrame(poll)
+    }
+    requestAnimationFrame(poll)
+  })
+  await page.goto('#/learn')
+  await expect(page.locator('.site-header').getByRole('button', { name: 'Sign in' })).toBeVisible()
+  await page.waitForTimeout(300)
+  const { xs, sawLoading } = await page.evaluate(() => {
+    const w = window as unknown as { xs: Record<string, number[]>; sawLoading: boolean }
+    return { xs: w.xs, sawLoading: w.sawLoading }
+  })
+  expect(sawLoading).toBe(true)
+  expect(xs.nav.length + xs.menu.length).toBeGreaterThan(0)
+  expect(xs.nav.length, `nav moved: ${xs.nav}`).toBeLessThanOrEqual(1)
+  expect(xs.menu.length, `menu button moved: ${xs.menu}`).toBeLessThanOrEqual(1)
+})
+
+test('the signed-out header fits just above the phone menu width, even before the web fonts arrive', async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name !== 'desktop', 'a desktop width')
+  await noWebFonts(page)
+  for (const width of [881, 884, 887, 900, 950, 1000]) {
+    await page.setViewportSize({ width, height: 800 })
+    await page.goto('#/')
+    await expect(page.locator('.site-header').getByRole('button', { name: 'Sign in' })).toBeVisible()
+    await expectNoSidewaysScroll(page, `the home page at ${width}px (signed out, fallback fonts)`)
+  }
 })
 
 test('pages fit the screen, signed out and signed in', async ({ page }) => {

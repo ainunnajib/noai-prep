@@ -1,5 +1,5 @@
 import { useSyncExternalStore } from 'react'
-import { readJSON, writeJSON, removeKey } from './storage'
+import { PREFIX, readJSON, writeJSON, removeKey } from './storage'
 
 /** Per-viewer study progress, stored in localStorage (and, when accounts are on and the viewer signs in, synced to their account). */
 export interface ProgressState {
@@ -32,6 +32,11 @@ export type ProgressOrigin = 'local' | 'remote' | 'reset' | 'clear'
 const KEY = 'progress-v1'
 /** MockExam's own key for a finished or half-done attempt: it is mock-exam history too */
 const MOCK_KEY = 'mock-current'
+/**
+ * Account sync's note of the account copy this browser's progress builds on (see lib/accounts/sync.ts). It only means
+ * something next to this browser's copy, so it is forgotten along with it.
+ */
+export const SYNCED_KEY = 'progress-synced'
 const MAX_ANSWERS = 5
 const MAX_EXAMS = 50
 
@@ -54,6 +59,22 @@ function commit(next: ProgressState, origin: ProgressOrigin = 'local') {
   state = next
   writeJSON(KEY, state)
   notify(origin)
+}
+
+/** Whether to take progress another tab of this browser saved (account sync turns this off while it runs: see followOtherTabs). */
+let followTabs = true
+
+// Another tab saved, reset or cleared progress: take that copy, so this tab's next save doesn't overwrite it with a
+// stale one. Re-read storage rather than trust e.newValue (events can arrive late and out of date), and don't write it
+// back (that tab already did). Origin 'remote', so account sync doesn't save it again either.
+if (typeof window !== 'undefined') {
+  window.addEventListener('storage', (e) => {
+    if (!followTabs || (e.key !== null && e.key !== PREFIX + KEY)) return // key null: localStorage.clear()
+    const next = load()
+    if (JSON.stringify(next) === JSON.stringify(state)) return
+    state = next
+    notify('remote')
+  })
 }
 
 export const progress = {
@@ -100,8 +121,17 @@ export const progress = {
   clearLocal() {
     removeKey(KEY)
     removeKey(MOCK_KEY)
+    removeKey(SYNCED_KEY)
     state = emptyState()
     notify('clear')
+  },
+  /**
+   * Whether to take progress saved by another tab of this browser (on by default). Account sync turns it off while
+   * someone is signed in: each tab then keeps in step through the account instead, which also keeps its own unsaved
+   * changes safe from a copy another tab wrote meanwhile.
+   */
+  followOtherTabs(on: boolean) {
+    followTabs = on
   },
 }
 
@@ -160,6 +190,29 @@ export function mergeProgress(a: ProgressState, b: ProgressState): ProgressState
   const byId = new Map<string, ExamRecord>()
   for (const e of [...a.exams, ...b.exams]) if (!byId.has(e.id)) byId.set(e.id, e)
   return { lessons, checkpoints, answers, exams: sortExams([...byId.values()]) }
+}
+
+/**
+ * Brings `local`'s own changes since `base` onto `remote`: `base` is a copy both grew from (the account copy this
+ * browser last took in), `remote` the account copy now. Entries added or changed here are merged in as mergeProgress
+ * does; entries removed here since `base` (an un-ticked lesson, a Reset) are removed. Whatever else the account copy
+ * holds stays as it is there, including removals made on another device. Pure: no input is changed.
+ */
+export function rebaseProgress(local: ProgressState, remote: ProgressState, base: ProgressState): ProgressState {
+  const same = (x: unknown, y: unknown) => JSON.stringify(x) === JSON.stringify(y)
+  const ours = emptyState()
+  for (const k of keysOf(local.lessons)) if (own(base.lessons, k) !== local.lessons[k]) ours.lessons[k] = local.lessons[k]
+  for (const k of keysOf(local.checkpoints)) if (own(base.checkpoints, k) !== local.checkpoints[k]) ours.checkpoints[k] = local.checkpoints[k]
+  for (const k of keysOf(local.answers)) if (!same(own(base.answers, k), local.answers[k])) ours.answers[k] = local.answers[k]
+  const baseExams = new Set(base.exams.map((e) => e.id))
+  ours.exams = local.exams.filter((e) => !baseExams.has(e.id))
+  const out = mergeProgress(remote, ours)
+  for (const k of keysOf(base.lessons)) if (!Object.hasOwn(local.lessons, k)) delete out.lessons[k]
+  for (const k of keysOf(base.checkpoints)) if (!Object.hasOwn(local.checkpoints, k)) delete out.checkpoints[k]
+  for (const k of keysOf(base.answers)) if (!Object.hasOwn(local.answers, k)) delete out.answers[k]
+  const localExams = new Set(local.exams.map((e) => e.id))
+  out.exams = out.exams.filter((e) => localExams.has(e.id) || !baseExams.has(e.id))
+  return out
 }
 
 /** Reads progress from untrusted JSON (an old browser copy, the account copy), dropping anything malformed. */

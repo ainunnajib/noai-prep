@@ -18,14 +18,20 @@ export interface DocRefLike {
   set(data: DocData, options?: { merge?: boolean }): Promise<unknown>
 }
 
+export interface QuerySnapshotLike {
+  docs: Array<{ id: string; data(): DocData }>
+}
+
 export interface QueryLike {
   where(field: string, op: '==', value: unknown): QueryLike
   limit(n: number): QueryLike
-  get(): Promise<{ docs: Array<{ id: string; data(): DocData }> }>
+  get(): Promise<QuerySnapshotLike>
 }
 
 export interface TransactionLike {
   get(ref: DocRefLike): Promise<DocSnapshotLike>
+  /** A query read inside the transaction: the documents it returns take part in the transaction's conflict check. */
+  get(query: QueryLike): Promise<QuerySnapshotLike>
   set(ref: DocRefLike, data: DocData, options?: { merge?: boolean }): unknown
   delete(ref: DocRefLike): unknown
 }

@@ -1,5 +1,5 @@
 import { useSyncExternalStore } from 'react'
-import { progress } from '../progress'
+import { progress, SYNCED_KEY } from '../progress'
 import { readJSON, removeKey, writeJSON } from '../storage'
 import type { AccountsAdapter } from './adapter'
 import { ACCOUNTS_ENABLED, FREE_MODULES, FUNCTIONS_REGION, firebaseConfig } from './config'
@@ -12,6 +12,7 @@ import {
   DELETE_PROGRESS_ERROR,
   LOAD_ERROR,
   SIGN_OUT_ERROR,
+  SIGN_OUT_UNSAVED_ERROR,
   START_ERROR,
   SYNC_ERROR,
   authErrorMessage,
@@ -32,6 +33,8 @@ export { ACCOUNTS_ENABLED, FREE_MODULES, PRICE_LABEL } from './config'
 
 /** How long sign-out waits for waiting progress to save (a save can hang while offline). */
 const SIGN_OUT_SAVE_WAIT_MS = 5000
+/** After a save refused because another device had just saved, how long sign-out gives the merge and second save. */
+const SIGN_OUT_RETRY_MS = 500
 
 /** The last access this device saw ({uid, access}), so a returning paid user doesn't see the lock while sign-in is restored. */
 const HINT_KEY = 'access-hint'
@@ -40,6 +43,12 @@ const HINT_KEY = 'access-hint'
  * closed (say, the account was deleted on another device) still clears it.
  */
 const OWNER_KEY = 'progress-owner'
+
+/**
+ * At page load: whether someone was signed in on this browser (every sign-in sets the progress owner, every sign-out
+ * removes it), so the header can hold the right-sized place while sign-in is restored.
+ */
+export const EXPECT_SIGNED_IN: boolean = ACCOUNTS_ENABLED && readJSON<string | null>(OWNER_KEY, null) !== null
 
 interface AccessHint {
   uid: string
@@ -93,6 +102,8 @@ function onSyncStatus(p: Partial<SyncStatus>) {
   if (p.error) patch.error = p.error
   // a sync that works again clears its own error, never someone else's
   else if (p.error === null && (state.error === SYNC_ERROR || state.error === LOAD_ERROR)) patch.error = null
+  // everything reached the account after all: signing out is safe now
+  if (p.lastSyncedAt && state.error === SIGN_OUT_UNSAVED_ERROR && !sync?.hasUnsaved()) patch.error = null
   set(patch)
 }
 
@@ -153,20 +164,9 @@ function beginSession(a: AccountsAdapter, user: AccountUser) {
   const settle = () => {
     if (mySession === session && heard && (checked || live !== 'none')) setAccess(user.uid, live)
   }
-  unwatchAccess = a.watchAccess(
-    user.uid,
-    (access) => {
-      heard = true
-      live = access
-      settle()
-    },
-    () => {
-      heard = checked = true
-      settle()
-    },
-  )
-  if (!checked) {
-    accessSynced.add(user.uid)
+  /** The whitelist check: grants (or removes) an invite and reports the access that results. Until it answers, settle() keeps the access shown. */
+  const recheck = () => {
+    checked = false
     a.syncAccess().then(
       (access) => {
         checked = true
@@ -180,6 +180,26 @@ function beginSession(a: AccountsAdapter, user: AccountUser) {
         settle()
       },
     )
+  }
+  unwatchAccess = a.watchAccess(
+    user.uid,
+    (access) => {
+      // An unlock that disappears (a full refund of a payment) may hide an invite that was never written down, because
+      // the payment came first: check the whitelist again before locking anything.
+      const dropped = heard && live !== 'none' && access === 'none'
+      heard = true
+      live = access
+      if (dropped && mySession === session) recheck()
+      settle()
+    },
+    () => {
+      heard = checked = true
+      settle()
+    },
+  )
+  if (!checked) {
+    accessSynced.add(user.uid)
+    recheck()
   }
   void sync?.start(user.uid)
 }
@@ -206,12 +226,17 @@ function handleUser(a: AccountsAdapter, user: AccountUser | null) {
     // the first report since the page loaded: progress left by someone whose sign-in ended while the page was closed is theirs, not this visitor's
     const owner = readJSON<string | null>(OWNER_KEY, null)
     if (owner !== null && owner !== user?.uid) progress.clearLocal()
+    // what sync noted about the account copy only holds for the person whose progress this browser has
+    if (owner !== user?.uid) removeKey(SYNCED_KEY)
   }
   if (user) beginSession(a, user)
   else {
     removeKey(HINT_KEY)
     removeKey(OWNER_KEY)
-    set({ status: 'signed-out', user: null, access: 'none', accessKnown: false, syncing: false, lastSyncedAt: null })
+    removeKey(SYNCED_KEY)
+    // a sync problem no longer applies (and "still saved on this device" no longer holds once signed out)
+    const error = state.error === SYNC_ERROR || state.error === LOAD_ERROR || state.error === SIGN_OUT_UNSAVED_ERROR ? null : state.error
+    set({ status: 'signed-out', user: null, access: 'none', accessKnown: false, syncing: false, lastSyncedAt: null, error })
   }
 }
 
@@ -259,22 +284,40 @@ export const account = {
     }
   },
 
-  /** Saves waiting progress, signs out, and clears this browser's copy of progress (the account keeps it). */
-  async signOut(): Promise<void> {
+  /**
+   * Saves waiting progress, signs out, and clears this browser's copy of progress (the account keeps it).
+   * If some progress couldn't be saved to the account (offline, say), it doesn't sign out: it resolves 'unsaved' and
+   * says so in `error`, because signing out would lose that progress for good. `force` signs out anyway.
+   * Otherwise it resolves 'done' (signed out, or `error` says why not).
+   */
+  async signOut(opts: { force?: boolean } = {}): Promise<'done' | 'unsaved'> {
     const a = adapter
     const user = state.user
-    if (!a || !user) return
+    if (!a || !user) return 'done'
     set({ error: null })
-    // save waiting progress first, but don't let a lost connection stop the person signing out
-    await Promise.race([sync?.stop({ flush: true }), new Promise((resolve) => setTimeout(resolve, SIGN_OUT_SAVE_WAIT_MS))])
+    // save waiting progress first, but don't let a lost connection keep the person waiting long
+    const deadline = Date.now() + SIGN_OUT_SAVE_WAIT_MS
+    const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, Math.max(0, ms)))
+    const upTo = (p: Promise<unknown> | undefined) => Promise.race([p, wait(deadline - Date.now())])
+    await upTo(sync?.flush())
+    if (sync?.hasUnsaved() && Date.now() < deadline) {
+      // a save refused because another device had just saved is merged and tried again straight away: allow for that
+      await wait(Math.min(SIGN_OUT_RETRY_MS, deadline - Date.now()))
+      await upTo(sync.flush())
+    }
+    if (state.user?.uid !== user.uid) return 'done' // signed out meanwhile (say, in another tab)
+    if (!opts.force && sync?.hasUnsaved()) {
+      set({ error: SIGN_OUT_UNSAVED_ERROR })
+      return 'unsaved'
+    }
     try {
       await a.signOut()
     } catch {
       set({ error: SIGN_OUT_ERROR })
-      if (state.user?.uid === user.uid) void sync?.start(user.uid) // still signed in: carry on syncing
-      return
+      return 'done'
     }
     handleUser(a, null) // the backend reports this too; whichever comes first clears this browser's copy
+    return 'done'
   },
 
   /** Sends the browser to Stripe Checkout (or, if the account already has access, just refreshes it). */
@@ -360,8 +403,12 @@ export const account = {
     } catch (e) {
       const message = errorCode(e).startsWith('auth/') ? authErrorMessage(e) : DELETE_ACCOUNT_ERROR
       if (message) set({ error: message })
-      // still signed in: carry on syncing, which also saves this browser's progress back to the account
-      if (state.user?.uid === user.uid) void sync.start(user.uid)
+      // Still signed in: carry on syncing, which also saves this browser's progress back to the account. (Combined
+      // with it, not rebased: the account copy may already be deleted, and that must not empty this browser too.)
+      if (state.user?.uid === user.uid) {
+        removeKey(SYNCED_KEY)
+        void sync.start(user.uid)
+      }
       return
     }
     handleUser(a, null)

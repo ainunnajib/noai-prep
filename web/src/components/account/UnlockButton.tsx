@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useLocation } from 'react-router-dom'
 import { account, hasFullAccess, PRICE_LABEL } from '../../lib/accounts'
 
@@ -6,13 +6,23 @@ import { account, hasFullAccess, PRICE_LABEL } from '../../lib/accounts'
 export const UNLOCK_FROM_KEY = 'noai-prep:unlock-from'
 
 /**
- * "Unlock for S$10": sends the browser to Stripe's checkout page. Stays busy while the browser leaves;
- * shows the error if the payment page couldn't be opened.
+ * "Unlock for S$10": sends the browser to Stripe's checkout page. Stays busy while the browser leaves, and is ready
+ * again if the page comes back from the back/forward cache (Back pressed on Stripe's page); shows the error if the
+ * payment page couldn't be opened.
  */
 export function UnlockButton({ small = false }: { small?: boolean }) {
   const { pathname } = useLocation()
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
+
+  // pressing Back on Stripe's page can bring this page back from the back/forward cache with the button still busy
+  useEffect(() => {
+    const onPageShow = (e: PageTransitionEvent) => {
+      if (e.persisted) setBusy(false)
+    }
+    window.addEventListener('pageshow', onPageShow)
+    return () => window.removeEventListener('pageshow', onPageShow)
+  }, [])
 
   const unlock = async () => {
     setBusy(true)

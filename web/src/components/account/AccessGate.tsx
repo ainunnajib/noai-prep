@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import { getModule, lessonSequence, moduleHref, modules } from '../../curriculum/registry'
 import { canUseGatedTools, canViewLesson, FREE_MODULES, isAccessPending, PRICE_LABEL, useAccount } from '../../lib/accounts'
 import { PageSkeleton } from '../layout/AppShell'
+import { BreakableEmail } from './BreakableEmail'
 import { LockIcon } from './icons'
 import { ProviderButtons } from './ProviderButtons'
 import { UnlockButton } from './UnlockButton'
@@ -113,7 +114,11 @@ export function LockedPanel({ kind }: { kind: GateKind }) {
         {s.user?.email && (
           <>
             {' '}
-            You're signed in as <strong className="nowrap-email">{s.user.email}</strong>.
+            You're signed in as{' '}
+            <strong className="nowrap-email">
+              <BreakableEmail email={s.user.email} />
+            </strong>
+            .
           </>
         )}
       </p>

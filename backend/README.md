@@ -7,11 +7,11 @@ The website works without any of this. If the Firebase settings are not given to
 ## How it works
 
 - **Signing in** happens in the browser with Firebase Authentication (a Google or Apple pop-up window).
-- **Progress** is saved in Cloud Firestore at `progress/{uid}`. The security rules in `firestore.rules` let each person read and write only their own document.
+- **Progress** is saved in Cloud Firestore at `progress/{uid}`. The security rules in `firestore.rules` let each person read and write only their own document. The progress is stored as text in a few parts (lessons, checkpoints, mock exams, and the answers split over `a0` to `a7`), so the save a page sends while it closes can carry just the parts that changed. Every save also carries a revision number one higher than the stored one, and the rules refuse any other: a save made from an out-of-date copy (say, one queued on a phone while the laptop saved) can't overwrite newer progress. The website then merges the newer copy in and saves again.
 - **Access** lives at `entitlements/{uid}`. The website can read its own one (so it unlocks the moment a payment lands) but only the Cloud Functions can write it.
 - **Invited people** are listed in a secret called `ACCESS_WHITELIST`, which is never stored in this repository. Each time someone signs in, the website calls `syncAccess`, which gives free access if their verified email is on the list (and takes it away again if it has been removed).
 - **Paying**: the Unlock button calls `createCheckoutSession`, which opens a Stripe Checkout page for S$10. When Stripe sends the person back to `#/account`, the page calls `confirmCheckout` (which asks Stripe whether the payment went through), and Stripe also sends a signed message to `stripeWebhook`. Either one unlocks the account; whichever arrives first does the work and the other finds it already done.
-- **Refunds**: a full refund made in the Stripe Dashboard removes the paid access again (through the webhook). It never touches invited people's access.
+- **Refunds**: a full refund made in the Stripe Dashboard removes the paid access again (through the webhook). It never takes away an invited person's free access: if someone on the invite list paid and is refunded, the whitelist check gives their free access straight back. The refund is also noted in `refunds/{paymentIntent}`, so the payment can't unlock anything later (for example if Stripe delivers the payment event again after the refund).
 
 | Path | What |
 |---|---|
@@ -148,7 +148,7 @@ Then try the whole journey in test mode: open the site, sign in, open a locked l
 - **Changing the invite list**: run `firebase functions:secrets:set ACCESS_WHITELIST` with the full new list, then `firebase deploy --only functions` so the functions pick up the new version. The change applies the next time each person signs in or reopens the site. Old secret versions can be cleaned up with `firebase functions:secrets:prune`.
 - **Apple "Hide My Email"**: people who choose this get a relay address like `abc123@privaterelay.appleid.com`, which won't match the whitelist. Invited people should sign in with Google, or share their real email when Apple asks. Apple also only forwards email from senders you have registered with it, so Stripe receipts to a relay address may not arrive (the unlock still works).
 - **Refunds**: refund the full amount in the Stripe Dashboard and paid access is removed automatically. Partial refunds leave access as it is.
-- **Changing the price**: set `PRICE_SGD_CENTS` in `functions/.env.<project-id>` (for example `PRICE_SGD_CENTS=1500`) and redeploy the functions. Also update `PRICE_LABEL` in `web/src/lib/accounts/config.ts` so the website shows the new price.
+- **Changing the price**: set `PRICE_SGD_CENTS` in `functions/.env.<project-id>` (for example `PRICE_SGD_CENTS=1500`) and redeploy the functions. Also update `PRICE_LABEL` in `web/src/lib/accounts/config.ts` so the website shows the new price. Payment pages already open at the old price (Stripe keeps them open for up to 24 hours) still unlock when paid.
 - **Logs**: `firebase functions:log`, or **Functions → Logs** in the Firebase console. They show user ids and Stripe ids, never the whitelist.
 - **Paid but not unlocked?** The Account page checks the payment with Stripe as soon as the person comes back, so this is rare. Check the endpoint in Stripe (**Developers → Webhooks**, open the endpoint, look for failed deliveries) and the function logs. A `400` from the webhook usually means `STRIPE_WEBHOOK_SECRET` doesn't match the endpoint (test and live endpoints have different secrets).
 - **`auth/unauthorized-domain`** when signing in: add the site's domain in Part 1, step 6.
@@ -196,6 +196,8 @@ stripe listen --forward-to http://127.0.0.1:5001/demo-noai/asia-southeast1/strip
 ```
 
 `stripe listen` prints its own `whsec_...` signing secret: put that in `.secret.local` as `STRIPE_WEBHOOK_SECRET` and restart the emulators. (Events made with `stripe trigger` don't belong to any of your users, so the webhook answers 200 and ignores them.)
+
+To use the website with these emulators, copy `web/.env.example` to `web/.env.development.local` and fill in the four `VITE_FIREBASE_*` values. Any non-empty values work, but set `VITE_FIREBASE_PROJECT_ID=demo-noai` to match the emulators. Also set `VITE_FIREBASE_EMULATORS=1`, then run `npm run dev` in `web/` (it opens on http://localhost:5173). Without `VITE_FIREBASE_EMULATORS=1`, the site would use the real Firebase project.
 
 To try the website's sign-in, gating and checkout screens without any backend, run the website with `VITE_ACCOUNTS_MOCK=1` (see `web/.env.example`).
 

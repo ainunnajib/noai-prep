@@ -1,13 +1,21 @@
-import { mergeProgress, normalizeProgress, type ProgressOrigin, type ProgressState } from '../progress'
-import type { AccountsAdapter, ProgressSnapshot } from './adapter'
-import { LOAD_ERROR, SYNC_ERROR } from './errors'
+import { mergeProgress, normalizeProgress, rebaseProgress, SYNCED_KEY, type ProgressOrigin, type ProgressState } from '../progress'
+import { readJSON, writeJSON } from '../storage'
+import { revFrom, type AccountsAdapter, type ProgressSnapshot } from './adapter'
+import { errorCode, LOAD_ERROR, SYNC_ERROR } from './errors'
 
 /*
   Keeps this browser's progress and the account copy (progress/{uid}) in step while someone is signed in.
-  - Sign-in: read the account copy once and merge it with this browser's copy, so progress made before signing in
-    is kept. Show the result here, and write it back if the account copy lacks anything.
-  - Then listen to the account copy. With unsaved changes here, merge it in and save; otherwise take it as it is,
-    so a reset or an un-ticked lesson on another device shows up here too.
+  - Every save carries the account copy's next revision number, and the account refuses a save that doesn't (see
+    backend/firestore.rules). So a save based on an out-of-date copy (say, one queued on a phone while the laptop
+    saved) can't overwrite newer work: it is refused, the newer copy arrives from the listener, and this browser's
+    changes are merged into it and saved again.
+  - This browser remembers the account copy its progress builds on (SYNCED_KEY, with the uid). Merging then means:
+    take the account copy and redo on it what changed here since (lessons ticked or un-ticked, answers, a Reset).
+    So a Reset, an un-tick or "Delete my saved progress" done on another device stays done, while changes made here
+    that didn't reach the account (offline, or just before the page closed) still do on the next visit. Without
+    that note (progress made before signing in), the two copies are combined, keeping everything either has.
+  - Sign-in: read the account copy, merge as above, show the result here, and save it if the account copy lacks anything.
+  - Then listen to the account copy: with nothing unsaved here take it as it is, otherwise merge and save.
   - Changes here are saved 1.5 s after the last one, and at once when the tab is hidden or closed. Reset is saved at once.
   - A failed save leaves the changes marked unsaved; the next change (or the tab being hidden) tries again.
 */
@@ -20,6 +28,8 @@ export interface SyncedStore {
   replace(next: ProgressState, origin: 'remote'): void
   reset(): void
   onChange(cb: (s: ProgressState, origin: ProgressOrigin) => void): () => void
+  /** Whether to take progress saved by another tab of this browser: off while syncing, as each tab syncs with the account itself. */
+  followOtherTabs?(on: boolean): void
 }
 
 export interface SyncStatus {
@@ -31,7 +41,7 @@ export interface SyncStatus {
 }
 
 export interface SyncOptions {
-  adapter: Pick<AccountsAdapter, 'readProgress' | 'watchProgress' | 'writeProgress' | 'writeProgressOnExit' | 'deleteProgress'>
+  adapter: Pick<AccountsAdapter, 'readProgress' | 'watchProgress' | 'writeProgress' | 'writeProgressOnExit' | 'deleteProgress' | 'confirmUser'>
   store: SyncedStore
   /** called with the status fields that may have changed */
   onStatus(patch: Partial<SyncStatus>): void
@@ -48,6 +58,8 @@ export interface ProgressSync {
   stop(opts?: { flush?: boolean }): Promise<void>
   /** Deletes the account copy, then empties this browser's copy without writing it back. Rejects if the delete fails. */
   deleteRemote(): Promise<void>
+  /** Whether this browser holds progress the account may not have yet (signing out now would lose it). */
+  hasUnsaved(): boolean
 }
 
 const empty = (): ProgressState => ({ lessons: {}, checkpoints: {}, answers: {}, exams: [] })
@@ -67,12 +79,24 @@ export function sameProgress(a: ProgressState, b: ProgressState): boolean {
   return a === b || canonical(a) === canonical(b)
 }
 
-/** The first sync after sign-in: what this browser should hold, and whether the account copy needs writing. */
-export function decideInitial(local: ProgressState, remote: ProgressState | null): { state: ProgressState; write: boolean } {
-  const base = remote ?? empty()
-  const merged = mergeProgress(local, base)
+/** Merges this browser's copy into the account copy: rebased on `base` (the account copy it builds on) when known, else combined. */
+function merge(local: ProgressState, remote: ProgressState, base: ProgressState | null): ProgressState {
+  return base ? rebaseProgress(local, remote, base) : mergeProgress(local, remote)
+}
+
+/**
+ * The first sync after sign-in: what this browser should hold, and whether the account copy needs writing.
+ * `base`: the account copy this browser's progress builds on, if it has synced with this account before.
+ */
+export function decideInitial(
+  local: ProgressState,
+  remote: ProgressState | null,
+  base: ProgressState | null = null,
+): { state: ProgressState; write: boolean } {
+  const r = remote ?? empty()
+  const merged = merge(local, r, base)
   // an account with no copy yet and nothing to add needs no write
-  return { state: merged, write: !sameProgress(merged, base) }
+  return { state: merged, write: !sameProgress(merged, r) }
 }
 
 export type SnapshotDecision =
@@ -85,17 +109,35 @@ export type SnapshotDecision =
   /** keep unsaved changes here: merge the account copy in, and write if the account copy lacks anything */
   | { kind: 'merge'; state: ProgressState; write: boolean }
 
-/** What to do when the account copy changes. `dirty`: this browser has changes that may not be saved yet. */
+/**
+ * What to do when the account copy changes. `dirty`: this browser has changes that may not be saved yet.
+ * `base`: the account copy those changes build on, when known.
+ */
 export function decideSnapshot(
   local: ProgressState,
   snap: { remote: ProgressState | null; hasPendingWrites: boolean },
   dirty: boolean,
+  base: ProgressState | null = null,
 ): SnapshotDecision {
   if (snap.hasPendingWrites) return { kind: 'ignore' }
   const remote = snap.remote ?? empty() // no copy (deleted on another device): nothing saved
   if (!dirty) return sameProgress(remote, local) ? { kind: 'in-sync' } : { kind: 'replace', state: remote }
-  const merged = mergeProgress(local, remote)
+  const merged = merge(local, remote, base)
   return { kind: 'merge', state: merged, write: !sameProgress(merged, remote) }
+}
+
+interface Copy {
+  rev: number
+  state: ProgressState
+  /** canonical form */
+  c: string
+}
+const copyOf = (rev: number, state: ProgressState): Copy => ({ rev, state, c: canonical(state) })
+
+/** The account copy this browser's progress builds on, as noted for `uid` (null if none, or noted for someone else). */
+function storedBase(uid: string): ProgressState | null {
+  const b = readJSON<{ uid?: unknown; data?: unknown } | null>(SYNCED_KEY, null)
+  return b && typeof b === 'object' && b.uid === uid ? normalizeProgress(b.data) : null
 }
 
 export function createProgressSync(opts: SyncOptions): ProgressSync {
@@ -117,14 +159,22 @@ export function createProgressSync(opts: SyncOptions): ProgressSync {
   /** the account copy is being deleted: changes here are not written meanwhile */
   let deleting = false
   let errorShown = false
+  /** the last save was refused (most likely another device saved first); a second refusal in a row is shown as an error */
+  let refused = false
   let timer: ReturnType<typeof setTimeout> | null = null
+  /**
+   * Writes in flight, and the queue that runs them one at a time, in order. Both belong to one sign-in (halt() starts
+   * them afresh): a save left hanging by the previous person (Firestore never settles a signed-out user's pending
+   * writes) must not hold up the next person's.
+   */
   let writing = 0
-  /** writes run one at a time, in order */
   let queue: Promise<void> = Promise.resolve()
-  /** what this browser has sent (canonical form, oldest first) and not yet seen come back from the listener */
-  let sent: string[] = []
-  /** the last account copy this browser has seen (canonical form): a repeat of it holds nothing new */
-  let lastRemote: string | null = null
+  /** the account copy this browser's progress builds on: the latest one seen or saved here, with its revision */
+  let known: Copy = copyOf(0, empty())
+  /** this browser's save in flight: its confirmation is nothing new, and the save sent while the page closes builds on it */
+  let inFlight: Copy | null = null
+  /** the account copy disappeared without this browser deleting it: check the account still exists before saving again */
+  let vanished = false
   let unwatch: (() => void) | null = null
   let unlisten: (() => void) | null = null
 
@@ -138,6 +188,12 @@ export function createProgressSync(opts: SyncOptions): ProgressSync {
     if (errorShown) patch.error = null
     errorShown = false
     status(patch)
+  }
+
+  /** Notes the account copy this browser now builds on, here and (for the next visit) in localStorage. */
+  function setKnown(rev: number, state: ProgressState) {
+    known = copyOf(rev, state)
+    if (uid !== null) writeJSON(SYNCED_KEY, { uid, data: state })
   }
 
   function applyRemote(next: ProgressState) {
@@ -170,38 +226,60 @@ export function createProgressSync(opts: SyncOptions): ProgressSync {
     const run = queue.then(async () => {
       if (myGen !== gen || uid === null || !dirty) return
       const myUid = uid
+      if (vanished) {
+        // The account copy was deleted elsewhere: check the account itself still exists before saving into it (if it
+        // was deleted on another device, this signs the person out here too, and nothing is saved).
+        try {
+          await adapter.confirmUser()
+        } catch {
+          if (myGen === gen) showError(SYNC_ERROR) // still unsaved: the next change tries again
+          return
+        }
+        if (myGen !== gen || !dirty) return
+        vanished = false
+      }
       const copy = store.get()
-      const c = canonical(copy)
-      sent.push(c)
-      if (sent.length > 5) sent.shift()
+      const mine = copyOf(known.rev + 1, copy)
+      inFlight = mine
       writing++
       status()
       try {
-        await adapter.writeProgress(myUid, copy)
+        await adapter.writeProgress(myUid, copy, mine.rev)
         if (myGen !== gen) return
+        refused = false
+        if (mine.rev >= known.rev) setKnown(mine.rev, copy) // (unless a newer copy has arrived meanwhile)
         if (sameProgress(store.get(), copy)) dirty = false
         else if (timer === null) schedule() // changed while saving (say, merged with another device) and nothing queued yet
         synced()
-      } catch {
+      } catch (e) {
         if (myGen !== gen) return
-        const i = sent.lastIndexOf(c)
-        if (i !== -1) sent.splice(i, 1) // a failed write never comes back from the listener
-        showError(SYNC_ERROR) // still dirty: the next change, flush or merge tries again
+        if (errorCode(e) === 'permission-denied' && !refused) {
+          // Most likely another device saved first: its copy arrives from the listener, this browser's changes are
+          // merged into it, and saved again. Try again shortly in any case.
+          refused = true
+          if (timer === null) schedule()
+        } else showError(SYNC_ERROR) // still dirty: the next change, flush or merge tries again
       } finally {
-        writing--
-        if (myGen === gen) status()
+        if (myGen === gen) {
+          if (inFlight === mine) inFlight = null
+          writing--
+          status()
+        }
       }
     })
     queue = run.catch(() => {})
     return run
   }
 
-  async function firstMerge(myGen: number, remote: ProgressState | null) {
+  async function firstMerge(myGen: number, remote: ProgressState | null, rev: number) {
     const local = store.get()
-    const d = resetBeforeReady ? { state: local, write: !sameProgress(local, remote ?? empty()) } : decideInitial(local, remote)
+    const r = remote ?? empty()
+    const d = resetBeforeReady
+      ? { state: local, write: !sameProgress(local, r) }
+      : decideInitial(local, remote, uid === null ? null : storedBase(uid))
     resetBeforeReady = false
     ready = true
-    lastRemote = canonical(remote ?? empty())
+    setKnown(rev, r)
     if (!sameProgress(d.state, local)) applyRemote(d.state)
     dirty = d.write
     if (d.write) await write()
@@ -212,24 +290,31 @@ export function createProgressSync(opts: SyncOptions): ProgressSync {
     // fromCache: the server couldn't be reached, so a missing copy means "not known yet", not "none"
     if (myGen !== gen || snap.hasPendingWrites || snap.fromCache) return
     const remote = snap.data == null ? null : normalizeProgress(snap.data)
+    const rev = revFrom(snap.rev)
     if (!ready) {
-      void firstMerge(myGen, remote) // the first read failed, so this delivery stands in for it
+      void firstMerge(myGen, remote, rev) // the first read failed, so this delivery stands in for it
       return
     }
-    // Nothing new: Firestore confirming this browser's own write (one more delivery, without hasPendingWrites), or the
-    // copy already seen delivered again (say, on reconnecting). Merging it would bring back a lesson un-ticked (or a
+    // Nothing new: the copy already known delivered again (say, on reconnecting), or Firestore confirming this
+    // browser's own save (possibly before the save's own reply). Merging it would bring back a lesson un-ticked (or a
     // Reset pressed) here since.
-    const c = canonical(remote ?? empty())
-    const mine = sent.indexOf(c)
-    if (mine !== -1) sent.splice(0, mine + 1) // older copies too, so they can't hide a later identical change from elsewhere
-    if (mine !== -1 || c === lastRemote) {
-      lastRemote = c
+    const r = remote ?? empty()
+    const c = canonical(r)
+    const mine = inFlight !== null && rev === inFlight.rev && c === inFlight.c
+    if (mine || (rev === known.rev && c === known.c)) {
+      if (mine) setKnown(rev, r)
       if (!dirty) synced()
       else if (timer === null && writing === 0 && !deleting) schedule() // an earlier save failed: try again now the account copy is back
       return
     }
-    lastRemote = c
-    const d = decideSnapshot(store.get(), { remote, hasPendingWrites: false }, dirty)
+    if (remote === null && known.rev > 0 && !deleting) {
+      // deleted, but not from here: "Delete my saved progress" on another device, or the whole account
+      vanished = true
+      adapter.confirmUser().catch(() => {}) // if the account is gone, this signs the person out here at once
+    }
+    const base = known.state
+    setKnown(rev, r)
+    const d = decideSnapshot(store.get(), { remote, hasPendingWrites: false }, dirty, base)
     if (d.kind === 'in-sync') synced()
     else if (d.kind === 'replace') {
       applyRemote(d.state)
@@ -265,8 +350,12 @@ export function createProgressSync(opts: SyncOptions): ProgressSync {
   }
 
   const onPageHide = () => {
-    // the page may be closing: the normal write won't leave in time, so also send one that outlives the page
-    if (uid !== null && ready && dirty && !deleting) adapter.writeProgressOnExit?.(uid, store.get())
+    // The page may be closing: the normal write won't leave in time, so also send one that outlives the page. It builds
+    // on the save in flight, if any: that was sent first, so it most likely lands first.
+    if (uid !== null && ready && dirty && !deleting && !vanished) {
+      const after = inFlight ?? known
+      adapter.writeProgressOnExit?.(uid, store.get(), after.rev + 1, after.state)
+    }
     void flush()
   }
   const onVisibility = () => {
@@ -285,10 +374,13 @@ export function createProgressSync(opts: SyncOptions): ProgressSync {
       window.removeEventListener('pagehide', onPageHide)
       document.removeEventListener('visibilitychange', onVisibility)
     }
+    store.followOtherTabs?.(true)
     uid = null
-    ready = dirty = resetBeforeReady = false
-    sent = []
-    lastRemote = null
+    ready = dirty = resetBeforeReady = refused = vanished = false
+    known = copyOf(0, empty())
+    inFlight = null
+    queue = Promise.resolve()
+    writing = 0
     onStatus({ syncing: false })
   }
 
@@ -298,20 +390,21 @@ export function createProgressSync(opts: SyncOptions): ProgressSync {
       halt()
       const myGen = ++gen
       uid = newUid
+      store.followOtherTabs?.(false)
       unlisten = store.onChange(onLocalChange)
       if (typeof window !== 'undefined') {
         window.addEventListener('pagehide', onPageHide)
         document.addEventListener('visibilitychange', onVisibility)
       }
-      let remote: ProgressState | null | undefined
+      let first: { remote: ProgressState | null; rev: number } | undefined
       try {
-        const raw = await adapter.readProgress(newUid)
-        remote = raw == null ? null : normalizeProgress(raw)
+        const r = await adapter.readProgress(newUid)
+        first = { remote: r?.data == null ? null : normalizeProgress(r.data), rev: revFrom(r?.rev) }
       } catch {
         if (myGen === gen) showError(LOAD_ERROR) // the listener's first delivery will do the merge instead
       }
       if (myGen !== gen) return
-      if (remote !== undefined) await firstMerge(myGen, remote)
+      if (first) await firstMerge(myGen, first.remote, first.rev)
       if (myGen !== gen) return
       unwatch = adapter.watchProgress(
         newUid,
@@ -345,6 +438,8 @@ export function createProgressSync(opts: SyncOptions): ProgressSync {
         if (myGen !== gen) return
         store.reset()
         dirty = false
+        vanished = false
+        setKnown(0, empty())
         // a first merge still under way must not bring the deleted copy back
         if (!ready) resetBeforeReady = true
         synced()
@@ -352,6 +447,14 @@ export function createProgressSync(opts: SyncOptions): ProgressSync {
         deleting = false
         if (myGen === gen) status()
       }
+    },
+
+    hasUnsaved() {
+      if (uid === null) return false
+      // before the first merge, nothing of this browser's copy is known to be in the account unless it is unchanged
+      // since this browser last synced with it
+      if (!ready) return !sameProgress(store.get(), storedBase(uid) ?? empty())
+      return dirty || timer !== null
     },
   }
 }

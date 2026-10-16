@@ -9,6 +9,7 @@ import type {
   DocSnapshotLike,
   LoggerLike,
   QueryLike,
+  QuerySnapshotLike,
   StripeEventLike,
   StripeLike,
   TransactionLike,
@@ -81,10 +82,13 @@ class FakeTransaction implements TransactionLike {
   private readonly writes: Array<() => void> = []
   constructor(private readonly db: FakeDb) {}
 
-  async get(ref: DocRefLike): Promise<DocSnapshotLike> {
+  get(ref: DocRefLike): Promise<DocSnapshotLike>
+  get(query: QueryLike): Promise<QuerySnapshotLike>
+  async get(target: DocRefLike | QueryLike): Promise<DocSnapshotLike | QuerySnapshotLike> {
     // Real Firestore transactions refuse reads after writes.
     if (this.writes.length) throw new Error('Firestore transactions require all reads to be executed before all writes')
-    return snapshot(this.db.read(ref.path))
+    if (target instanceof FakeQuery) return target.get()
+    return snapshot(this.db.read((target as DocRefLike).path))
   }
 
   set(ref: DocRefLike, data: DocData, options?: { merge?: boolean }): this {
@@ -118,7 +122,7 @@ class FakeQuery implements QueryLike {
     return new FakeQuery(this.db, this.collectionPath, this.filters, n)
   }
 
-  async get(): Promise<{ docs: Array<{ id: string; data(): DocData }> }> {
+  async get(): Promise<QuerySnapshotLike> {
     const docs: Array<{ id: string; data(): DocData }> = []
     for (const [path, data] of this.db.docs) {
       const [collection, id, ...rest] = path.split('/')

@@ -1,6 +1,6 @@
 import type { ProgressState } from '../progress'
 import { PREFIX, readJSON, removeKey, writeJSON } from '../storage'
-import { accessFrom, type AccountsAdapter, type ProgressSnapshot } from './adapter'
+import { accessFrom, revFrom, type AccountsAdapter, type ProgressSnapshot, type RemoteProgress } from './adapter'
 import type { AccessLevel, AccountUser, SignInProvider } from './types'
 
 /*
@@ -10,7 +10,10 @@ import type { AccessLevel, AccountUser, SignInProvider } from './types'
     mock-auth                   the signed-in user {uid, email, name, provider}; absent when signed out
     mock-entitlements           uid -> 'whitelist' | 'paid' | 'revoked'
     mock-remote-progress:<uid>  the "account copy" of progress (a ProgressState), standing in for another device
+    mock-remote-rev:<uid>       its revision (a number; absent counts as 0). Like the real rules, a save must carry
+                                the next one, so a save from a tab with an out-of-date copy is refused
     mock-checkout-fail          if present, confirming a checkout reports that the payment wasn't made
+    mock-confirm-error          if present, the payment check itself fails (as when the server can't reach Stripe)
     mock-signin-error           if present, sign-in fails with this error code (for example auth/popup-blocked)
     mock-sync-fail              if present, saving progress to the account fails
   Only whitelisted@example.com is on the mock whitelist. Every call waits about 150 ms, so loading states show.
@@ -35,6 +38,8 @@ const USERS: Record<SignInProvider, MockAuth> = {
 
 const delay = () => new Promise<void>((resolve) => setTimeout(resolve, DELAY_MS))
 const remoteKey = (uid: string) => `mock-remote-progress:${uid}`
+const revKey = (uid: string) => `mock-remote-rev:${uid}`
+const remoteOf = (uid: string): RemoteProgress => ({ data: readJSON<unknown>(remoteKey(uid), null), rev: revFrom(readJSON<unknown>(revKey(uid), 0)) })
 
 /** The raw stored text for a flag key (tests may seed plain text, not JSON), or null when absent. */
 function flag(key: string): string | null {
@@ -79,7 +84,7 @@ export function createMockAdapter(): AccountsAdapter {
   const emitAccess = () => accessWatchers.forEach((w) => w.cb(accessOf(w.uid)))
   const emitProgress = (uid: string, hasPendingWrites: boolean) =>
     progressWatchers.forEach((w) => {
-      if (w.uid === uid) w.cb({ data: readJSON<unknown>(remoteKey(uid), null), hasPendingWrites })
+      if (w.uid === uid) w.cb({ ...remoteOf(uid), hasPendingWrites })
     })
 
   // other tabs of this browser: like Firebase, sign-in and saved progress are shared between them
@@ -131,6 +136,11 @@ export function createMockAdapter(): AccountsAdapter {
 
     async reauthenticateIfNeeded() {},
 
+    async confirmUser() {
+      await delay()
+      requireUser()
+    },
+
     async deleteUser() {
       requireUser()
       await delay()
@@ -163,6 +173,7 @@ export function createMockAdapter(): AccountsAdapter {
     async confirmCheckout(sessionId) {
       await delay()
       const a = requireUser()
+      if (flag('mock-confirm-error') !== null) throw fail('functions/unavailable', 'Mock payment check failure')
       if (flag('mock-checkout-fail') !== null || sessionId !== CHECKOUT_SESSION) return { access: 'none', status: 'unpaid' }
       if (accessOf(a.uid) === 'none') setEntitlement(a.uid, 'paid')
       emitAccess()
@@ -172,21 +183,28 @@ export function createMockAdapter(): AccountsAdapter {
     async readProgress(uid) {
       await delay()
       requireUser(uid)
-      return readJSON<unknown>(remoteKey(uid), null)
+      return remoteOf(uid)
     },
 
     watchProgress(uid, cb) {
       const entry = { uid, cb }
-      return watch(progressWatchers, entry, () => cb({ data: readJSON<unknown>(remoteKey(uid), null), hasPendingWrites: false }))
+      return watch(progressWatchers, entry, () => cb({ ...remoteOf(uid), hasPendingWrites: false }))
     },
 
-    async writeProgress(uid, state: ProgressState) {
+    async writeProgress(uid, state: ProgressState, rev) {
       requireUser(uid)
       if (flag('mock-sync-fail') !== null) {
         await delay()
         throw fail('unavailable', 'Mock save failure')
       }
+      if (rev !== remoteOf(uid).rev + 1) {
+        // like the rules: refused, and then (as Firestore does) the listener shows the account copy as it is
+        await delay()
+        setTimeout(() => emitProgress(uid, false), 0)
+        throw fail('permission-denied', 'Mock save refused: out-of-date copy')
+      }
       // saved at once (so a test can read it straight after a page change), echoed to this tab as a pending write like Firestore
+      writeJSON(revKey(uid), rev) // first, so another tab told about the new copy reads its revision too
       writeJSON(remoteKey(uid), state)
       emitProgress(uid, true)
       await delay()
@@ -194,6 +212,7 @@ export function createMockAdapter(): AccountsAdapter {
 
     async deleteProgress(uid) {
       requireUser(uid)
+      removeKey(revKey(uid))
       removeKey(remoteKey(uid))
       emitProgress(uid, true)
       await delay()

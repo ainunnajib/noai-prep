@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom'
 import { FitLineDemo } from '../components/home/FitLineDemo'
-import { ACCOUNTS_ENABLED, PRICE_LABEL } from '../lib/accounts'
+import { ACCOUNTS_ENABLED, hasFullAccess, PRICE_LABEL, useAccount } from '../lib/accounts'
 import { lessonHref, lessonSequence, modules, partList, totalMinutes } from '../curriculum/registry'
 import { PRELIM, FINAL, daysUntil, nextMilestone } from '../data/facts'
 import { useDocumentTitle } from '../lib/useDocumentTitle'
@@ -9,6 +9,7 @@ import { nextLesson } from './Roadmap'
 
 export default function Home() {
   const prog = useProgress()
+  const acct = useAccount()
   const nxt = nextLesson(prog)
   const started = Object.keys(prog.lessons).length > 0
   const next = nextMilestone()
@@ -31,7 +32,7 @@ export default function Home() {
             {ACCOUNTS_ENABLED ? 'A step-by-step course' : 'A free, step-by-step course'} for secondary, JC and poly students. Every idea comes with a picture you can poke
             at, every lesson ends with exam-style questions, and the real past papers are solved and explained.
           </p>
-          {ACCOUNTS_ENABLED && (
+          {ACCOUNTS_ENABLED && !hasFullAccess(acct) && (
             <p className="hero-free">
               The first two modules are free, no sign-in needed. Full access to everything is a one-time {PRICE_LABEL}.
             </p>

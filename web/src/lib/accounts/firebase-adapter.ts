@@ -15,9 +15,10 @@ import {
 } from 'firebase/auth'
 import { connectFirestoreEmulator, deleteDoc, doc, getDoc, getFirestore, onSnapshot, serverTimestamp, setDoc } from 'firebase/firestore'
 import { connectFunctionsEmulator, getFunctions, httpsCallable } from 'firebase/functions'
-import { accessFrom, type AccountsAdapter, type CheckoutStart } from './adapter'
+import { accessFrom, revFrom, type AccountsAdapter, type CheckoutStart, type RemoteProgress } from './adapter'
 import type { FirebaseWebConfig } from './config'
 import { errorCode } from './errors'
+import { EXIT_SAVE_LIMIT, exitCommitBody, fromFields, PROGRESS_FORMAT, toFields } from './progress-doc'
 import type { AccountUser, SignInProvider } from './types'
 
 /*
@@ -58,15 +59,9 @@ const toAccountUser = (u: User): AccountUser => ({
   provider: providerOf(u),
 })
 
-/** The `data` field holds the progress as JSON text; a damaged copy reads as empty rather than failing. */
-function parseData(data: unknown): unknown {
-  if (typeof data !== 'string') return {}
-  try {
-    return JSON.parse(data)
-  } catch {
-    return {}
-  }
-}
+/** The account copy from a progress document (see progress-doc.ts for how it is stored). */
+const remoteFrom = (snap: { exists(): boolean; get(field: string): unknown }): RemoteProgress =>
+  snap.exists() ? { data: fromFields((f) => snap.get(f)), rev: revFrom(snap.get('rev')) } : { data: null, rev: 0 }
 
 export function createFirebaseAdapter(config: FirebaseWebConfig, region: string): AccountsAdapter {
   const app = initializeApp(config)
@@ -133,11 +128,18 @@ export function createFirebaseAdapter(config: FirebaseWebConfig, region: string)
       }
     },
 
+    async confirmUser() {
+      // For an account deleted on another device the backend answers "user not found": the SDK then signs out here too.
+      const u = auth.currentUser
+      if (u) await u.reload()
+    },
+
     watchAccess(uid, cb, onError) {
       // Offline (or while Firestore is slow to answer) the listener reports a missing document from its empty cache.
       // That means "not known yet", not "no access", so wait for the server's answer instead.
       return onSnapshot(
         doc(db, 'entitlements', uid),
+        { includeMetadataChanges: true }, // so the server's "still missing" answer after a fromCache delivery is raised
         (snap) => {
           if (snap.metadata.fromCache && !snap.exists()) return
           cb(accessFrom(snap.get('access')))
@@ -160,44 +162,31 @@ export function createFirebaseAdapter(config: FirebaseWebConfig, region: string)
     },
 
     async readProgress(uid) {
-      const snap = await getDoc(progressRef(uid))
-      return snap.exists() ? parseData(snap.get('data')) : null
+      return remoteFrom(await getDoc(progressRef(uid)))
     },
 
     watchProgress(uid, cb, onError) {
       return onSnapshot(
         progressRef(uid),
         { includeMetadataChanges: true }, // so the server's answer after a fromCache delivery arrives even when nothing changed
-        (snap) =>
-          cb({
-            data: snap.exists() ? parseData(snap.get('data')) : null,
-            hasPendingWrites: snap.metadata.hasPendingWrites,
-            fromCache: snap.metadata.fromCache,
-          }),
+        (snap) => cb({ ...remoteFrom(snap), hasPendingWrites: snap.metadata.hasPendingWrites, fromCache: snap.metadata.fromCache }),
         onError,
       )
     },
 
-    writeProgress(uid, state) {
-      return setDoc(progressRef(uid), { data: JSON.stringify(state), v: 1, updatedAt: serverTimestamp() })
+    writeProgress(uid, state, rev) {
+      // the rules refuse it unless `rev` is the next revision, so a copy that is out of date can't overwrite a newer one
+      return setDoc(progressRef(uid), { ...toFields(state), v: PROGRESS_FORMAT, rev, updatedAt: serverTimestamp() })
     },
 
-    writeProgressOnExit(uid, state) {
+    writeProgressOnExit(uid, state, rev, base) {
       if (!idToken || auth.currentUser?.uid !== uid) return false
-      // An update with no updateMask replaces the whole document, so it holds exactly {data, v, updatedAt}, as the rules require.
-      const body = JSON.stringify({
-        writes: [
-          {
-            update: {
-              name: `${docsPath}/progress/${uid}`,
-              fields: { data: { stringValue: JSON.stringify(state) }, v: { integerValue: '1' } },
-            },
-            // the server's time, so the rules' updatedAt == request.time still holds
-            updateTransforms: [{ fieldPath: 'updatedAt', setToServerValue: 'REQUEST_TIME' }],
-          },
-        ],
-      })
-      if (new TextEncoder().encode(body).length > 60_000) return false // browsers cap requests that outlive the page at 64 KB
+      const body = exitCommitBody(`${docsPath}/progress/${uid}`, state, rev, base)
+      if (body === null) return true // nothing changed since the copy it builds on
+      // Browsers cap requests that outlive the page at 64 KB. Changes too big for that (several parts at once for a
+      // student with a lot of progress) can't be sent while the page closes: they stay in this browser and reach the
+      // account on its next visit, when the first merge brings them in.
+      if (new TextEncoder().encode(body).length > EXIT_SAVE_LIMIT) return false
       try {
         void fetch(`${restBase}/v1/${docsPath}:commit`, {
           method: 'POST',

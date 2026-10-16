@@ -14,17 +14,30 @@ service cloud.firestore {
       return request.auth != null && request.auth.uid == uid;
     }
 
-    // A progress document is exactly { data, v, updatedAt }: the whole progress
-    // as a JSON string (kept well under Firestore's 1 MiB document limit), the
-    // format version, and a server timestamp the client can't backdate.
+    // A progress document holds the progress as JSON text, split into parts so a
+    // save can send just the parts that changed: lessons, checkpoints, exams, and
+    // the answers spread over a0 to a7. Besides those, only the format version
+    // (2), a revision number and a server timestamp the client can't backdate.
+    // Each save must carry the next revision (one more than the stored one, or 1
+    // for a new document), so a save based on an out-of-date copy (say, one queued
+    // on a phone while another device saved) is refused instead of overwriting.
+    function isText(d, key) {
+      return !(key in d) || (d[key] is string && d[key].size() < 200000);
+    }
+
     function isValidProgress() {
       let next = request.resource.data;
-      return next.keys().hasOnly(['data', 'v', 'updatedAt'])
-        && next.keys().hasAll(['data', 'v', 'updatedAt'])
-        && next.data is string
-        && next.data.size() < 400000
-        && next.v == 1
-        && next.updatedAt == request.time;
+      let rev = resource == null ? 0 : resource.data.get('rev', 0);
+      return next.keys().hasOnly(['v', 'rev', 'updatedAt', 'lessons', 'checkpoints', 'exams',
+                                  'a0', 'a1', 'a2', 'a3', 'a4', 'a5', 'a6', 'a7'])
+        && next.keys().hasAll(['v', 'rev', 'updatedAt'])
+        && next.v == 2
+        && next.rev is int
+        && next.rev == rev + 1
+        && next.updatedAt == request.time
+        && isText(next, 'lessons') && isText(next, 'checkpoints') && isText(next, 'exams')
+        && isText(next, 'a0') && isText(next, 'a1') && isText(next, 'a2') && isText(next, 'a3')
+        && isText(next, 'a4') && isText(next, 'a5') && isText(next, 'a6') && isText(next, 'a7');
     }
 
     match /progress/{uid} {
@@ -38,6 +51,6 @@ service cloud.firestore {
       allow write: if false;
     }
 
-    // payments/{checkoutSessionId} and every other path: no client access.
+    // payments/{checkoutSessionId}, refunds/{paymentIntent} and every other path: no client access.
   }
 }

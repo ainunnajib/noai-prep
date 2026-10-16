@@ -68,9 +68,15 @@ test('deleting saved progress empties the account copy and this browser', async 
   await expect(page.getByRole('table')).toContainText('Sprint')
   await expect(page.getByRole('table')).toContainText('21/30 (70%)')
 
+  // Cancel puts keyboard focus back on the button that opened the question
+  await page.getByRole('button', { name: 'Delete my saved progress' }).click()
+  await page.getByRole('group', { name: 'Confirm deleting your progress' }).getByRole('button', { name: 'Cancel' }).click()
+  await expect(page.getByRole('button', { name: 'Delete my saved progress' })).toBeFocused()
+
   await page.getByRole('button', { name: 'Delete my saved progress' }).click()
   await page.getByRole('button', { name: 'Delete my progress' }).click()
   await expect(page.getByText('Your saved progress has been deleted')).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Delete my saved progress' })).toBeFocused()
   await expect(page.locator('.account-stat-wide')).toContainText('0 / 184')
   await expect(page.getByText('No mock exams yet.')).toBeVisible()
   await expect.poll(() => stored(page, 'mock-remote-progress:mock-google')).toBeNull()
@@ -84,7 +90,12 @@ test('deleting the account signs you out and warns about a paid unlock first', a
   await expect(page.getByRole('group', { name: 'Confirm deleting your account' })).toContainText('Your S$10 unlock belongs to this account')
   await page.getByRole('group', { name: 'Confirm deleting your account' }).getByRole('button', { name: 'Delete my account' }).click()
   await expect(page.getByRole('heading', { level: 1, name: 'Sign in' })).toBeVisible()
-  await expect(page.getByRole('status').filter({ hasText: 'Your account has been deleted' })).toBeVisible()
+  const note = page.getByRole('status').filter({ hasText: 'Your account has been deleted' })
+  await expect(note).toBeVisible()
+  // shown from the top (not left under the sticky header at the old scroll position), with focus on it
+  await expect(note).toBeFocused()
+  expect(await page.evaluate(() => window.scrollY)).toBe(0)
+  await expect(note).toBeInViewport({ ratio: 1 })
   expect(await stored(page, 'mock-auth')).toBeNull()
   expect(await stored(page, 'mock-remote-progress:mock-google')).toBeNull()
 })
@@ -135,4 +146,26 @@ test('a failed save says so, and progress stays on this device', async ({ page }
   await expect(page.getByRole('alert')).toHaveText("Couldn't save your progress to your account. It's still saved on this device.", { timeout: 10_000 })
   await expect(page.locator('.sync-status')).toHaveText('Not saved to your account yet')
   await expect(page.locator('.account-stat-wide')).toContainText('1 / 184')
+  // the rest of the page doesn't claim otherwise
+  await expect(page.getByText('Your progress is saved in this browser. You can delete it')).toBeVisible()
+  await expect(page.getByText("Your latest progress isn't saved to your account yet. Signing out now would clear it from this browser.")).toBeVisible()
+})
+
+test("signing out with progress the account doesn't have yet asks first, instead of wiping it", async ({ page }) => {
+  await seed(page, { 'mock-auth': STUDENT, 'mock-sync-fail': true })
+  await page.goto(FREE_LESSON)
+  await page.getByRole('button', { name: 'Mark lesson complete' }).click()
+  await page.goto('#/account')
+  await expect(page.locator('.sync-status')).toHaveText('Not saved to your account yet', { timeout: 10_000 })
+  await page.getByRole('button', { name: 'Sign out' }).click()
+  await expect(page.getByRole('alert')).toHaveText(/Some of your progress hasn't reached your account yet/, { timeout: 10_000 })
+  await expect(page.getByRole('heading', { level: 1, name: 'Your account' })).toBeVisible() // still signed in
+  await expect(page.locator('.sync-status')).toHaveText('Not saved to your account yet')
+  await expect(page.getByText('Your progress is saved in this browser. You can delete it')).toBeVisible()
+  expect(Object.keys((await stored<Progress>(page, 'progress-v1'))?.lessons ?? {})).toEqual(['start-here/what-is-noai'])
+  // the person decides
+  await page.getByRole('button', { name: 'Sign out anyway' }).click()
+  await expect(page.getByRole('heading', { level: 1, name: 'Sign in' })).toBeVisible()
+  expect(await stored(page, 'progress-v1')).toBeNull()
+  await expect(page.getByRole('alert')).toHaveCount(0) // no leftover "still saved on this device"
 })

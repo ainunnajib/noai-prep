@@ -5,13 +5,15 @@ export const LOAD_ERROR = "Couldn't load your progress from your account. Your p
 export const START_ERROR = "Sign-in couldn't load. Check your connection and refresh the page."
 export const CHECKOUT_ERROR = "Couldn't start the payment. Please try again in a minute."
 export const CONFIRM_ERROR =
-  "We couldn't confirm your payment yet. If you were charged, your access will switch on shortly; refresh this page in a minute."
+  "We couldn't confirm your payment yet. If you were charged, your access will switch on here by itself shortly. You don't need to pay again."
 export const CONFIRM_WRONG_ACCOUNT_ERROR =
   'This payment was made while signed in with a different account. Sign out, then sign in with that account to finish unlocking.'
 export const ACCESS_ERROR = "Couldn't check your access. Please try again in a minute."
 export const DELETE_PROGRESS_ERROR = "Couldn't delete your saved progress. Check your connection and try again."
 export const DELETE_ACCOUNT_ERROR = "Couldn't delete your account. Check your connection and try again."
 export const SIGN_OUT_ERROR = "Couldn't sign you out. Check your connection and try again."
+export const SIGN_OUT_UNSAVED_ERROR =
+  "Some of your progress hasn't reached your account yet (check your connection). Signing out now would remove it from this browser for good. Try again in a moment, or sign out anyway."
 
 export const errorCode = (e: unknown): string =>
   typeof e === 'object' && e !== null && typeof (e as { code?: unknown }).code === 'string' ? (e as { code: string }).code : ''

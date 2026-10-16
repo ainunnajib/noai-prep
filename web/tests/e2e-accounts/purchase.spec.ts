@@ -71,6 +71,42 @@ test('a payment that has not gone through does not unlock', async ({ page }) => 
   await expect(page.getByRole('button', { name: 'Unlock for S$10' })).toBeVisible()
 })
 
+test("a payment check that fails says so in the banner straight away, and the late unlock still lands", async ({ page }) => {
+  await seed(page, { 'mock-auth': STUDENT, 'mock-confirm-error': true })
+  await page.goto('./?checkout=success&session_id=cs_test_mock#/account')
+  const banner = page.locator('.account-banner')
+  // not an "unlocking…" spinner over an error: the banner says it, once
+  await expect(banner).toContainText('Your payment is still being confirmed.', { timeout: 5_000 })
+  await expect(banner).toContainText("We couldn't confirm your payment yet. If you were charged, your access will switch on here by itself shortly.")
+  await expect(page.getByText('Payment received — unlocking…')).toHaveCount(0)
+  await expect(page.getByText("We couldn't confirm your payment yet.")).toHaveCount(1)
+  await expect(page.getByText('Confirming your payment…')).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Unlock for S$10' })).toHaveCount(0)
+  // the webhook gets there after all
+  await page.evaluate(() => {
+    localStorage.setItem('noai-prep:mock-entitlements', JSON.stringify({ 'mock-google': 'paid' }))
+    window.dispatchEvent(new StorageEvent('storage', { key: 'noai-prep:mock-entitlements' }))
+  })
+  await expect(page.getByText("You're in! Everything is unlocked.")).toBeVisible()
+  await expect(page.getByText('Full access: paid')).toBeVisible()
+})
+
+test('an unlock that lands after the page stopped waiting replaces the "still being confirmed" banner', async ({ page }) => {
+  await seed(page, { 'mock-auth': STUDENT, 'mock-checkout-fail': true })
+  await page.goto('./?checkout=success&session_id=cs_test_mock#/account')
+  await expect(page.getByText('Your payment is still being confirmed.')).toBeVisible({ timeout: 30_000 })
+  // it doesn't send the person to refresh (which would lose the "no need to pay again" safeguard)
+  await expect(page.locator('.account-banner')).toContainText("You don't need to refresh or pay again.")
+  await expect(page.locator('.account-banner')).not.toContainText(/refresh this page/i)
+  await page.evaluate(() => {
+    localStorage.setItem('noai-prep:mock-entitlements', JSON.stringify({ 'mock-google': 'paid' }))
+    window.dispatchEvent(new StorageEvent('storage', { key: 'noai-prep:mock-entitlements' }))
+  })
+  await expect(page.getByText("You're in! Everything is unlocked.")).toBeVisible()
+  await expect(page.getByText('Your payment is still being confirmed.')).toHaveCount(0)
+  await expect(page.getByRole('link', { name: 'Continue the course' })).toBeVisible()
+})
+
 test('coming back from checkout signed out asks you to sign in, then unlocks', async ({ page }) => {
   await page.goto('./?checkout=success&session_id=cs_test_mock#/account')
   await expect(page.getByText('Sign in with the account you paid with to finish unlocking.')).toBeVisible()
@@ -97,6 +133,9 @@ test('the sign-in dialog: opens from the header, Escape closes it, focus comes b
   await signInFromHeader(page, 'Apple')
   await page.getByRole('link', { name: 'Your account' }).click()
   await expect(page.getByText('Signed in with Apple')).toBeVisible()
+  // the relay address may wrap at its dots, not mid-word
+  await expect(page.locator('.account-name')).toHaveText('abc123@privaterelay.appleid.com')
+  await expect(page.locator('.account-name wbr')).toHaveCount(3)
 })
 
 test('a blocked pop-up shows a helpful message', async ({ page }) => {

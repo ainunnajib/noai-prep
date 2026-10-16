@@ -56,52 +56,103 @@ describe.skipIf(!emulator)('firestore.rules', () => {
     })
   }
 
-  const progress = (data = '{"lessons":{}}') => ({ data, v: 1, updatedAt: serverTimestamp() })
+  /** A whole progress document (format 2) with the given revision. */
+  const progress = (rev = 1, lessons = '{}') => ({
+    v: 2,
+    rev,
+    updatedAt: serverTimestamp(),
+    lessons,
+    checkpoints: '{}',
+    exams: '[]',
+    a0: '{}',
+    a1: '{}',
+    a2: '{}',
+    a3: '{}',
+    a4: '{}',
+    a5: '{}',
+    a6: '{}',
+    a7: '{}',
+  })
 
   describe('progress/{uid}', () => {
     it('lets the owner create, read, update and delete their progress', async () => {
       const ref = doc(as('alice'), 'progress/alice')
-      await assertSucceeds(setDoc(ref, progress()))
+      await assertSucceeds(setDoc(ref, progress(1)))
       await assertSucceeds(getDoc(ref))
-      await assertSucceeds(setDoc(ref, progress('{"lessons":{"a/b":"2026-10-16T00:00:00.000Z"}}')))
-      await assertSucceeds(updateDoc(ref, { data: '{}', updatedAt: serverTimestamp() }))
+      await assertSucceeds(setDoc(ref, progress(2, '{"a/b":"2026-10-16T00:00:00.000Z"}')))
+      // a save of just the parts that changed (what the page sends while it closes)
+      await assertSucceeds(updateDoc(ref, { lessons: '{}', a3: '{"q1":[true]}', v: 2, rev: 3, updatedAt: serverTimestamp() }))
       await assertSucceeds(deleteDoc(ref))
+      // a new document starts again at revision 1
+      await assertSucceeds(setDoc(ref, progress(1)))
+    })
+
+    it('needs only the version, revision and time: missing parts are empty', async () => {
+      const ref = doc(as('alice'), 'progress/alice')
+      await assertSucceeds(setDoc(ref, { v: 2, rev: 1, updatedAt: serverTimestamp(), lessons: '{"a/b":"2026-10-16T00:00:00.000Z"}' }))
+    })
+
+    it('refuses a save based on an out-of-date copy: each save must carry the next revision', async () => {
+      const ref = doc(as('alice'), 'progress/alice')
+      await assertFails(setDoc(ref, progress(2))) // a new document starts at 1
+      await assertFails(setDoc(ref, progress(0)))
+      await assertSucceeds(setDoc(ref, progress(1)))
+      await assertFails(setDoc(ref, progress(1))) // another device saved revision 1 already
+      await assertFails(setDoc(ref, progress(3))) // skipping one
+      await assertFails(updateDoc(ref, { lessons: '{}', rev: 1, updatedAt: serverTimestamp() }))
+      await assertSucceeds(setDoc(ref, progress(2)))
+      await assertFails(setDoc(ref, { ...progress(3), rev: '3' }))
+      await assertFails(setDoc(ref, { ...progress(3), rev: 3.5 }))
+    })
+
+    it('counts a document saved without a revision as revision 0', async () => {
+      await seed('progress/alice', { v: 2, lessons: '{}', updatedAt: Timestamp.now() })
+      const ref = doc(as('alice'), 'progress/alice')
+      await assertFails(setDoc(ref, progress(2)))
+      await assertSucceeds(setDoc(ref, progress(1)))
     })
 
     it('keeps other people out', async () => {
-      await seed('progress/alice', { data: '{}', v: 1, updatedAt: Timestamp.now() })
+      await seed('progress/alice', { v: 2, rev: 1, lessons: '{}', updatedAt: Timestamp.now() })
       const ref = doc(as('bob'), 'progress/alice')
       await assertFails(getDoc(ref))
-      await assertFails(setDoc(ref, progress()))
+      await assertFails(setDoc(ref, progress(2)))
       await assertFails(deleteDoc(ref))
     })
 
     it('keeps signed-out visitors out', async () => {
-      await seed('progress/alice', { data: '{}', v: 1, updatedAt: Timestamp.now() })
+      await seed('progress/alice', { v: 2, rev: 1, lessons: '{}', updatedAt: Timestamp.now() })
       const ref = doc(signedOut(), 'progress/alice')
       await assertFails(getDoc(ref))
-      await assertFails(setDoc(ref, progress()))
+      await assertFails(setDoc(ref, progress(2)))
       await assertFails(deleteDoc(ref))
     })
 
     it('rejects extra or missing fields', async () => {
       const ref = doc(as('alice'), 'progress/alice')
       await assertFails(setDoc(ref, { ...progress(), admin: true }))
-      await assertFails(setDoc(ref, { data: '{}', v: 1 }))
-      await assertFails(setDoc(ref, { data: '{}', updatedAt: serverTimestamp() }))
+      await assertFails(setDoc(ref, { ...progress(), data: '{}' })) // the old single-text format
+      await assertFails(setDoc(ref, { ...progress(), a8: '{}' }))
+      const { v: _v, ...noVersion } = progress()
+      const { rev: _rev, ...noRev } = progress()
+      const { updatedAt: _t, ...noTime } = progress()
+      await assertFails(setDoc(ref, noVersion))
+      await assertFails(setDoc(ref, noRev))
+      await assertFails(setDoc(ref, noTime))
     })
 
-    it('rejects progress that is not a string or is 400 000 characters or more', async () => {
+    it('rejects a part that is not text or is 200 000 characters or more', async () => {
       const ref = doc(as('alice'), 'progress/alice')
-      await assertFails(setDoc(ref, { data: { lessons: {} }, v: 1, updatedAt: serverTimestamp() }))
-      await assertFails(setDoc(ref, progress('x'.repeat(400_000))))
-      await assertSucceeds(setDoc(ref, progress('x'.repeat(399_999))))
+      await assertFails(setDoc(ref, { ...progress(), lessons: { a: 1 } }))
+      await assertFails(setDoc(ref, { ...progress(), a5: ['x'] }))
+      await assertFails(setDoc(ref, { ...progress(), exams: 'x'.repeat(200_000) }))
+      await assertSucceeds(setDoc(ref, { ...progress(), exams: 'x'.repeat(199_999) }))
     })
 
-    it('rejects any version other than 1', async () => {
+    it('rejects any version other than 2', async () => {
       const ref = doc(as('alice'), 'progress/alice')
-      await assertFails(setDoc(ref, { ...progress(), v: 2 }))
-      await assertFails(setDoc(ref, { ...progress(), v: '1' }))
+      await assertFails(setDoc(ref, { ...progress(), v: 1 }))
+      await assertFails(setDoc(ref, { ...progress(), v: '2' }))
     })
 
     it('rejects an updatedAt chosen by the client instead of the server', async () => {
@@ -138,7 +189,14 @@ describe.skipIf(!emulator)('firestore.rules', () => {
     })
   })
 
-  describe('payments and everything else', () => {
+  describe('payments, refunds and everything else', () => {
+    it('denies all client access to refund records', async () => {
+      await seed('refunds/pi_111', { chargeId: 'ch_111', uid: 'alice', refundedAt: Timestamp.now() })
+      await assertFails(getDoc(doc(as('alice'), 'refunds/pi_111')))
+      await assertFails(setDoc(doc(as('alice'), 'refunds/pi_222'), { uid: 'alice' }))
+      await assertFails(deleteDoc(doc(as('alice'), 'refunds/pi_111')))
+    })
+
     it('denies all client access to payments, even your own', async () => {
       await seed('payments/cs_test_a1', { uid: 'alice', status: 'paid' })
       const ref = doc(as('alice'), 'payments/cs_test_a1')
