@@ -11,7 +11,7 @@ A free, beginner-friendly course for Singapore's National Olympiad in Artificial
 - **Past papers** (`#/papers`): the 2026 Preliminary Round (300 questions), the 2026 Final MCQs and the 2025 paper, each question solved and explained.
 - **Study plan** (`#/plan`): a week-by-week plan to the Prelim, packed to the hours per week you choose.
 
-Progress is saved in your browser only (no account and no server).
+Progress is saved in your browser. Optionally, the site can also have **accounts**: sign-in with Google or Apple, progress synced to the account across devices, and a one-time S$10 unlock (the first two modules stay free; invited email addresses get full access free). Accounts switch on only when the Firebase web config is set at build time (see `.env.example`); without it the site is fully open and works with no account and no server, exactly as before. The backend (Firebase rules and Cloud Functions, Stripe) and the owner's setup guide are in [`../backend/`](../backend/README.md).
 
 ## Running it
 
@@ -29,8 +29,12 @@ The site is a static single-page app (hash routing, relative asset paths), so `w
 ```bash
 npm run typecheck        # TypeScript
 npm run check:content    # every lesson renders; quiz, past-paper and bank data are valid
-npm run test:e2e         # Playwright: every page at desktop and phone widths
+npm run test:e2e         # Playwright: every page at desktop and phone widths (accounts off)
+npx vitest run tests/accounts                        # accounts: progress merging, sync decisions, access checks
+npx playwright test -c playwright.accounts.config.ts # accounts end to end, against a pretend backend
 ```
+
+The accounts end-to-end tests build the site with `VITE_ACCOUNTS_MOCK=1` (an offline, pretend account backend that keeps everything in `localStorage`) into `dist-accounts/` and serve it on port 4174. To click around that version yourself: `VITE_ACCOUNTS_MOCK=1 npm run dev`.
 
 ## Where things live
 
@@ -40,7 +44,8 @@ npm run test:e2e         # Playwright: every page at desktop and phone widths
 | `src/curriculum/parts.ts`, `registry.ts` | Course parts and the module registry (modules are discovered automatically). |
 | `src/components/` | The shared kit: content blocks (callouts, maths, code, steps, tabs), interactive pieces (plots with draggable points, sliders, matrix grids, bar charts, network diagrams, an in-browser Python runner) and quiz components. |
 | `src/data/` | Exam facts, past papers and the practice bank. |
-| `src/pages/` | Home, roadmap, lesson, exam guide, practice, mock exam, past papers, study plan. |
+| `src/pages/` | Home, roadmap, lesson, exam guide, practice, mock exam, past papers, study plan, account. |
+| `src/lib/accounts/`, `src/components/account/` | Accounts (only when switched on): the account store, progress sync and the Firebase and pretend backends; the sign-in dialog, the lock on paid pages and the header's account button. |
 | `AUTHORING.md` | How to write or edit a lesson: style, visuals, quizzes and accuracy rules. |
 | `../docs/` | Research notes (official facts with sources, the IOAI syllabus, past-paper analyses) and the curriculum design. |
 

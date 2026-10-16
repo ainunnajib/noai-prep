@@ -1,9 +1,11 @@
 import { useEffect } from 'react'
 import { Link } from 'react-router-dom'
+import { LockMark, useShowLocks } from '../components/account/badges'
 import { PAPERS } from '../data/papers'
 import { LINKS } from '../data/facts'
 
 export default function PastPapers() {
+  const showLocks = useShowLocks()
   useEffect(() => {
     document.title = 'Past papers · NOAI Prep'
     return () => {
@@ -34,6 +36,7 @@ export default function PastPapers() {
             </div>
             <Link to={`/papers/${p.id}`} className="btn btn-primary">
               Open paper
+              {showLocks && <LockMark />}
             </Link>
           </article>
         ))}

@@ -1,8 +1,31 @@
 import { useEffect, useState } from 'react'
+import { Link } from 'react-router-dom'
 import { FACTS_CHECKED_ON, LINKS } from '../data/facts'
+import { ACCOUNTS_ENABLED, useAccount } from '../lib/accounts'
 import { progress } from '../lib/progress'
 
+/** "Your data" with accounts on: what is kept, where, and how to delete it. */
+function AccountData() {
+  return (
+    <>
+      <p>Before you sign in, your lesson progress, answers and mock-exam scores are stored only in this browser (local storage).</p>
+      <p>When you sign in with Google or Apple, we keep:</p>
+      <ul>
+        <li>your name, email address and profile picture link, as your sign-in provider shares them;</li>
+        <li>your progress (lessons done, checkpoint scores, practice answers and mock-exam results), so it follows you between devices;</li>
+        <li>whether you have unlocked the full course and, if you paid, Stripe's reference for the payment.</li>
+      </ul>
+      <p>
+        These are stored with Google Firebase, the sign-in and storage service the site uses. Payments go through Stripe: your card details never reach us. You can
+        delete your saved progress, or your whole account, at any time from the <Link to="/account">Account page</Link>. Deleting your account removes your sign-in and
+        your saved progress. The record of your unlock or payment, with the email address it was made with, is kept so payments can be accounted for.
+      </p>
+    </>
+  )
+}
+
 export default function About() {
+  const signedIn = useAccount().status === 'signed-in'
   const [confirm, setConfirm] = useState(false)
   const [cleared, setCleared] = useState(false)
   useEffect(() => {
@@ -17,7 +40,7 @@ export default function About() {
         <span className="eyebrow">About</span>
         <h1>About NOAI Prep</h1>
         <p className="page-lede">
-          NOAI Prep is a free, independent course for students preparing for Singapore's National Olympiad in Artificial Intelligence. It is not affiliated with AI Singapore,
+          NOAI Prep is {ACCOUNTS_ENABLED ? 'an independent' : 'a free, independent'} course for students preparing for Singapore's National Olympiad in Artificial Intelligence. It is not affiliated with AI Singapore,
           NTU or the IOAI.
         </p>
       </div>
@@ -48,7 +71,11 @@ export default function About() {
           </li>
         </ul>
         <h2>Your data</h2>
-        <p>Lesson progress, answers and mock-exam scores are stored only in this browser (local storage). Nothing is sent anywhere.</p>
+        {ACCOUNTS_ENABLED ? (
+          <AccountData />
+        ) : (
+          <p>Lesson progress, answers and mock-exam scores are stored only in this browser (local storage). Nothing is sent anywhere.</p>
+        )}
       </div>
       <div style={{ marginTop: '1rem', display: 'grid', gap: '0.75rem', justifyItems: 'start' }}>
         {!confirm ? (
@@ -57,7 +84,7 @@ export default function About() {
           </button>
         ) : (
           <div className="confirm-box">
-            <strong>Erase all lesson progress, answers and mock-exam history from this browser?</strong>
+            <strong>Erase all lesson progress, answers and mock-exam history from {signedIn ? 'this browser and your account' : 'this browser'}?</strong>
             <div style={{ display: 'flex', gap: '0.5rem' }}>
               <button
                 type="button"

@@ -1,5 +1,5 @@
 /** localStorage wrappers that never throw (private windows, blocked storage, previews). */
-const PREFIX = 'noai-prep:'
+export const PREFIX = 'noai-prep:'
 
 export function readJSON<T>(key: string, fallback: T): T {
   try {

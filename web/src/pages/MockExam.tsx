@@ -1,29 +1,16 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
+import { AccessGate } from '../components/account/AccessGate'
 import { QuestionCard } from '../components/quiz/QuestionCard'
 import { Bars } from '../components/interactive/Bars'
 import { loadAllQuestions, SUBTOPIC_LABEL, type BankQuestion, type ExamDomain } from '../data/bank'
+import { MOCK_FORMATS as FORMATS } from '../data/mockFormats'
 import { DOMAIN_LABEL, DomainChip, EXAM_DOMAINS } from '../lib/domains'
 import { formatDuration, pct } from '../lib/format'
 import { progress, useProgress } from '../lib/progress'
 import { mulberry32, shuffled } from '../lib/random'
 import { revealQuestion } from '../lib/revealQuestion'
 import { readJSON, removeKey, writeJSON } from '../lib/storage'
-
-interface Format {
-  id: string
-  title: string
-  questions: number
-  minutes: number
-  note: string
-}
-
-const FORMATS: Format[] = [
-  { id: 'prelim2027', title: 'Full prelim', questions: 150, minutes: 90, note: 'The NOAI 2027 Preliminary Round format: 150 questions, 90 minutes.' },
-  { id: 'half', title: 'Half paper', questions: 75, minutes: 45, note: 'Same pace, half the length. Good for a weekday evening.' },
-  { id: 'sprint', title: 'Sprint', questions: 30, minutes: 18, note: 'A quick 18-minute burst at exam pace.' },
-  { id: 'marathon', title: '2026 marathon', questions: 300, minutes: 180, note: 'The 2026 format: 300 questions in 3 hours. For stamina.' },
-]
 
 interface Attempt {
   formatId: string
@@ -58,7 +45,29 @@ function buildExam(pool: BankQuestion[], n: number, seed: number): string[] {
   return shuffled(picked, rng).map((q) => q.id)
 }
 
+/** The setup screen's heading, also shown above the lock when mock exams are locked. */
+function MockHead() {
+  return (
+    <>
+      <span className="eyebrow">Mock exam</span>
+      <h1>Sit a timed mock exam</h1>
+      <p className="page-lede">
+        Questions are drawn evenly from the five NOAI domains. There's no feedback until you submit, just like the real thing. Wrong answers cost nothing, so answer
+        everything.
+      </p>
+    </>
+  )
+}
+
 export default function MockExam() {
+  return (
+    <AccessGate kind="mock" head={<MockHead />} title="Mock exam">
+      <MockExamRunner />
+    </AccessGate>
+  )
+}
+
+function MockExamRunner() {
   const [all, setAll] = useState<BankQuestion[] | null>(null)
   const [formatId, setFormatId] = useState('prelim2027')
   const [includePapers, setIncludePapers] = useState(true)
@@ -185,12 +194,7 @@ export default function MockExam() {
     return (
       <div className="page">
         <div className="page-head">
-          <span className="eyebrow">Mock exam</span>
-          <h1>Sit a timed mock exam</h1>
-          <p className="page-lede">
-            Questions are drawn evenly from the five NOAI domains. There's no feedback until you submit, just like the real thing. Wrong answers cost nothing, so answer
-            everything.
-          </p>
+          <MockHead />
         </div>
         <div className="mock-setup" role="radiogroup" aria-label="Exam length" onKeyDown={onFormatKey}>
           {FORMATS.map((f) => (

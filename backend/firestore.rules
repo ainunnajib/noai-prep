@@ -1,0 +1,43 @@
+rules_version = '2';
+
+// Who may read and write what in Cloud Firestore.
+//
+// The website only ever touches two documents per person: their own progress
+// (read and write) and their own entitlement (read only, so the page can unlock
+// the moment a payment lands). Entitlements and payments are written by the
+// Cloud Functions, which use the Admin SDK and so are not limited by these rules.
+// Anything not matched below is denied.
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function isOwner(uid) {
+      return request.auth != null && request.auth.uid == uid;
+    }
+
+    // A progress document is exactly { data, v, updatedAt }: the whole progress
+    // as a JSON string (kept well under Firestore's 1 MiB document limit), the
+    // format version, and a server timestamp the client can't backdate.
+    function isValidProgress() {
+      let next = request.resource.data;
+      return next.keys().hasOnly(['data', 'v', 'updatedAt'])
+        && next.keys().hasAll(['data', 'v', 'updatedAt'])
+        && next.data is string
+        && next.data.size() < 400000
+        && next.v == 1
+        && next.updatedAt == request.time;
+    }
+
+    match /progress/{uid} {
+      allow read, delete: if isOwner(uid);
+      allow create, update: if isOwner(uid) && isValidProgress();
+    }
+
+    // Whether this person has unlocked the course. Only the functions write it.
+    match /entitlements/{uid} {
+      allow read: if isOwner(uid);
+      allow write: if false;
+    }
+
+    // payments/{checkoutSessionId} and every other path: no client access.
+  }
+}

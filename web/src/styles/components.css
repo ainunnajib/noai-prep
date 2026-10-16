@@ -1174,3 +1174,227 @@ svg text[style*='fill: var(--viz-muted)'] {
   font-size: 0.92em;
   color: var(--ink-3);
 }
+
+/* ================= accounts: sign-in, locks ================= */
+.signin-dialog {
+  width: min(26rem, calc(100vw - 32px));
+  max-width: none;
+  max-height: calc(100dvh - 32px);
+  padding: 0;
+  border: 1px solid var(--rule);
+  border-radius: var(--radius-l);
+  background: var(--surface);
+  color: var(--ink);
+  box-shadow: 0 24px 60px -24px rgba(0, 0, 0, 0.5);
+}
+.signin-dialog::backdrop {
+  background: rgba(14, 19, 34, 0.55);
+}
+.signin-body {
+  position: relative;
+  display: grid;
+  gap: 1rem;
+  padding: 1.5rem 1.4rem 1.35rem;
+}
+.signin-body h2 {
+  font-size: var(--step-2);
+  padding-right: 2.75rem;
+}
+.signin-body > p:not(.fineprint) {
+  color: var(--ink-2);
+}
+.dialog-close {
+  position: absolute;
+  top: 0.9rem;
+  right: 0.9rem;
+  display: inline-grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: 1px solid var(--rule);
+  background: var(--surface);
+  color: var(--ink);
+  cursor: pointer;
+}
+.dialog-close:hover {
+  background: var(--surface-2);
+}
+.dialog-close svg {
+  width: 18px;
+  height: 18px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+}
+
+/* "Continue with Google" (white with the four-colour G) and "Continue with Apple" (black, or white in the dark theme) */
+.provider-buttons {
+  position: relative;
+  display: grid;
+  gap: 0.6rem;
+  width: 100%;
+  max-width: 22rem;
+}
+.provider-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.7rem;
+  min-height: 46px;
+  padding: 0.55rem 1.1rem;
+  border-radius: 999px;
+  font-family: var(--font-body);
+  font-weight: 700;
+  font-size: var(--step-0);
+  line-height: 1.2;
+  cursor: pointer;
+  transition: box-shadow 0.12s ease, background 0.12s ease;
+}
+.provider-btn:active {
+  transform: translateY(1px);
+}
+.provider-btn[aria-busy='true'] {
+  cursor: progress;
+  opacity: 0.75;
+}
+.provider-google {
+  background: #ffffff;
+  color: #1f1f1f;
+  border: 1px solid #747775;
+}
+.provider-google:hover {
+  background: #f8f9fa;
+  box-shadow: 0 1px 3px rgba(60, 64, 67, 0.3);
+}
+.provider-apple {
+  background: var(--apple-bg);
+  color: var(--apple-ink);
+  border: 1px solid var(--apple-bg);
+}
+.provider-apple:hover {
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.35);
+}
+.provider-logo {
+  width: 20px;
+  height: 20px;
+  flex: none;
+}
+/* the Apple logo sits a touch high in its box: nudge it onto the text's line */
+.provider-logo-apple {
+  width: 17px;
+  margin-top: -3px;
+}
+.provider-status {
+  font-size: var(--step--1);
+  color: var(--ink-2);
+}
+/* kept in the page (so screen readers announce it when it fills) but takes no room while empty */
+.provider-status:empty {
+  position: absolute;
+}
+.account-error {
+  padding: 0.55rem 0.8rem;
+  border-radius: var(--radius-s);
+  border: 1px solid color-mix(in srgb, var(--bad) 40%, transparent);
+  background: var(--bad-soft);
+  color: var(--bad);
+  font-size: var(--step--1);
+  font-weight: 600;
+}
+
+/* the lock that stands in for a paid page or lesson */
+.lock-panel {
+  display: grid;
+  gap: 0.9rem;
+  justify-items: start;
+  max-width: 40rem;
+  padding: 1.5rem 1.4rem;
+}
+.lock-panel h2 {
+  font-size: var(--step-2);
+}
+.lock-panel > p:not(.fineprint) {
+  color: var(--ink-2);
+}
+.lock-badge {
+  display: inline-grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+.lock-badge svg {
+  width: 22px;
+  height: 22px;
+}
+.icon-lock,
+.icon-person {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.unlock-list {
+  margin: 0;
+  padding-left: 1.2rem;
+  display: grid;
+  gap: 0.3rem;
+}
+.unlock-list li::marker {
+  color: var(--ok);
+}
+.unlock-price strong {
+  font-family: var(--font-display);
+  font-size: var(--step-1);
+}
+.unlock-action {
+  display: grid;
+  gap: 0.6rem;
+  justify-items: start;
+}
+.nowrap-email {
+  overflow-wrap: anywhere;
+}
+
+/* small markers on the course map, module pages and past papers */
+.lock-mark {
+  display: inline-flex;
+  align-items: center;
+  flex: none;
+  color: var(--ink-3);
+}
+.lock-mark svg {
+  width: 1em;
+  height: 1em;
+}
+.btn .lock-mark {
+  color: inherit;
+}
+.chip-free {
+  font-family: var(--font-body);
+  color: var(--ok-ink);
+  border-color: color-mix(in srgb, var(--ok) 45%, transparent);
+  background: var(--ok-soft);
+}
+
+.spinner {
+  display: inline-block;
+  width: 1em;
+  height: 1em;
+  flex: none;
+  border: 2px solid currentColor;
+  border-right-color: transparent;
+  border-radius: 50%;
+  vertical-align: -0.15em;
+  animation: spin 0.8s linear infinite;
+}
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}

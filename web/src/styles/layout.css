@@ -135,6 +135,96 @@
   }
 }
 
+/* account control (accounts on only): Sign in, or the signed-in person's avatar */
+.signin-btn {
+  flex: none;
+  white-space: nowrap;
+  gap: 0.35em;
+}
+.signin-btn svg {
+  width: 18px;
+  height: 18px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+}
+.account-link,
+.account-placeholder {
+  flex: none;
+  display: inline-grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+}
+.account-link {
+  text-decoration: none;
+}
+.account-link:hover .avatar {
+  box-shadow: 0 0 0 3px var(--accent-soft);
+}
+.account-placeholder {
+  background: var(--surface-2);
+  border: 1px solid var(--rule);
+}
+.avatar {
+  display: inline-grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  overflow: hidden;
+  flex: none;
+  background: var(--accent);
+  color: var(--accent-ink);
+  border: 1px solid var(--rule);
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 1.05rem;
+  line-height: 1;
+}
+.avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.avatar-large {
+  width: 56px;
+  height: 56px;
+  font-size: 1.5rem;
+}
+/* one more control in the header: a little less room around the links just above the phone menu's width,
+   less space between the controls on phones, and an icon-only Sign in button on the narrowest phones */
+@media (min-width: 881px) and (max-width: 1000px) {
+  .site-header-inner.has-account {
+    gap: 0.75rem;
+  }
+  .has-account .site-nav a {
+    padding-inline: 0.55rem;
+  }
+}
+@media (max-width: 400px) {
+  .site-header-inner.has-account {
+    gap: 0.6rem;
+  }
+}
+@media (max-width: 360px) {
+  .signin-btn {
+    width: 40px;
+    height: 40px;
+    padding: 0;
+  }
+  .signin-label {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+  }
+}
+
 main {
   flex: 1;
 }

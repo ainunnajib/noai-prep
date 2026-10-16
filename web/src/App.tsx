@@ -14,6 +14,7 @@ const PastPapers = lazy(() => import('./pages/PastPapers'))
 const PaperView = lazy(() => import('./pages/PaperView'))
 const About = lazy(() => import('./pages/About'))
 const StudyPlan = lazy(() => import('./pages/StudyPlan'))
+const Account = lazy(() => import('./pages/Account'))
 
 /** Remount the paper view for each paper so answers and filters do not carry over from one paper to the next. */
 function PaperRoute() {
@@ -38,6 +39,7 @@ export default function App() {
           <Route path="papers/:paperId" element={<PaperRoute />} />
           <Route path="about" element={<About />} />
           <Route path="plan" element={<StudyPlan />} />
+          <Route path="account" element={<Account />} />
           <Route path="*" element={<NotFound />} />
         </Route>
       </Routes>

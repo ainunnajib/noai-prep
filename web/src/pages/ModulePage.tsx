@@ -1,6 +1,11 @@
 import { Link, useParams } from 'react-router-dom'
+import { FreeChip, LockMark, useShowLocks } from '../components/account/badges'
+import { LockIcon } from '../components/account/icons'
+import { openSignIn } from '../components/account/signInStore'
+import { UnlockButton } from '../components/account/UnlockButton'
 import { getModule, lessonHref, moduleHref, modules } from '../curriculum/registry'
 import { parts } from '../curriculum/parts'
+import { isFreeModule, PRICE_LABEL, useAccount } from '../lib/accounts'
 import { DomainChip } from '../lib/domains'
 import { lessonKey, useProgress } from '../lib/progress'
 import { useDocumentTitle } from '../lib/useDocumentTitle'
@@ -8,10 +13,33 @@ import { Tick } from './LessonPage'
 import NotFound from './NotFound'
 import { moduleProgress } from './Roadmap'
 
+/** On a locked module's page: what it takes to open its lessons. */
+function LockedModuleNote() {
+  const { status } = useAccount()
+  return (
+    <div className="lock-note">
+      <LockIcon />
+      <p>
+        {status === 'signed-in'
+          ? `This module's lessons are part of the full course: a one-time ${PRICE_LABEL} unlocks every module.`
+          : `This module's lessons are part of the full course. Sign in to save your progress and unlock it for a one-time ${PRICE_LABEL}.`}
+      </p>
+      {status === 'signed-in' ? (
+        <UnlockButton small />
+      ) : (
+        <button type="button" className="btn btn-small" onClick={openSignIn}>
+          Sign in
+        </button>
+      )}
+    </div>
+  )
+}
+
 export default function ModulePage() {
   const { moduleSlug } = useParams()
   const mod = getModule(moduleSlug)
   const prog = useProgress()
+  const showLocks = useShowLocks()
   useDocumentTitle(mod?.title)
   if (!mod) return <NotFound />
   const part = parts.find((p) => p.id === mod.part)
@@ -22,6 +50,7 @@ export default function ModulePage() {
   const prevMod = idx > 0 ? modules[idx - 1] : undefined
   const nextMod = idx >= 0 ? modules[idx + 1] : undefined
   const nextOpen = nextMod && (nextMod.lessons.find((l) => !prog.lessons[lessonKey(nextMod.slug, l.slug)]) ?? nextMod.lessons[0])
+  const locked = showLocks && !isFreeModule(mod.slug)
 
   return (
     <div className="page page-narrow">
@@ -40,8 +69,11 @@ export default function ModulePage() {
             {p.done}/{p.total} lessons done
           </span>
           <span className="chip tabular">{mod.lessons.reduce((s, l) => s + l.minutes, 0)} min</span>
+          {showLocks && !locked && <FreeChip />}
         </div>
       </div>
+
+      {locked && <LockedModuleNote />}
 
       {prereqs.length > 0 && (
         <p className="module-prereq">
@@ -84,6 +116,7 @@ export default function ModulePage() {
                 <span className="module-lesson-summary">{l.summary}</span>
               </span>
               <span className="module-lesson-mins tabular">{l.minutes} min</span>
+              {locked && <LockMark />}
             </Link>
           </li>
         ))}

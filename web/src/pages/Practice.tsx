@@ -1,4 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
+import { AccessGate } from '../components/account/AccessGate'
+import { useSavedWhere } from '../components/account/copy'
 import { QuestionCard } from '../components/quiz/QuestionCard'
 import { DOMAIN_SUBTOPICS, SUBTOPIC_LABEL, loadAllQuestions, type BankQuestion, type ExamDomain } from '../data/bank'
 import { DOMAIN_LABEL, DomainChip, EXAM_DOMAINS } from '../lib/domains'
@@ -10,7 +12,30 @@ import { revealQuestion } from '../lib/revealQuestion'
 type Focus = 'all' | 'new' | 'wrong'
 type Source = 'all' | 'bank' | 'course' | 'paper'
 
+/** The page's heading, also shown above the lock when the practice bank is locked. */
+function PracticeHead() {
+  const savedWhere = useSavedWhere()
+  return (
+    <>
+      <span className="eyebrow">Practice</span>
+      <h1>Practise by topic</h1>
+      <p className="page-lede">
+        Pick what to work on and answer one question at a time. You get the explanation straight away, and your history is saved {savedWhere} so you can come back to the
+        ones you got wrong.
+      </p>
+    </>
+  )
+}
+
 export default function Practice() {
+  return (
+    <AccessGate kind="practice" head={<PracticeHead />} title="Practice">
+      <PracticeBank />
+    </AccessGate>
+  )
+}
+
+function PracticeBank() {
   const [all, setAll] = useState<BankQuestion[] | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [domain, setDomain] = useState<'all' | ExamDomain>('all')
@@ -114,12 +139,7 @@ export default function Practice() {
   return (
     <div className="page">
       <div className="page-head">
-        <span className="eyebrow">Practice</span>
-        <h1>Practise by topic</h1>
-        <p className="page-lede">
-          Pick what to work on and answer one question at a time. You get the explanation straight away, and your history is saved in this browser so you can come back to the
-          ones you got wrong.
-        </p>
+        <PracticeHead />
       </div>
 
       <div className="toolbar" role="group" aria-label="Filters">

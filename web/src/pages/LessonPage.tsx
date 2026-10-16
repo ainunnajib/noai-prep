@@ -1,6 +1,8 @@
 import { MDXProvider } from '@mdx-js/react'
 import { lazy, Suspense, useEffect, useMemo, useState, type ComponentType, type LazyExoticComponent } from 'react'
 import { Link, useParams } from 'react-router-dom'
+import { AccessGate, useGate } from '../components/account/AccessGate'
+import { useSavedWhere } from '../components/account/copy'
 import { mdxComponents } from '../components/content/mdxComponents'
 import { ErrorBoundary } from '../components/layout/ErrorBoundary'
 import { Checkpoint } from '../components/quiz/Checkpoint'
@@ -38,6 +40,9 @@ export default function LessonPage() {
   const prog = useProgress()
   const [quiz, setQuiz] = useState<QuizQuestion[]>([])
   const [sideOpen, setSideOpen] = useState(false)
+  // with accounts on, lessons outside the free modules need full access (always 'open' with accounts off)
+  const gate = useGate('lesson', mod?.slug)
+  const savedWhere = useSavedWhere()
 
   const key = mod && lesson ? lessonKey(mod.slug, lesson.slug) : ''
   const Content = useMemo(() => {
@@ -49,11 +54,11 @@ export default function LessonPage() {
   useEffect(() => {
     let live = true
     setQuiz([])
-    if (mod && lesson) loadModuleQuiz(mod.slug).then((q) => live && setQuiz(q[lesson.slug] ?? []))
+    if (mod && lesson && gate === 'open') loadModuleQuiz(mod.slug).then((q) => live && setQuiz(q[lesson.slug] ?? []))
     return () => {
       live = false
     }
-  }, [mod, lesson])
+  }, [mod, lesson, gate])
 
   useEffect(() => {
     if (lesson && mod) document.title = `${lesson.title} · ${mod.title} · NOAI Prep`
@@ -122,42 +127,46 @@ export default function LessonPage() {
           )}
         </header>
 
-        <ErrorBoundary key={key}>
-          <Suspense fallback={<div className="loading-block">Loading lesson…</div>}>
-            <MDXProvider components={mdxComponents}>
-              <div className="prose">
-                <Content />
-              </div>
-            </MDXProvider>
-          </Suspense>
-        </ErrorBoundary>
+        <AccessGate kind="lesson" moduleSlug={mod.slug}>
+          <ErrorBoundary key={key}>
+            <Suspense fallback={<div className="loading-block">Loading lesson…</div>}>
+              <MDXProvider components={mdxComponents}>
+                <div className="prose">
+                  <Content />
+                </div>
+              </MDXProvider>
+            </Suspense>
+          </ErrorBoundary>
 
-        {quiz.length > 0 && (
-          <Checkpoint
-            key={`checkpoint-${key}`}
-            questions={quiz}
-            progressKey={key}
-            title="Checkpoint"
-            next={
-              next
-                ? {
-                    to: lessonHref(next.module.slug, next.lesson.slug),
-                    label: next.module.slug === mod.slug ? `Next lesson: ${next.lesson.title}` : `Next module: ${next.module.title}`,
-                  }
-                : undefined
-            }
-          />
-        )}
+          {quiz.length > 0 && (
+            <Checkpoint
+              key={`checkpoint-${key}`}
+              questions={quiz}
+              progressKey={key}
+              title="Checkpoint"
+              next={
+                next
+                  ? {
+                      to: lessonHref(next.module.slug, next.lesson.slug),
+                      label: next.module.slug === mod.slug ? `Next lesson: ${next.lesson.title}` : `Next module: ${next.module.title}`,
+                    }
+                  : undefined
+              }
+            />
+          )}
+        </AccessGate>
 
         <div className="lesson-foot">
-          <div className="complete-row">
-            <button type="button" className={`btn${done ? '' : ' btn-primary'}`} onClick={() => progress.markLesson(key, !done)}>
-              {done ? 'Mark as not done' : 'Mark lesson complete'}
-            </button>
-            <span style={{ color: 'var(--ink-2)', fontSize: 'var(--step--1)' }}>
-              {done ? 'Nice work. Your progress is saved in this browser.' : 'Tick it off when you can explain the key idea to a friend.'}
-            </span>
-          </div>
+          {gate === 'open' && (
+            <div className="complete-row">
+              <button type="button" className={`btn${done ? '' : ' btn-primary'}`} onClick={() => progress.markLesson(key, !done)}>
+                {done ? 'Mark as not done' : 'Mark lesson complete'}
+              </button>
+              <span style={{ color: 'var(--ink-2)', fontSize: 'var(--step--1)' }}>
+                {done ? `Nice work. Your progress is saved ${savedWhere}.` : 'Tick it off when you can explain the key idea to a friend.'}
+              </span>
+            </div>
+          )}
           <nav className="pager" aria-label="Lesson navigation">
             {prev ? (
               <Link to={lessonHref(prev.module.slug, prev.lesson.slug)}>

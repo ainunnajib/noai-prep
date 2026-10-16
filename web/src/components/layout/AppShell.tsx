@@ -1,6 +1,9 @@
 import { Suspense, useEffect, useRef, useState } from 'react'
 import { Link, NavLink, Outlet, useLocation, useNavigationType } from 'react-router-dom'
 import { useTheme, type ThemeChoice } from '../../lib/theme'
+import { ACCOUNTS_ENABLED, PRICE_LABEL } from '../../lib/accounts'
+import { AccountControl } from '../account/AccountControl'
+import { SignInDialog } from '../account/SignInDialog'
 
 const NAV = [
   { to: '/learn', label: 'Course' },
@@ -142,7 +145,7 @@ export function AppShell() {
         Skip to content
       </a>
       <header className="site-header">
-        <div className="site-header-inner">
+        <div className={`site-header-inner${ACCOUNTS_ENABLED ? ' has-account' : ''}`}>
           <Link to="/" className="brand" aria-label="NOAI Prep home">
             <BrandMark />
             <span className="brand-name">
@@ -159,6 +162,7 @@ export function AppShell() {
               </NavLink>
             ))}
           </nav>
+          {ACCOUNTS_ENABLED && <AccountControl />}
           <button
             type="button"
             className="theme-btn"
@@ -185,13 +189,23 @@ export function AppShell() {
             <Link to="/papers">Past papers</Link>
             <Link to="/plan">Study plan</Link>
             <Link to="/about">About &amp; sources</Link>
+            {ACCOUNTS_ENABLED && <Link to="/account">Account</Link>}
           </div>
-          <p>
-            NOAI Prep is an independent, free study resource. It is not affiliated with or endorsed by AI Singapore. Official past papers are © AI Singapore and are
-            shown with attribution and links to the originals for study purposes. Your progress is saved only in this browser.
-          </p>
+          {ACCOUNTS_ENABLED ? (
+            <p>
+              NOAI Prep is an independent study resource. It is not affiliated with or endorsed by AI Singapore. Official past papers are © AI Singapore and are shown
+              with attribution and links to the originals for study purposes. The first two modules are free; full access is a one-time {PRICE_LABEL}. Your progress is
+              saved in this browser, and to your account when you sign in.
+            </p>
+          ) : (
+            <p>
+              NOAI Prep is an independent, free study resource. It is not affiliated with or endorsed by AI Singapore. Official past papers are © AI Singapore and are
+              shown with attribution and links to the originals for study purposes. Your progress is saved only in this browser.
+            </p>
+          )}
         </div>
       </footer>
+      {ACCOUNTS_ENABLED && <SignInDialog />}
     </div>
   )
 }

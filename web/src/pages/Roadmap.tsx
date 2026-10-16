@@ -1,4 +1,6 @@
 import { Link } from 'react-router-dom'
+import { FreeChip, LockMark, useShowLocks } from '../components/account/badges'
+import { isFreeModule } from '../lib/accounts'
 import { useDocumentTitle } from '../lib/useDocumentTitle'
 import { lessonHref, lessonSequence, moduleHref, modules, partList, totalMinutes } from '../curriculum/registry'
 import type { ModuleDef } from '../curriculum/types'
@@ -16,6 +18,7 @@ export function nextLesson(prog: ProgressState) {
 
 export default function Roadmap() {
   const prog = useProgress()
+  const showLocks = useShowLocks()
   useDocumentTitle('Course map')
   const totalLessons = lessonSequence.length
   const doneLessons = lessonSequence.filter((r) => prog.lessons[lessonKey(r.module.slug, r.lesson.slug)]).length
@@ -80,7 +83,10 @@ export default function Roadmap() {
                           {p.done}/{p.total} lessons · {mins} min
                         </span>
                       </span>
-                      <span className="roadmap-title">{m.title}</span>
+                      <span className="roadmap-title">
+                        {m.title}
+                        {showLocks && <span className="roadmap-access">{isFreeModule(m.slug) ? <FreeChip /> : <LockMark />}</span>}
+                      </span>
                       <span className="roadmap-tagline">{m.tagline}</span>
                     </Link>
                   </li>

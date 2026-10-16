@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom'
 import { FitLineDemo } from '../components/home/FitLineDemo'
+import { ACCOUNTS_ENABLED, PRICE_LABEL } from '../lib/accounts'
 import { lessonHref, lessonSequence, modules, partList, totalMinutes } from '../curriculum/registry'
 import { PRELIM, FINAL, daysUntil, nextMilestone } from '../data/facts'
 import { useDocumentTitle } from '../lib/useDocumentTitle'
@@ -27,9 +28,14 @@ export default function Home() {
             Get ready for NOAI <span className="ink">from zero.</span>
           </h1>
           <p className="hero-lede">
-            A free, step-by-step course for secondary, JC and poly students. Every idea comes with a picture you can poke at, every lesson ends with exam-style questions, and
-            the real past papers are solved and explained.
+            {ACCOUNTS_ENABLED ? 'A step-by-step course' : 'A free, step-by-step course'} for secondary, JC and poly students. Every idea comes with a picture you can poke
+            at, every lesson ends with exam-style questions, and the real past papers are solved and explained.
           </p>
+          {ACCOUNTS_ENABLED && (
+            <p className="hero-free">
+              The first two modules are free, no sign-in needed. Full access to everything is a one-time {PRICE_LABEL}.
+            </p>
+          )}
           <div className="hero-actions">
             {nxt && (
               <Link className="btn btn-primary" to={lessonHref(nxt.module.slug, nxt.lesson.slug)}>

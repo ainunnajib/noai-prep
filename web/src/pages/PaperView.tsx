@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useLocation, useParams } from 'react-router-dom'
+import { AccessGate } from '../components/account/AccessGate'
 import { QuestionCard } from '../components/quiz/QuestionCard'
 import { DOMAIN_SUBTOPICS, SUBTOPIC_LABEL, type ExamDomain } from '../data/bank'
-import { PAPERS, loadPaper, toQuiz, type PaperQuestion } from '../data/papers'
+import { PAPERS, loadPaper, toQuiz, type PaperMeta, type PaperQuestion } from '../data/papers'
 import { DOMAIN_LABEL, DomainChip, EXAM_DOMAINS } from '../lib/domains'
 import { progress } from '../lib/progress'
 import { useDocumentTitle } from '../lib/useDocumentTitle'
@@ -10,7 +11,43 @@ import NotFound from './NotFound'
 
 const PAGE = 25
 
+/** The paper's heading, also shown above the lock when past papers are locked. */
+function PaperHead({ meta }: { meta: PaperMeta }) {
+  return (
+    <>
+      <nav className="lesson-crumbs" aria-label="Breadcrumb">
+        <Link to="/papers">Past papers</Link>
+        <span aria-hidden="true">/</span>
+        <span>{meta.short}</span>
+      </nav>
+      <h1>{meta.title}</h1>
+      <p className="page-lede">
+        {meta.date} · {meta.format}
+      </p>
+      <p className="fineprint">
+        Source:{' '}
+        <a href={meta.sourceUrl} target="_blank" rel="noreferrer">
+          AI Singapore
+        </a>
+        . Explanations by NOAI Prep.
+      </p>
+    </>
+  )
+}
+
 export default function PaperView() {
+  const { paperId } = useParams()
+  const meta = PAPERS.find((p) => p.id === paperId)
+  // an unknown paper shows "not found", locked or not
+  if (!meta) return <PaperQuestions />
+  return (
+    <AccessGate kind="paper" head={<PaperHead meta={meta} />} title={meta.title}>
+      <PaperQuestions />
+    </AccessGate>
+  )
+}
+
+function PaperQuestions() {
   const { paperId } = useParams()
   const meta = PAPERS.find((p) => p.id === paperId)
   const loc = useLocation()
@@ -66,22 +103,7 @@ export default function PaperView() {
   return (
     <div className="page page-narrow">
       <div className="page-head">
-        <nav className="lesson-crumbs" aria-label="Breadcrumb">
-          <Link to="/papers">Past papers</Link>
-          <span aria-hidden="true">/</span>
-          <span>{meta.short}</span>
-        </nav>
-        <h1>{meta.title}</h1>
-        <p className="page-lede">
-          {meta.date} · {meta.format}
-        </p>
-        <p className="fineprint">
-          Source:{' '}
-          <a href={meta.sourceUrl} target="_blank" rel="noreferrer">
-            AI Singapore
-          </a>
-          . Explanations by NOAI Prep.
-        </p>
+        <PaperHead meta={meta} />
       </div>
 
       <div className="toolbar" role="group" aria-label="Filters">

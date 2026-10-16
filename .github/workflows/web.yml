@@ -38,8 +38,18 @@ jobs:
         run: npm run typecheck
       - name: Validate course content
         run: npm run check:content
+      - name: Accounts unit tests
+        run: npx vitest run tests/accounts
       - name: Build
         run: npx vite build
+        env:
+          # Firebase web config for accounts (public identifiers, set under Settings > Secrets and variables > Actions > Variables).
+          # A variable that isn't set arrives as an empty string, which builds the site with accounts switched off.
+          VITE_FIREBASE_API_KEY: ${{ vars.VITE_FIREBASE_API_KEY }}
+          VITE_FIREBASE_AUTH_DOMAIN: ${{ vars.VITE_FIREBASE_AUTH_DOMAIN }}
+          VITE_FIREBASE_PROJECT_ID: ${{ vars.VITE_FIREBASE_PROJECT_ID }}
+          VITE_FIREBASE_APP_ID: ${{ vars.VITE_FIREBASE_APP_ID }}
+          VITE_FIREBASE_FUNCTIONS_REGION: ${{ vars.VITE_FIREBASE_FUNCTIONS_REGION }}
       - uses: actions/upload-pages-artifact@v3
         if: github.event_name != 'pull_request'
         with:
