@@ -14,30 +14,32 @@ service cloud.firestore {
       return request.auth != null && request.auth.uid == uid;
     }
 
-    // A progress document holds the progress as JSON text, split into parts so a
-    // save can send just the parts that changed: lessons, checkpoints, exams, and
-    // the answers spread over a0 to a7. Besides those, only the format version
-    // (2), a revision number and a server timestamp the client can't backdate.
-    // Each save must carry the next revision (one more than the stored one, or 1
-    // for a new document), so a save based on an out-of-date copy (say, one queued
-    // on a phone while another device saved) is refused instead of overwriting.
-    function isText(d, key) {
-      return !(key in d) || (d[key] is string && d[key].size() < 200000);
+    // A progress document holds the progress (format 3) as JSON text, split into parts
+    // so the save a page sends while it closes can carry just the parts that changed:
+    // lessons, checkpoints, exams, and the answers spread over a0 to a7. Besides those,
+    // exactly: the format version (3), the time of the latest Reset (resetAt), a
+    // revision number and a server timestamp the client can't backdate. Each save must
+    // carry the next revision (one more than the stored one, or 1 for a new document),
+    // so a save based on an out-of-date copy is refused instead of overwriting: the
+    // website then joins the newer copy in and saves again.
+    function isPart(d, key) {
+      return d[key] is string && d[key].size() <= 200000;
     }
 
     function isValidProgress() {
       let next = request.resource.data;
       let rev = resource == null ? 0 : resource.data.get('rev', 0);
-      return next.keys().hasOnly(['v', 'rev', 'updatedAt', 'lessons', 'checkpoints', 'exams',
-                                  'a0', 'a1', 'a2', 'a3', 'a4', 'a5', 'a6', 'a7'])
-        && next.keys().hasAll(['v', 'rev', 'updatedAt'])
-        && next.v == 2
+      let keys = ['v', 'rev', 'resetAt', 'updatedAt', 'lessons', 'checkpoints', 'exams',
+                  'a0', 'a1', 'a2', 'a3', 'a4', 'a5', 'a6', 'a7'];
+      return next.keys().hasOnly(keys) && next.keys().hasAll(keys)
+        && next.v == 3
         && next.rev is int
         && next.rev == rev + 1
+        && next.resetAt is int && next.resetAt >= 0
         && next.updatedAt == request.time
-        && isText(next, 'lessons') && isText(next, 'checkpoints') && isText(next, 'exams')
-        && isText(next, 'a0') && isText(next, 'a1') && isText(next, 'a2') && isText(next, 'a3')
-        && isText(next, 'a4') && isText(next, 'a5') && isText(next, 'a6') && isText(next, 'a7');
+        && isPart(next, 'lessons') && isPart(next, 'checkpoints') && isPart(next, 'exams')
+        && isPart(next, 'a0') && isPart(next, 'a1') && isPart(next, 'a2') && isPart(next, 'a3')
+        && isPart(next, 'a4') && isPart(next, 'a5') && isPart(next, 'a6') && isPart(next, 'a7');
     }
 
     match /progress/{uid} {

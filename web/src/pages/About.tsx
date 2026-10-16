@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { FACTS_CHECKED_ON, LINKS } from '../data/facts'
-import { ACCOUNTS_ENABLED, useAccount } from '../lib/accounts'
+import { ACCOUNTS_ENABLED, EXPECT_SIGNED_IN, useAccount } from '../lib/accounts'
 import { progress } from '../lib/progress'
 
 /** "Your data" with accounts on: what is kept, where, and how to delete it. */
@@ -25,7 +25,9 @@ function AccountData() {
 }
 
 export default function About() {
-  const signedIn = useAccount().status === 'signed-in'
+  const { status } = useAccount()
+  // (while sign-in is being restored, a Reset of the signed-in person's progress reaches their account too)
+  const signedIn = status === 'signed-in' || (status === 'loading' && EXPECT_SIGNED_IN)
   const [confirm, setConfirm] = useState(false)
   const [cleared, setCleared] = useState(false)
   useEffect(() => {

@@ -13,7 +13,6 @@ import {
   deleteDoc,
   doc,
   getDoc,
-  runTransaction,
   serverTimestamp,
   setDoc,
   setLogLevel,
@@ -57,14 +56,15 @@ describe.skipIf(!emulator)('firestore.rules', () => {
     })
   }
 
-  /** A whole progress document (format 2) with the given revision. */
-  const progress = (rev = 1, lessons = '{}') => ({
-    v: 2,
+  /** A whole progress document (format 3) with the given revision. */
+  const progress = (rev = 1, lessons = '{}', resetAt = 0) => ({
+    v: 3,
     rev,
+    resetAt,
     updatedAt: serverTimestamp(),
     lessons,
     checkpoints: '{}',
-    exams: '[]',
+    exams: '{}',
     a0: '{}',
     a1: '{}',
     a2: '{}',
@@ -74,23 +74,20 @@ describe.skipIf(!emulator)('firestore.rules', () => {
     a6: '{}',
     a7: '{}',
   })
+  const LESSON = '{"a/b":{"d":"2026-10-16T00:00:00.000Z","t":1760572800000}}'
 
   describe('progress/{uid}', () => {
-    it('lets the owner create, read, update and delete their progress', async () => {
+    it('lets the owner create (revision 1), read, update (the next revision) and delete their progress', async () => {
       const ref = doc(as('alice'), 'progress/alice')
       await assertSucceeds(setDoc(ref, progress(1)))
       await assertSucceeds(getDoc(ref))
-      await assertSucceeds(setDoc(ref, progress(2, '{"a/b":"2026-10-16T00:00:00.000Z"}')))
-      // a save of just the parts that changed (what the page sends while it closes)
-      await assertSucceeds(updateDoc(ref, { lessons: '{}', a3: '{"q1":[true]}', v: 2, rev: 3, updatedAt: serverTimestamp() }))
-      await assertSucceeds(deleteDoc(ref))
+      await assertSucceeds(setDoc(ref, progress(2, LESSON)))
+      // a save of just the parts that changed (what the page sends while it closes), always with v, rev and resetAt
+      await assertSucceeds(updateDoc(ref, { lessons: '{}', a3: '{"q1":[[true,1760572800001]]}', v: 3, rev: 3, resetAt: 0, updatedAt: serverTimestamp() }))
+      await assertSucceeds(updateDoc(ref, { v: 3, rev: 4, resetAt: 1760572800002, updatedAt: serverTimestamp() })) // a Reset
+      await assertSucceeds(deleteDoc(ref)) // (only when the account is deleted)
       // a new document starts again at revision 1
       await assertSucceeds(setDoc(ref, progress(1)))
-    })
-
-    it('needs only the version, revision and time: missing parts are empty', async () => {
-      const ref = doc(as('alice'), 'progress/alice')
-      await assertSucceeds(setDoc(ref, { v: 2, rev: 1, updatedAt: serverTimestamp(), lessons: '{"a/b":"2026-10-16T00:00:00.000Z"}' }))
     })
 
     it('refuses a save based on an out-of-date copy: each save must carry the next revision', async () => {
@@ -100,77 +97,79 @@ describe.skipIf(!emulator)('firestore.rules', () => {
       await assertSucceeds(setDoc(ref, progress(1)))
       await assertFails(setDoc(ref, progress(1))) // another device saved revision 1 already
       await assertFails(setDoc(ref, progress(3))) // skipping one
-      await assertFails(updateDoc(ref, { lessons: '{}', rev: 1, updatedAt: serverTimestamp() }))
+      await assertFails(updateDoc(ref, { lessons: '{}', v: 3, rev: 1, resetAt: 0, updatedAt: serverTimestamp() }))
       await assertSucceeds(setDoc(ref, progress(2)))
       await assertFails(setDoc(ref, { ...progress(3), rev: '3' }))
       await assertFails(setDoc(ref, { ...progress(3), rev: 3.5 }))
     })
 
-    it('"Delete my saved progress" empties it as the next revision, so a save queued from before stays refused', async () => {
-      const db = as('alice')
-      const ref = doc(db, 'progress/alice')
-      await assertSucceeds(setDoc(ref, progress(1, '{"a/b":"2026-10-16T00:00:00.000Z"}')))
-      await assertSucceeds(setDoc(ref, progress(2, '{"a/b":"2026-10-16T00:00:00.000Z","a/c":"2026-10-16T00:00:00.000Z"}')))
-      // what the website does: in a transaction, read the revision and save an empty copy as the next one
-      await assertSucceeds(
-        runTransaction(db, async (t) => {
-          const rev = ((await t.get(ref)).get('rev') as number) + 1
-          t.set(ref, progress(rev))
-        }),
-      )
-      // a save another device built on revision 2 before the clear (queued offline, say) can't land on top of it
-      await assertFails(setDoc(ref, progress(3, '{"a/b":"2026-10-16T00:00:00.000Z"}')))
-      await assertSucceeds(setDoc(ref, progress(4, '{"a/d":"2026-10-16T00:00:00.000Z"}')))
-    })
-
     it('counts a document saved without a revision as revision 0', async () => {
-      await seed('progress/alice', { v: 2, lessons: '{}', updatedAt: Timestamp.now() })
+      const { rev: _rev, ...noRev } = progress(1)
+      await seed('progress/alice', noRev)
       const ref = doc(as('alice'), 'progress/alice')
       await assertFails(setDoc(ref, progress(2)))
       await assertSucceeds(setDoc(ref, progress(1)))
     })
 
     it('keeps other people out', async () => {
-      await seed('progress/alice', { v: 2, rev: 1, lessons: '{}', updatedAt: Timestamp.now() })
+      await seed('progress/alice', { ...progress(1), updatedAt: Timestamp.now() })
       const ref = doc(as('bob'), 'progress/alice')
       await assertFails(getDoc(ref))
       await assertFails(setDoc(ref, progress(2)))
+      await assertFails(updateDoc(ref, { v: 3, rev: 2, resetAt: 0, updatedAt: serverTimestamp() }))
       await assertFails(deleteDoc(ref))
+      await assertFails(setDoc(doc(as('bob'), 'progress/carol'), progress(1)))
     })
 
     it('keeps signed-out visitors out', async () => {
-      await seed('progress/alice', { v: 2, rev: 1, lessons: '{}', updatedAt: Timestamp.now() })
+      await seed('progress/alice', { ...progress(1), updatedAt: Timestamp.now() })
       const ref = doc(signedOut(), 'progress/alice')
       await assertFails(getDoc(ref))
       await assertFails(setDoc(ref, progress(2)))
       await assertFails(deleteDoc(ref))
     })
 
-    it('rejects extra or missing fields', async () => {
+    it('needs exactly the allowed fields: no extra ones, none missing', async () => {
       const ref = doc(as('alice'), 'progress/alice')
       await assertFails(setDoc(ref, { ...progress(), admin: true }))
-      await assertFails(setDoc(ref, { ...progress(), data: '{}' })) // the old single-text format
+      await assertFails(setDoc(ref, { ...progress(), data: '{}' })) // the first format's single text
       await assertFails(setDoc(ref, { ...progress(), a8: '{}' }))
-      const { v: _v, ...noVersion } = progress()
-      const { rev: _rev, ...noRev } = progress()
-      const { updatedAt: _t, ...noTime } = progress()
-      await assertFails(setDoc(ref, noVersion))
-      await assertFails(setDoc(ref, noRev))
-      await assertFails(setDoc(ref, noTime))
+      for (const key of ['v', 'rev', 'resetAt', 'updatedAt', 'lessons', 'checkpoints', 'exams', 'a0', 'a7']) {
+        const { [key]: _gone, ...missing } = progress() as Record<string, unknown>
+        await assertFails(setDoc(ref, missing))
+      }
+      await assertSucceeds(setDoc(ref, progress()))
     })
 
-    it('rejects a part that is not text or is 200 000 characters or more', async () => {
+    it('needs every part to be text of at most 200 000 characters', async () => {
       const ref = doc(as('alice'), 'progress/alice')
       await assertFails(setDoc(ref, { ...progress(), lessons: { a: 1 } }))
       await assertFails(setDoc(ref, { ...progress(), a5: ['x'] }))
-      await assertFails(setDoc(ref, { ...progress(), exams: 'x'.repeat(200_000) }))
-      await assertSucceeds(setDoc(ref, { ...progress(), exams: 'x'.repeat(199_999) }))
+      await assertFails(setDoc(ref, { ...progress(), exams: 'x'.repeat(200_001) }))
+      await assertSucceeds(setDoc(ref, { ...progress(), exams: 'x'.repeat(200_000) }))
+      await assertFails(updateDoc(ref, { a2: 'x'.repeat(200_001), v: 3, rev: 2, resetAt: 0, updatedAt: serverTimestamp() }))
     })
 
-    it('rejects any version other than 2', async () => {
+    it('needs resetAt to be a whole number, zero or more', async () => {
       const ref = doc(as('alice'), 'progress/alice')
-      await assertFails(setDoc(ref, { ...progress(), v: 1 }))
-      await assertFails(setDoc(ref, { ...progress(), v: '2' }))
+      await assertFails(setDoc(ref, { ...progress(), resetAt: '0' }))
+      await assertFails(setDoc(ref, { ...progress(), resetAt: 1.5 }))
+      await assertFails(setDoc(ref, { ...progress(), resetAt: -1 }))
+      await assertFails(setDoc(ref, { ...progress(), resetAt: null }))
+      await assertSucceeds(setDoc(ref, { ...progress(), resetAt: 1760572800000 }))
+    })
+
+    it('refuses any version other than 3, so the earlier format (2) can no longer be written', async () => {
+      const ref = doc(as('alice'), 'progress/alice')
+      await assertFails(setDoc(ref, { ...progress(), v: 2 }))
+      await assertFails(setDoc(ref, { ...progress(), v: '3' }))
+      const { resetAt: _r, ...v2 } = { ...progress(), v: 2, exams: '[]' }
+      await assertFails(setDoc(ref, v2))
+      // a document left in format 2 (which allowed missing parts) is replaced by a whole format 3 one, as its next revision
+      await seed('progress/alice', { v: 2, rev: 4, lessons: '{"a/b":"2026-10-16T00:00:00.000Z"}', updatedAt: Timestamp.now() })
+      await assertFails(updateDoc(ref, { lessons: '{}', v: 3, rev: 5, resetAt: 0, updatedAt: serverTimestamp() })) // (parts missing)
+      await assertFails(updateDoc(ref, { lessons: '{}', rev: 5, updatedAt: serverTimestamp() })) // (still format 2)
+      await assertSucceeds(setDoc(ref, progress(5)))
     })
 
     it('rejects an updatedAt chosen by the client instead of the server', async () => {

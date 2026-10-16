@@ -1,4 +1,4 @@
-import type { ProgressState } from '../progress'
+import { fromJSON, toJSON } from '../progress-crdt'
 import { PREFIX, readJSON, removeKey, writeJSON } from '../storage'
 import { accessFrom, revFrom, type AccountsAdapter, type ProgressSnapshot, type RemoteProgress } from './adapter'
 import type { AccessLevel, AccountUser, SignInProvider } from './types'
@@ -9,7 +9,8 @@ import type { AccessLevel, AccountUser, SignInProvider } from './types'
   prefix), so tests can seed any situation:
     mock-auth                   the signed-in user {uid, email, name, provider}; absent when signed out
     mock-entitlements           uid -> 'whitelist' | 'paid' | 'revoked'
-    mock-remote-progress:<uid>  the "account copy" of progress (a ProgressState), standing in for another device
+    mock-remote-progress:<uid>  the "account copy" of progress, standing in for another device: a SyncState (see
+                                progress-crdt.ts), or progress in the old plain format (read as this browser would)
     mock-remote-rev:<uid>       its revision (a number; absent counts as 0). Like the real rules, a save must carry
                                 the next one, so a save from a tab with an out-of-date copy is refused
     mock-checkout-fail          if present, confirming a checkout reports that the payment wasn't made
@@ -39,7 +40,10 @@ const USERS: Record<SignInProvider, MockAuth> = {
 const delay = () => new Promise<void>((resolve) => setTimeout(resolve, DELAY_MS))
 const remoteKey = (uid: string) => `mock-remote-progress:${uid}`
 const revKey = (uid: string) => `mock-remote-rev:${uid}`
-const remoteOf = (uid: string): RemoteProgress => ({ data: readJSON<unknown>(remoteKey(uid), null), rev: revFrom(readJSON<unknown>(revKey(uid), 0)) })
+function remoteOf(uid: string): RemoteProgress {
+  const stored = readJSON<unknown>(remoteKey(uid), null)
+  return { state: stored === null ? null : fromJSON(stored), rev: revFrom(readJSON<unknown>(revKey(uid), 0)) }
+}
 
 /** The raw stored text for a flag key (tests may seed plain text, not JSON), or null when absent. */
 function flag(key: string): string | null {
@@ -191,7 +195,7 @@ export function createMockAdapter(): AccountsAdapter {
       return watch(progressWatchers, entry, () => cb({ ...remoteOf(uid), hasPendingWrites: false }))
     },
 
-    async writeProgress(uid, state: ProgressState, rev) {
+    async writeProgress(uid, state, rev) {
       requireUser(uid)
       if (flag('mock-sync-fail') !== null) {
         await delay()
@@ -205,21 +209,9 @@ export function createMockAdapter(): AccountsAdapter {
       }
       // saved at once (so a test can read it straight after a page change), echoed to this tab as a pending write like Firestore
       writeJSON(revKey(uid), rev) // first, so another tab told about the new copy reads its revision too
-      writeJSON(remoteKey(uid), state)
+      writeJSON(remoteKey(uid), toJSON(state))
       emitProgress(uid, true)
       await delay()
-    },
-
-    async clearProgress(uid) {
-      await delay()
-      requireUser(uid)
-      // like the real one, a transaction: the next revision, whatever it is by now, and shown as the server's copy
-      if (readJSON<unknown>(remoteKey(uid), null) === null) return 0 // no account copy: nothing to clear
-      const rev = remoteOf(uid).rev + 1
-      writeJSON(revKey(uid), rev)
-      writeJSON(remoteKey(uid), { lessons: {}, checkpoints: {}, answers: {}, exams: [] } satisfies ProgressState)
-      emitProgress(uid, false)
-      return rev
     },
 
     async deleteProgress(uid) {

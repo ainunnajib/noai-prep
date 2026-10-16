@@ -1,17 +1,17 @@
-import type { ProgressState } from '../progress'
+import type { SyncState } from '../progress-crdt'
 import type { AccessLevel, AccountUser, SignInProvider } from './types'
 
-/** The account copy as read: the parsed progress (untrusted; null when there is none) and its revision (0 when none). */
+/** The account copy as read: its progress (checked; null when there is no copy) and its revision (0 when none). */
 export interface RemoteProgress {
-  data: unknown
+  state: SyncState | null
   /** goes up by one with every save; the account refuses a save that doesn't carry the next one (see writeProgress) */
   rev: number
+  /** it includes a save of this device's that the server hasn't confirmed yet (so it isn't purely the account copy) */
+  hasPendingWrites?: boolean
 }
 
 /** One delivery from the progress listener. */
 export interface ProgressSnapshot extends RemoteProgress {
-  /** true for the echo of this device's own unsent write */
-  hasPendingWrites: boolean
   /** true when the server couldn't be reached and this is only what the device already had (not the account copy) */
   fromCache?: boolean
 }
@@ -53,28 +53,20 @@ export interface AccountsAdapter {
   createCheckoutSession(): Promise<CheckoutStart>
   confirmCheckout(sessionId: string): Promise<CheckoutResult>
 
-  /** The account copy of progress. */
+  /** The account copy of progress, as the server has it now (rejects when the server can't be reached). */
   readProgress(uid: string): Promise<RemoteProgress>
   watchProgress(uid: string, cb: (snap: ProgressSnapshot) => void, onError: (e: unknown) => void): () => void
   /**
    * Saves `state` as revision `rev`, which must be one more than the account copy's (1 when there is none). Otherwise
-   * the save is refused (an Error with code 'permission-denied'): another device saved since this one last looked.
+   * the save is refused (an Error with code 'permission-denied'): another device or tab saved since this one looked.
    */
-  writeProgress(uid: string, state: ProgressState, rev: number): Promise<void>
+  writeProgress(uid: string, state: SyncState, rev: number): Promise<void>
   /**
-   * Best-effort save while the page is being closed: a request that outlives the page. It saves revision `rev`, sending
-   * only what changed since `base` (the account copy at `rev - 1`), or as much of that as such a request can carry.
-   * Returns the copy the account holds if it lands (`state`, or `base` with the parts that fit), or null when it sends
-   * nothing (nothing changed, or it can't).
+   * Best-effort save while the page is being closed: a request that outlives the page. It saves revision `rev`,
+   * sending only what changed since `base` (the account copy at `rev - 1`), or as much of that as such a request can
+   * carry. Returns whether it sent anything.
    */
-  writeProgressOnExit?(uid: string, state: ProgressState, rev: number, base: ProgressState): ProgressState | null
-  /**
-   * "Delete my saved progress": saves an empty copy as the next revision, whatever the account copy's revision is now,
-   * and resolves with that revision. (Not a deleted document: revision numbers then never start again, so a save
-   * queued elsewhere before this can't line up with later ones.) With no account copy there is nothing to clear: it
-   * writes nothing (the account may have been deleted elsewhere) and resolves with 0.
-   */
-  clearProgress(uid: string): Promise<number>
+  writeProgressOnExit?(uid: string, state: SyncState, rev: number, base: SyncState): boolean
   /** Deletes the account copy altogether: only for deleting the account itself. */
   deleteProgress(uid: string): Promise<void>
 }

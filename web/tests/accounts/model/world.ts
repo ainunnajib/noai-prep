@@ -1,28 +1,51 @@
 /*
   A model of the deployed system for testing the progress sync engine (lib/accounts/sync.ts) together with the
   progress store (lib/progress.ts) and the account store (lib/accounts/index.ts), as they run in real tabs.
-  - Server: progress/{uid} documents as stored fields (progress-doc format), with the rules from backend/firestore.rules
-    (owner only; keys; v == 2; rev == stored rev + 1, stored = 0 for a missing doc; text sizes), a monotonic version,
-    and a "knowledge" set K (which user operations the stored content is derived from) for the intent oracle.
-  - Browser: one localStorage (a Map), one persisted auth user, online/offline. Tabs = pages.
+  - Server: progress/{uid} documents as stored fields (progress-doc format 3), with the rules from
+    backend/firestore.rules (owner only; exactly the allowed keys; v == 3; resetAt an int; rev == stored rev + 1,
+    stored = 0 for a missing doc; text sizes), and a version number per document.
+  - Browser: one localStorage (a Map), one persisted auth user, online/offline. Tabs = pages. With KNOBS.tabCache, each
+    tab reads its own copy of localStorage, as Chromium's tabs do: its writes reach the browser a moment later, other
+    tabs' changes reach it (in order) up to that many ms later, and one that arrives while a write of its own to that
+    key is on its way is ignored there. Tabs other than the one acting hear auth changes `authLag` ms late with
+    KNOBS.authLag (a background tab whose timers the browser throttles).
   - Page: a fresh module instance of lib/progress + lib/accounts/{index,sync} (vi.resetModules + doMock), with
     storage bound to its browser, and a Firestore-like client: per-auth-user pending-write queues overlaying the
     listener's view (hasPendingWrites), separate write and watch channels with random latency, fromCache while offline,
-    re-send of unacknowledged writes after a reconnect, writes left queued for the previous user after a user change,
-    getDoc showing pending writes, the keepalive REST commit (updateMask) racing the SDK writes.
+    re-send of unacknowledged writes after a reconnect (so a write can land twice: the second is refused), writes left
+    queued for the previous user after a user change, reads from the server showing pending writes, deliveries that
+    occasionally arrive out of order, and the keepalive REST commit (updateMask) racing the SDK writes.
 */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { resolve } from 'node:path'
 import { vi } from 'vitest'
-import { exitCommit, fromFields, toFields } from '../../../src/lib/accounts/progress-doc'
-import { revFrom } from '../../../src/lib/accounts/adapter'
-import type { ProgressState } from '../../../src/lib/progress'
+import { exitCommit, fromDoc, toDoc } from '../../../src/lib/accounts/progress-doc'
+import { project, type SyncState } from '../../../src/lib/progress-crdt'
 
 /** src/lib, as an absolute path (each page's modules are mocked by path) */
 export const WEB = resolve(__dirname, '../../../src/lib')
 /** fault-model switches (env SIM_KNOBS='{"landAfterDisconnect":0}' etc.) */
-export const KNOBS: Record<string, any> = { landAfterDisconnect: 0.5, keepalive: true, dedupe: false, noLostAcks: false, fixedLat: 0, ...JSON.parse(process.env.SIM_KNOBS ?? '{}') }
+export const KNOBS: Record<string, any> = {
+  landAfterDisconnect: 0.5,
+  keepalive: true,
+  reorder: 0.1,
+  fixedLat: 0,
+  tabCache: 0,
+  authLag: 0,
+  ...JSON.parse(process.env.SIM_KNOBS ?? '{}'),
+}
 export const PREFIX = 'noai-prep:'
+
+/** whose progress a stored progress-v1 copy is (null: a visitor's, or not progress) */
+function ownerOf(raw: string): string | null {
+  try {
+    const o = JSON.parse(raw).owner
+    return typeof o === 'string' ? o : null
+  } catch {
+    return null
+  }
+}
+export const T0 = Date.UTC(2026, 9, 16, 9, 0, 0)
 
 export function rng(seed: number) {
   let a = seed >>> 0
@@ -39,73 +62,92 @@ type Fields = Record<string, unknown>
 export interface Ver {
   fields: Fields | null
   version: number
-  K: Set<number>
+  /** when this document (this time round) was created */
+  createdAt: number
+  /** for a document a page created: when it last confirmed the account still existed, and when it sent the save */
+  confirmedAt?: number
+  sentAt?: number
 }
 
-const ALLOWED = ['v', 'rev', 'updatedAt', 'lessons', 'checkpoints', 'exams', 'a0', 'a1', 'a2', 'a3', 'a4', 'a5', 'a6', 'a7']
 const TEXT = ['lessons', 'checkpoints', 'exams', 'a0', 'a1', 'a2', 'a3', 'a4', 'a5', 'a6', 'a7']
+const KEYS = ['v', 'rev', 'resetAt', 'updatedAt', ...TEXT]
 
+/** backend/firestore.rules for progress/{uid}: the reason a write is refused, or null */
 export function rulesAllow(authUid: string | null, uid: string, prev: Fields | null, next: Fields): string | null {
   if (authUid === null || authUid !== uid) return 'not owner'
-  if (!Object.keys(next).every((k) => ALLOWED.includes(k))) return 'keys hasOnly'
-  if (!['v', 'rev', 'updatedAt'].every((k) => k in next)) return 'keys hasAll'
-  if (next.v !== 2) return 'v'
+  if (!Object.keys(next).every((k) => KEYS.includes(k)) || !KEYS.every((k) => k in next)) return 'keys'
+  if (next.v !== 3) return 'v'
+  if (!Number.isInteger(next.resetAt) || (next.resetAt as number) < 0) return 'resetAt'
   const stored = prev === null ? 0 : prev.rev === undefined ? 0 : prev.rev
   if (typeof stored !== 'number') return 'stored rev not int'
   if (!Number.isInteger(next.rev) || next.rev !== stored + 1) return `rev ${String(next.rev)} != ${stored}+1`
-  for (const k of TEXT) if (k in next && !(typeof next[k] === 'string' && (next[k] as string).length < 200000)) return 'text'
+  for (const k of TEXT) if (!(typeof next[k] === 'string' && (next[k] as string).length <= 200000)) return 'text'
   return null
 }
+
+const read = (f: Fields) => fromDoc((k) => (Object.hasOwn(f, k) ? f[k] : undefined))
 
 export class Server {
   docs = new Map<string, Ver>()
   clients = new Set<Client>()
   deletedUsers = new Set<string>()
+  /** when each deleted user was deleted */
+  deletedAt = new Map<string, number>()
   constructor(private w: World) {}
   get(uid: string): Ver {
-    return this.docs.get(uid) ?? { fields: null, version: 0, K: new Set() }
+    return this.docs.get(uid) ?? { fields: null, version: 0, createdAt: 0 }
   }
-  private put(uid: string, fields: Fields | null, K: Set<number>) {
-    const v: Ver = { fields, version: this.get(uid).version + 1, K }
+  /** the stored state (null: no document) */
+  state(uid: string): SyncState | null {
+    const f = this.get(uid).fields
+    return f ? read(f).state : null
+  }
+  private put(uid: string, fields: Fields | null, who = '', sentAt?: number) {
+    const prev = this.get(uid)
+    const creating = fields !== null && prev.fields === null
+    const v: Ver = {
+      fields,
+      version: prev.version + 1,
+      createdAt: fields === null ? 0 : creating ? this.w.now() : prev.createdAt,
+      confirmedAt: creating ? this.w.pages.find((p) => who.startsWith(`${p.name}#`))?.confirmedAt : prev.confirmedAt,
+      sentAt: creating ? sentAt : prev.sentAt,
+    }
     this.docs.set(uid, v)
     for (const c of this.clients) c.watchChanged(uid, v)
     return v
   }
-  set(authUid: string | null, uid: string, fields: Fields, K: Set<number>, who: string): { ok: boolean; ver?: Ver; why?: string } {
+  set(authUid: string | null, uid: string, fields: Fields, who: string, sentAt?: number): { ok: boolean; ver?: Ver } {
     const prev = this.get(uid)
-    const why = rulesAllow(authUid, uid, prev.fields, fields)
+    const why = rulesAllow(authUid, uid, prev.fields, { ...fields, updatedAt: 'now' })
     if (why) {
       this.w.log(`  server: ${who} set ${uid} rev ${String(fields.rev)} DENIED (${why}; stored rev ${String(prev.fields?.rev ?? 0)})`)
-      return { ok: false, why }
+      return { ok: false }
     }
-    const ver = this.put(uid, { ...fields, updatedAt: this.w.now() }, K)
+    const ver = this.put(uid, { ...fields, updatedAt: this.w.now() }, who, sentAt)
     this.w.log(`  server: ${who} set ${uid} rev ${String(fields.rev)} OK v${ver.version} ${this.w.show(ver.fields)}`)
     return { ok: true, ver }
   }
-  patch(authUid: string | null, uid: string, body: string, K: Set<number>, who: string) {
+  patch(authUid: string | null, uid: string, body: string, who: string) {
     const w = JSON.parse(body).writes[0]
     const prev = this.get(uid)
     const next: Fields = { ...(prev.fields ?? {}) }
     for (const p of w.updateMask.fieldPaths as string[]) {
       const v = w.update.fields[p]
-      if (v === undefined) delete next[p]
-      else next[p] = 'integerValue' in v ? Number(v.integerValue) : v.stringValue
+      next[p] = 'integerValue' in v ? Number(v.integerValue) : v.stringValue
     }
     next.updatedAt = this.w.now()
     const why = rulesAllow(authUid, uid, prev.fields, next)
-    if (why) {
-      this.w.log(`  server: ${who} KEEPALIVE ${uid} rev ${String(next.rev)} [${w.updateMask.fieldPaths.join(',')}] DENIED (${why})`)
-      return
-    }
-    const ver = this.put(uid, next, new Set([...K, ...prev.K]))
-    this.w.log(`  server: ${who} KEEPALIVE ${uid} rev ${String(next.rev)} [${w.updateMask.fieldPaths.join(',')}] OK v${ver.version} ${this.w.show(ver.fields)}`)
+    const mask = w.updateMask.fieldPaths.join(',')
+    if (why) return void this.w.log(`  server: ${who} KEEPALIVE ${uid} rev ${String(next.rev)} [${mask}] DENIED (${why})`)
+    const ver = this.put(uid, next)
+    this.w.log(`  server: ${who} KEEPALIVE ${uid} rev ${String(next.rev)} [${mask}] OK v${ver.version} ${this.w.show(ver.fields)}`)
   }
-  del(authUid: string | null, uid: string, K: Set<number>, who: string): { ok: boolean; ver?: Ver } {
+  del(authUid: string | null, uid: string, who: string): { ok: boolean; ver?: Ver } {
     if (authUid === null || authUid !== uid) {
       this.w.log(`  server: ${who} delete ${uid} DENIED`)
       return { ok: false }
     }
-    const ver = this.put(uid, null, K)
+    const ver = this.put(uid, null)
     this.w.log(`  server: ${who} delete ${uid} OK v${ver.version}`)
     return { ok: true, ver }
   }
@@ -116,20 +158,22 @@ interface Mut {
   kind: 'set' | 'delete'
   doc: string
   fields?: Fields
-  K: Set<number>
   user: string | null
   state: 'queued' | 'sent' | 'done'
   resolve: () => void
   reject: (e: unknown) => void
-  conn: number
   result?: { ok: boolean; ver?: Ver }
+  queuedAt: number
 }
+
+const unavailable = () => Object.assign(new Error('offline'), { code: 'unavailable' })
+const denied = () => Object.assign(new Error('Missing or insufficient permissions.'), { code: 'permission-denied' })
 
 /** One page's Firestore instance. */
 export class Client {
   serverView = new Map<string, Ver>()
   queues = new Map<string | null, Mut[]>()
-  listener: { uid: string; cb: (s: unknown) => void; onError: (e: unknown) => void; synced: boolean; last: string | null } | null = null
+  listener: { uid: string; cb: (s: unknown) => void; synced: boolean; last: string | null } | null = null
   conn = 0
   lastWatchAt = 0
   lastWriteRespAt = 0
@@ -146,11 +190,6 @@ export class Client {
   get user() {
     return this.page.authUser
   }
-  /** a write the server may have applied whose answer hasn't arrived */
-  get awaitingAck() {
-    for (const q of this.queues.values()) for (const m of q) if (m.state === 'sent' || (m.result && m.state !== 'done')) return true
-    return false
-  }
   private q(user: string | null) {
     let q = this.queues.get(user)
     if (!q) this.queues.set(user, (q = []))
@@ -159,11 +198,7 @@ export class Client {
   /** connection lost (offline, page closed, credentials changed): requests on the wire land or not; answers are lost */
   dropConnection() {
     this.conn++
-    for (const q of this.queues.values())
-      for (const m of q)
-        if (m.state === 'sent') {
-          m.state = 'queued' // to be sent again (Firestore re-sends unacknowledged writes)
-        }
+    for (const q of this.queues.values()) for (const m of q) if (m.state === 'sent') m.state = 'queued' // sent again later
     if (this.listener) {
       this.listener.synced = false
       this.emit()
@@ -180,8 +215,7 @@ export class Client {
     const myConn = this.conn
     this.w.after(this.w.lat(), () => {
       if (myConn !== this.conn || this.listener !== l || !this.online) return
-      const cur = this.w.server.get(l.uid)
-      this.take(l.uid, cur)
+      this.take(l.uid, this.w.server.get(l.uid))
       l.synced = true
       this.emit()
     })
@@ -192,28 +226,23 @@ export class Client {
   }
   pump() {
     if (!this.online) return
-    const q = this.q(this.user)
-    for (const m of q) {
+    for (const m of this.q(this.user)) {
       if (m.state !== 'queued') continue
       m.state = 'sent'
-      m.conn = this.conn
       const myConn = this.conn
       const arrive = Math.max(this.w.now() + this.w.lat(), this.lastArriveAt)
       this.lastArriveAt = arrive
-      const authUid = m.user
       this.w.at(arrive, () => {
-        // request reached the server unless the connection broke first (then it may or may not have)
+        // the request reached the server, unless the connection broke first (then it may or may not have)
         if (myConn !== this.conn && this.w.rnd() >= KNOBS.landAfterDisconnect) return
         if (m.state === 'done') return
         const who = `${this.page.name}#m${m.id}`
-        // dedupe knob: a re-sent write the server already applied gets its first answer again (no re-evaluation)
-        if (KNOBS.noLostAcks && m.result) return // (already answered once; that answer is delivered regardless)
-        const res = KNOBS.dedupe && m.result ? m.result : m.kind === 'set' ? this.w.server.set(authUid, m.doc, m.fields!, m.K, who) : this.w.server.del(authUid, m.doc, m.K, who)
+        const res = m.kind === 'set' ? this.w.server.set(m.user, m.doc, m.fields!, who, m.queuedAt) : this.w.server.del(m.user, m.doc, who)
         m.result = res
         const back = Math.max(this.w.now() + this.w.lat(), this.lastWriteRespAt)
         this.lastWriteRespAt = back
         this.w.at(back, () => {
-          if ((myConn !== this.conn && !KNOBS.noLostAcks) || !this.page.alive || m.state === 'done') return // answer lost; re-sent later
+          if (myConn !== this.conn || !this.page.alive || m.state === 'done') return // answer lost; sent again later
           m.state = 'done'
           const qq = this.q(m.user)
           qq.splice(qq.indexOf(m), 1)
@@ -223,7 +252,7 @@ export class Client {
             this.settle(() => m.resolve())
           } else {
             this.w.log(`  ${this.page.name}: rejected m${m.id}`)
-            this.settle(() => m.reject(Object.assign(new Error('Missing or insufficient permissions.'), { code: 'permission-denied' })))
+            this.settle(() => m.reject(denied()))
           }
         })
       })
@@ -243,66 +272,68 @@ export class Client {
     const l = this.listener
     if (!l || l.uid !== uid || !this.online || !l.synced) return
     const myConn = this.conn
+    // in order (watch may skip to the latest version)
     const at = Math.max(this.w.now() + this.w.lat(), this.lastWatchAt)
     this.lastWatchAt = at
     this.w.at(at, () => {
       if (myConn !== this.conn || this.listener !== l || !this.online) return
-      this.take(uid, this.w.rnd() < 0.3 ? this.w.server.get(uid) : v) // watch may skip to the latest version
+      this.take(uid, this.w.rnd() < 0.3 ? this.w.server.get(uid) : v)
       this.emit()
     })
+    // now and then also delivered again, late: after newer versions
+    if (this.w.rnd() < KNOBS.reorder) {
+      this.w.after(this.w.lat() + this.w.lat() + this.w.lat(), () => {
+        if (myConn !== this.conn || this.listener !== l || !this.online || !this.page.alive) return
+        if (this.q(this.user).some((m) => m.doc === uid && m.state !== 'done')) return // (shown with this tab's own pending writes)
+        const snap = { ...(v.fields ? read(v.fields) : { state: null, rev: 0 }), hasPendingWrites: false, fromCache: false }
+        this.w.log(`  ${this.page.name}: snapshot (late, v${v.version}) rev ${snap.rev} ${this.w.showState(snap.state)}`)
+        l.cb(snap)
+      })
+    }
+  }
+  /** the listener's view: the server copy it holds with this user's pending writes on top */
+  private view(uid: string) {
+    let fields = this.serverView.get(uid)?.fields ?? null
+    const pend = this.q(this.user).filter((m) => m.doc === uid && m.state !== 'done')
+    for (const m of pend) fields = m.kind === 'set' ? m.fields! : null
+    const f = fields
+    return { remote: f ? read(f) : { state: null, rev: 0 }, pending: pend.length > 0, ids: pend.map((m) => m.id) }
   }
   emit() {
     const l = this.listener
     if (!l || !this.page.alive) return
     const base = this.serverView.get(l.uid)
-    const pend = this.q(this.user).filter((m) => m.doc === l.uid && m.state !== 'done')
+    const { remote, pending, ids } = this.view(l.uid)
     const fromCache = !this.online || !l.synced
-    if (!base && pend.length === 0 && !fromCache) return
-    let fields: Fields | null = base?.fields ?? null
-    for (const m of pend) fields = m.kind === 'set' ? m.fields! : null
-    const f = fields
-    const snap = {
-      data: f ? fromFields((k) => (Object.hasOwn(f, k) ? f[k] : undefined)) : null,
-      rev: f ? revFrom(f.rev) : 0,
-      hasPendingWrites: pend.length > 0,
-      fromCache,
-    }
-    const key = JSON.stringify([snap, base?.version ?? -1, pend.map((m) => m.id)])
+    if (!base && !pending && !fromCache) return
+    const snap = { ...remote, hasPendingWrites: pending, fromCache }
+    const key = JSON.stringify([fromCache, base?.version ?? -1, ids])
     if (key === l.last) return
     l.last = key
-    const K = base?.K
     this.w.after(0, () => {
       if (this.listener !== l || !this.page.alive) return
-      if (!snap.hasPendingWrites && !snap.fromCache && K) for (const x of K) this.page.K.add(x)
-      this.w.log(`  ${this.page.name}: snapshot rev ${snap.rev}${snap.hasPendingWrites ? ' pending' : ''}${snap.fromCache ? ' cache' : ''} ${this.w.showState(snap.data)}`)
+      this.w.log(`  ${this.page.name}: snapshot rev ${snap.rev}${pending ? ' pending' : ''}${fromCache ? ' cache' : ''} ${this.w.showState(snap.state)}`)
       l.cb(snap)
     })
   }
   // ---- adapter surface ----
-  readProgress(uid: string): Promise<{ data: unknown; rev: number }> {
+  readProgress(uid: string): Promise<{ state: SyncState | null; rev: number; hasPendingWrites: boolean }> {
     return new Promise((resolve, reject) => {
-      if (!this.online) {
-        this.w.after(5, () => reject(Object.assign(new Error('offline'), { code: 'unavailable' })))
-        return
-      }
+      if (!this.online) return void this.w.after(5, () => reject(unavailable()))
       const myConn = this.conn
       this.w.after(this.w.lat() + this.w.lat(), () => {
         if (!this.page.alive) return
-        if (myConn !== this.conn || !this.online) return reject(Object.assign(new Error('offline'), { code: 'unavailable' }))
-        if (this.user !== uid) return reject(Object.assign(new Error('denied'), { code: 'permission-denied' }))
-        const cur = this.w.server.get(uid)
-        this.take(uid, cur)
-        let fields = this.serverView.get(uid)!.fields
-        for (const m of this.q(this.user)) if (m.doc === uid && m.state !== 'done') fields = m.kind === 'set' ? m.fields! : null
-        for (const x of cur.K) this.page.K.add(x)
-        const f = fields
-        this.w.log(`  ${this.page.name}: getDoc -> rev ${f ? revFrom(f.rev) : 0} ${this.w.show(f)}`)
-        resolve({ data: f ? fromFields((k) => (Object.hasOwn(f, k) ? f[k] : undefined)) : null, rev: f ? revFrom(f.rev) : 0 })
+        if (myConn !== this.conn || !this.online) return reject(unavailable())
+        if (this.user !== uid) return reject(denied())
+        this.take(uid, this.w.server.get(uid))
+        const { remote, pending } = this.view(uid)
+        this.w.log(`  ${this.page.name}: read -> rev ${remote.rev}${pending ? ' pending' : ''} ${this.w.showState(remote.state)}`)
+        resolve({ ...remote, hasPendingWrites: pending })
       })
     })
   }
-  watchProgress(uid: string, cb: (s: unknown) => void, onError: (e: unknown) => void) {
-    const l = { uid, cb, onError, synced: false, last: null as string | null }
+  watchProgress(uid: string, cb: (s: unknown) => void) {
+    const l = { uid, cb, synced: false, last: null as string | null }
     this.listener = l
     if (this.online) this.resync()
     else this.w.after(20, () => this.emit())
@@ -313,63 +344,33 @@ export class Client {
   private enqueue(kind: 'set' | 'delete', doc: string, fields?: Fields): Promise<void> {
     if (!this.page.alive) return new Promise(() => {})
     return new Promise((resolve, reject) => {
-      const m: Mut = { id: this.w.nextMut++, kind, doc, fields, K: new Set(this.page.K), user: this.user, state: 'queued', resolve, reject, conn: -1 }
+      const m: Mut = { id: this.w.nextMut++, kind, doc, fields, user: this.user, state: 'queued', resolve, reject, queuedAt: this.w.now() }
       this.w.log(`  ${this.page.name}: queue m${m.id} ${kind} ${doc}${fields ? ` rev ${String(fields.rev)} ${this.w.show(fields)}` : ''} (as ${this.user})`)
       this.q(this.user).push(m)
       this.emit()
       this.pump()
     })
   }
-  writeProgress(uid: string, state: ProgressState, rev: number) {
-    return this.enqueue('set', uid, { ...toFields(state), v: 2, rev, updatedAt: 'pending' })
+  writeProgress(uid: string, state: SyncState, rev: number) {
+    return this.enqueue('set', uid, { ...toDoc(state, rev), updatedAt: 'pending' })
   }
   deleteProgress(uid: string) {
     return this.enqueue('delete', uid)
   }
-  /** A transaction: needs the server (fails offline), reads the revision and writes the empty copy at the next one. */
-  clearProgress(uid: string): Promise<number> {
-    const unavailable = () => Object.assign(new Error('offline'), { code: 'unavailable' })
-    return new Promise((resolve, reject) => {
-      if (!this.page.alive) return
-      if (!this.online) {
-        this.w.after(5, () => reject(unavailable()))
-        return
-      }
-      const myConn = this.conn
-      this.w.after(this.w.lat(), () => {
-        if (!this.page.alive) return
-        if (myConn !== this.conn || !this.online) return reject(unavailable())
-        const cur = this.w.server.get(uid)
-        if (!cur.fields) return this.w.after(this.w.lat(), () => this.page.alive && resolve(0)) // nothing to clear
-        const rev = revFrom(cur.fields.rev) + 1
-        const empty: ProgressState = { lessons: {}, checkpoints: {}, answers: {}, exams: [] }
-        const res = this.w.server.set(this.user, uid, { ...toFields(empty), v: 2, rev, updatedAt: 'pending' }, new Set(this.page.K), `${this.page.name}#clear`)
-        if (!res.ok) return reject(Object.assign(new Error('denied'), { code: 'permission-denied' }))
-        if (this.page.deleteOp) this.page.deleteOp.landed = true // (it happened, even if the page closes before hearing back)
-        // (the answer is modelled as always arriving: a commit whose answer is lost would be reported as failed)
-        this.w.after(this.w.lat(), () => {
-          if (!this.page.alive) return
-          this.take(uid, res.ver!)
-          resolve(rev)
-        })
-      })
-    })
-  }
-  writeProgressOnExit(uid: string, state: ProgressState, rev: number, base: ProgressState): ProgressState | null {
-    if (!this.page.alive || this.user !== uid) return null
-    if (!KNOBS.keepalive) return null
+  writeProgressOnExit(uid: string, state: SyncState, rev: number, base: SyncState): boolean {
+    if (!this.page.alive || this.user !== uid || !KNOBS.keepalive) return false
     const exit = exitCommit(`projects/p/databases/(default)/documents/progress/${uid}`, state, rev, base)
-    if (exit === null) return null
-    const K = new Set(this.page.K)
-    this.w.log(`  ${this.page.name}: keepalive rev ${rev} ${this.w.showState(exit.saved)}`)
-    if (!this.page.browser.online) return exit.saved
-    this.w.after(this.w.lat(), () => this.w.server.patch(uid, uid, exit.body, K, this.page.name))
-    return exit.saved
+    if (exit === null) return false
+    this.w.log(`  ${this.page.name}: keepalive rev ${rev} [${exit.sent.join(',')}] ${this.w.showState(state)}`)
+    if (this.page.browser.online) this.w.after(this.w.lat(), () => this.w.server.patch(uid, uid, exit.body, this.page.name))
+    return true
   }
 }
 
 let currentPage: Page | null = null
 let patched = false
+const allPages: Page[] = []
+/** Routes the storage/pagehide/visibilitychange listeners each page adds to that page alone. */
 function patchGlobals() {
   if (patched) return
   patched = true
@@ -377,7 +378,8 @@ function patchGlobals() {
     const add = target.addEventListener.bind(target)
     const remove = target.removeEventListener.bind(target)
     target.addEventListener = ((type: string, fn: EventListenerOrEventListenerObject, o?: unknown) => {
-      if (['storage', 'pagehide', 'visibilitychange'].includes(type) && currentPage) currentPage.listeners.push({ type, fn: fn as (e: unknown) => void })
+      const page = currentPage ?? allPages.find((p) => p.adding)
+      if (['storage', 'pagehide', 'visibilitychange', 'online'].includes(type) && page) page.listeners.push({ type, fn: fn as (e: unknown) => void })
       else add(type, fn, o as AddEventListenerOptions)
     }) as typeof target.addEventListener
     target.removeEventListener = ((type: string, fn: EventListenerOrEventListenerObject, o?: unknown) => {
@@ -388,11 +390,11 @@ function patchGlobals() {
   route(window)
   route(document)
 }
-const allPages: Page[] = []
 
 export class Browser {
   ls = new Map<string, string>()
-  lsK = new Set<number>()
+  /** (KNOBS.tabCache) when the browser last applied a tab's write: writes are applied in order */
+  lsAt = 0
   user: string | null = null
   online = true
   pages: Page[] = []
@@ -404,10 +406,15 @@ export class Browser {
 
 export class Page {
   alive = true
-  /** the "Delete my saved progress" operation this page is carrying out, for the test's oracle */
-  deleteOp: { landed?: boolean } | null = null
-  K = new Set<number>()
+  /** set while this page's code may add window listeners (sync starting) */
+  adding = false
   listeners: { type: string; fn: (e: unknown) => void }[] = []
+  /** when this page last confirmed its user still exists */
+  confirmedAt?: number
+  /** (KNOBS.tabCache) this tab's own copy of localStorage, its writes on their way per key, and when the last change reaches it */
+  cache: Map<string, string> | null = null
+  outgoing = new Map<string, number>()
+  lsInAt = 0
   client: Client
   authUser: string | null
   userCbs = new Set<(u: unknown) => void>()
@@ -415,7 +422,6 @@ export class Page {
   progress: any
   account: any
   sync: any
-  adapterLoaded = false
   name: string
   constructor(
     public w: World,
@@ -428,21 +434,14 @@ export class Page {
     allPages.push(this)
   }
   storage() {
+    if (KNOBS.tabCache > 0) return this.cachedStorage()
     const page = this
     const b = this.browser
     const fire = (k: string) => {
       for (const q of b.pages) {
         if (q === page || !q.alive) continue
         this.w.after(1 + Math.floor(this.w.rnd() * 30), () => {
-          if (!q.alive) return
-          for (const l of q.listeners.filter((x) => x.type === 'storage')) {
-            const before = q.progress?.progress.get()
-            l.fn({ key: PREFIX + k })
-            if (q.progress && q.progress.progress.get() !== before) {
-              q.K = new Set(b.lsK)
-              this.w.log(`  ${q.name}: took other tab's copy ${this.w.showState(q.progress.progress.get())}`)
-            }
-          }
+          if (q.alive) for (const l of q.listeners.filter((x) => x.type === 'storage')) l.fn({ key: PREFIX + k })
         })
       }
     }
@@ -458,14 +457,71 @@ export class Page {
       writeJSON(key: string, value: unknown) {
         if (!page.alive) return
         b.ls.set(key, JSON.stringify(value))
-        if (key === 'progress-v1') b.lsK = new Set(page.K)
         fire(key)
       },
       removeKey(key: string) {
         if (!page.alive) return
+        if (key === 'progress-v1' && b.ls.has(key)) page.w.onWipe?.(b, b.ls.get(key)!, page, page.sessionUid())
         b.ls.delete(key)
-        if (key === 'progress-v1') b.lsK = new Set()
         fire(key)
+      },
+    }
+  }
+  /** Chromium-like localStorage (KNOBS.tabCache): see the header. */
+  private cachedStorage() {
+    const page = this
+    const b = this.browser
+    const w = this.w
+    const cache = (this.cache = new Map(b.ls))
+    const lat = () => 1 + Math.floor(w.rnd() * KNOBS.tabCache)
+    /** runs fn when a change the browser applied now reaches tab q (in the order applied) */
+    const reach = (q: Page, fn: () => void) => {
+      const at = Math.max(w.now() + lat(), q.lsInAt)
+      q.lsInAt = at
+      w.at(at, fn)
+    }
+    const send = (key: string, value: string | null) => {
+      page.outgoing.set(key, (page.outgoing.get(key) ?? 0) + 1)
+      const by = page.sessionUid() // (as the tab wrote it, not as the browser applies it)
+      const at = Math.max(w.now() + lat(), b.lsAt)
+      b.lsAt = at
+      w.at(at, () => {
+        // applied in the browser: a copy removed, or replaced by someone else's, is gone from this browser
+        const old = b.ls.get(key)
+        if (key === 'progress-v1' && old !== undefined && (value === null || ownerOf(value) !== ownerOf(old))) w.onWipe?.(b, old, page, by)
+        if (value === null) b.ls.delete(key)
+        else b.ls.set(key, value)
+        reach(page, () => page.outgoing.set(key, page.outgoing.get(key)! - 1))
+        for (const q of b.pages) {
+          if (q === page || !q.alive || !q.cache) continue
+          reach(q, () => {
+            if (!q.alive || (q.outgoing.get(key) ?? 0) > 0) return // (its own write is on its way: Chromium ignores this change)
+            if (value === null) q.cache!.delete(key)
+            else q.cache!.set(key, value)
+            for (const l of q.listeners.filter((x) => x.type === 'storage')) l.fn({ key: PREFIX + key })
+          })
+        }
+      })
+    }
+    return {
+      PREFIX,
+      readJSON<T>(key: string, fallback: T): T {
+        const raw = cache.get(key)
+        return raw == null ? fallback : (JSON.parse(raw) as T)
+      },
+      readRaw(key: string): string | null {
+        return cache.get(key) ?? null
+      },
+      writeJSON(key: string, value: unknown) {
+        if (!page.alive) return
+        const v = JSON.stringify(value)
+        cache.set(key, v)
+        send(key, v)
+      },
+      removeKey(key: string) {
+        if (!page.alive) return
+        cache.delete(key)
+        send(key, null)
       },
     }
   }
@@ -495,10 +551,15 @@ export class Page {
       async deleteUser() {
         if (!page.alive) return hang()
         if (!page.browser.online) throw Object.assign(new Error('net'), { code: 'auth/network-request-failed' })
+        if (w.deleteUserFails > 0) {
+          w.deleteUserFails--
+          throw Object.assign(new Error('closed'), { code: 'auth/popup-closed-by-user' }) // (the person closed the sign-in pop-up)
+        }
         const uid = page.authUser
         if (!uid) return
         await delay(w.lat())
         w.server.deletedUsers.add(uid)
+        w.server.deletedAt.set(uid, w.now())
         w.log(`  server: user ${uid} DELETED`)
         w.setBrowserUser(page.browser, null, page)
       },
@@ -513,10 +574,11 @@ export class Page {
           w.setBrowserUser(page.browser, null, page)
           throw Object.assign(new Error('gone'), { code: 'auth/user-not-found' })
         }
+        page.confirmedAt = w.now()
       },
       watchAccess(_uid: string, cb: (a: string) => void) {
-        const t = w.after(10, () => page.alive && cb('paid'))
-        return () => void t
+        w.after(10, () => page.alive && cb('paid'))
+        return () => {}
       },
       async syncAccess() {
         await delay(10)
@@ -529,10 +591,9 @@ export class Page {
         return { access: 'paid' }
       },
       readProgress: (uid: string) => c.readProgress(uid),
-      watchProgress: (uid: string, cb: (s: unknown) => void, onError: (e: unknown) => void) => c.watchProgress(uid, cb, onError),
-      writeProgress: (uid: string, s: ProgressState, rev: number) => c.writeProgress(uid, s, rev),
-      writeProgressOnExit: (uid: string, s: ProgressState, rev: number, base: ProgressState) => c.writeProgressOnExit(uid, s, rev, base),
-      clearProgress: (uid: string) => c.clearProgress(uid),
+      watchProgress: (uid: string, cb: (s: unknown) => void) => c.watchProgress(uid, cb),
+      writeProgress: (uid: string, s: SyncState, rev: number) => c.writeProgress(uid, s, rev),
+      writeProgressOnExit: (uid: string, s: SyncState, rev: number, base: SyncState) => c.writeProgressOnExit(uid, s, rev, base),
       deleteProgress: (uid: string) => c.deleteProgress(uid),
     }
   }
@@ -549,7 +610,16 @@ export class Page {
     this.lastUserSent = u
     this.w.log(`  ${this.name}: onUser(${u})`)
     const user = u === null ? null : { uid: u, email: `${u}@example.com`, name: u, photoURL: null, provider: u.startsWith('g') ? 'google' : 'apple' }
-    for (const cb of [...this.userCbs]) cb(user)
+    this.adding = true
+    try {
+      for (const cb of [...this.userCbs]) cb(user)
+    } finally {
+      this.adding = false
+    }
+  }
+  /** who this tab's account store says is signed in */
+  sessionUid(): string | null {
+    return this.account?.account.get().user?.uid ?? null
   }
   dispatch(type: string, e: unknown = { type }) {
     for (const l of this.listeners.filter((x) => x.type === type)) l.fn(e)
@@ -565,14 +635,21 @@ export class World {
   nextPage = 1
   trace: string[] = []
   uids: Record<string, string> = { google: 'g1', apple: 'a1' }
+  /** the next N account deletions fail (after the progress copy was deleted) */
+  deleteUserFails = 0
+  /**
+   * called when a browser's stored progress is removed (sign-out, someone else signing in), with what it held, the tab
+   * that did it and whose sign-in that tab was in then
+   */
+  onWipe?: (b: Browser, raw: string, by: Page, byUid: string | null) => void
   constructor(
     public seed: number,
     netSeed: number,
-    public verbose = false,
   ) {
     this.rnd = rng(netSeed)
     this.server = new Server(this)
     patchGlobals()
+    allPages.length = 0 // (the pages of earlier runs, and their module instances, can go)
   }
   now() {
     return Date.now()
@@ -603,32 +680,26 @@ export class World {
   setBrowserUser(b: Browser, user: string | null, actor: Page) {
     b.user = user
     this.log(`  B${b.id}: auth user -> ${user}`)
-    for (const p of b.pages) this.after(p === actor ? 1 : this.lat(), () => p.deliverUser())
+    for (const p of b.pages) this.after(p === actor ? 1 : KNOBS.authLag || this.lat(), () => p.deliverUser())
   }
   show(f: Fields | null): string {
-    if (!f) return '(none)'
-    return this.showState(fromFields((k) => (Object.hasOwn(f, k) ? f[k] : undefined)))
+    return f ? this.showState(read(f).state) : '(none)'
   }
-  showState(s: unknown): string {
-    if (s == null) return '(none)'
-    const x = s as ProgressState
-    const L = Object.keys(x.lessons ?? {}).sort()
-    const C = Object.keys(x.checkpoints ?? {}).sort()
-    const A = Object.keys((x.answers ?? {}) as object).sort()
-    const E = Array.isArray(x.exams) ? x.exams.map((e) => (e as { id: string }).id) : []
+  showState(s: SyncState | null): string {
+    if (!s) return '(none)'
+    const x = project(s)
     const strip = (k: string) => k.replace(/^[ga]\d+\//, '').replace(/^[ga]\d+-/, '')
-    return `{${[...L, ...C, ...A, ...E].map(strip).join(' ')}}`
+    const keys = [...Object.keys(x.lessons), ...Object.keys(x.checkpoints), ...Object.keys(x.answers), ...x.exams.map((e) => e.id)]
+    return `{${keys.sort().map(strip).join(' ')}}${s.resetAt ? ` R${s.resetAt - T0}` : ''}`
   }
   async newBrowser(user: string | null): Promise<Browser> {
     const b = new Browser(this.browsers.length, this)
     this.browsers.push(b)
     b.user = user
-    if (user) b.ls.set('progress-owner', JSON.stringify(user))
     return b
   }
   async openPage(b: Browser): Promise<Page> {
     const page = new Page(this, b, this.nextPage++)
-    page.K = new Set(b.lsK)
     b.pages.push(page)
     this.pages.push(page)
     this.log(`${page.name}: OPEN (local ${b.ls.has('progress-v1') ? 'has copy' : 'empty'}, auth ${b.user})`)
@@ -644,42 +715,21 @@ export class World {
       PRICE_LABEL: 'S$10',
       FUNCTIONS_REGION: 'r',
     }))
-    vi.doMock(`${WEB}/accounts/firebase-adapter.ts`, () => ({
-      createFirebaseAdapter: () => {
-        page.adapterLoaded = true
-        return adapter
-      },
-    }))
+    vi.doMock(`${WEB}/accounts/firebase-adapter.ts`, () => ({ createFirebaseAdapter: () => adapter }))
     vi.doMock(`${WEB}/accounts/sync.ts`, async (importOriginal) => {
       const m = (await importOriginal()) as any
-      return {
-        ...m,
-        createProgressSync: (o: unknown) => (page.sync = m.createProgressSync(o)),
-      }
+      return { ...m, createProgressSync: (o: unknown) => (page.sync = m.createProgressSync(o)) }
     })
     currentPage = page
     page.account = await import(`${WEB}/accounts/index.ts`)
     page.progress = await import(`${WEB}/progress.ts`)
     currentPage = null
-    const prog = page.progress.progress
-    const follow = prog.followOtherTabs
-    prog.followOtherTabs = (on: boolean) => {
-      currentPage = page
-      follow(on)
-    }
-    const clear = prog.clearLocal
-    prog.clearLocal = () => {
-      this.onClear?.(page)
-      page.K = new Set()
-      clear()
-    }
     page.account.account.init()
     const realWait = () => new Promise((r) => (globalThis as any).__realSetTimeout(r, 0))
     for (let i = 0; i < 2000 && !page.sync; i++) await realWait()
     if (!page.sync) throw new Error('adapter never loaded')
     return page
   }
-  onClear?: (p: Page) => void
   closePage(p: Page, how: 'reload' | 'close') {
     this.log(`${p.name}: ${how.toUpperCase()} (pagehide)`)
     p.dispatch('pagehide')
@@ -692,9 +742,10 @@ export class World {
     b.online = on
     this.log(`B${b.id}: ${on ? 'ONLINE' : 'OFFLINE'}`)
     for (const p of b.pages) {
-      if (on) p.client.reconnect()
-      else p.client.dropConnection()
+      if (on) {
+        p.client.reconnect()
+        p.dispatch('online')
+      } else p.client.dropConnection()
     }
   }
 }
-export const T0 = Date.UTC(2026, 9, 16, 9, 0, 0)

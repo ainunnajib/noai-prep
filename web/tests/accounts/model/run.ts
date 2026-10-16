@@ -1,8 +1,9 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { vi } from 'vitest'
-import { fromFields } from '../../../src/lib/accounts/progress-doc'
-import { normalizeProgress, sameProgress, type ProgressState } from '../../../src/lib/progress'
-import { KNOBS, rng, T0, World, type Page } from './world'
+import * as crdt from '../../../src/lib/progress-crdt'
+import type { ProgressState, SyncState } from '../../../src/lib/progress-crdt'
+import { opOf, oracle, single, type Op } from './oracle'
+import { rng, T0, World, type Page } from './world'
 
 export type Step =
   | { t: 'advance'; ms: number }
@@ -40,7 +41,7 @@ export function genScript(seed: number, cfg: Config): Step[] {
       const kind =
         k < 0.3 ? 'tick' : k < 0.48 ? 'untick' : k < 0.62 ? 'cp' : k < 0.82 ? 'ans' : k < 0.86 ? 'exam' : k < 0.93 ? 'reset' : cfg.deleteCloud ? 'delcloud' : 'tick'
       out.push({ t: 'op', page, kind, i: Math.floor(r() * cfg.keys), b: r() < 0.5 })
-    } else if (x < 0.65) out.push({ t: 'advance', ms: pick([0, 1, 5, 50, 200, 700, 1499, 1501, 1600, 3000, 8000, 20000]) })
+    } else if (x < 0.65) out.push({ t: 'advance', ms: pick([0, 1, 5, 50, 200, 700, 1499, 1501, 1600, 3000, 5001, 8000, 20000]) })
     else if (x < 0.75) {
       if (cfg.offline) out.push({ t: 'net', browser: Math.floor(r() * cfg.browsers), on: r() < 0.5 })
     } else if (x < 0.8) {
@@ -57,17 +58,14 @@ export function genScript(seed: number, cfg: Config): Step[] {
   return out
 }
 
-interface Op {
-  id: number
+/** One thing the student did, as the operation it added to their progress. */
+interface Rec {
+  op: Op
   uid: string
-  page: string
-  t: number
-  kind: 'add' | 'remove'
-  keys: string[] | 'all'
-  Kat: Set<number>
+  browser: number
   desc: string
-  /** made while this page's own sign-out / delete was in progress */
-  during?: string
+  /** why it may be missing in the end (one of the allowed exceptions) */
+  lossOk?: string
 }
 
 export interface Result {
@@ -77,29 +75,47 @@ export interface Result {
   stats: Record<string, number>
 }
 
-function presence(s: ProgressState): Set<string> {
-  return new Set([...Object.keys(s.lessons), ...Object.keys(s.checkpoints), ...Object.keys(s.answers), ...s.exams.map((e) => e.id)])
+/** a state includes an operation when joining it in changes nothing */
+const includes = (s: SyncState, o: Op) => crdt.same(crdt.join(s, single(o)), s)
+/** the projection as text, whatever order its keys were added in */
+function canon(p: ProgressState): string {
+  const sorted = <T,>(o: Record<string, T>) => Object.keys(o).sort().map((k) => [k, o[k]])
+  return JSON.stringify([sorted(p.lessons), sorted(p.checkpoints), sorted(p.answers), p.exams])
 }
+/** every key a state mentions (removals too) */
+const keysIn = (s: SyncState) => [...Object.keys(s.lessons), ...Object.keys(s.checkpoints), ...Object.keys(s.answers), ...Object.keys(s.exams)]
+const ownKey = (uid: string, k: string) => k.startsWith(`${uid}/`) || k.startsWith(`${uid}-`)
 
 export async function runScript(seed: number, script: Step[], cfg: Config, opts: { netSeed?: number } = {}): Promise<Result> {
+  vi.clearAllTimers() // (whatever earlier runs left scheduled)
   vi.setSystemTime(T0)
   const w = new World(seed, opts.netSeed ?? seed)
-  const ops: Op[] = []
-  let nextOp = 1
+  const recs: Rec[] = []
   const stats: Record<string, number> = {}
   const bump = (k: string) => (stats[k] = (stats[k] ?? 0) + 1)
-  /** op ids that were in a page's copy when sign-out cleared it, but not in the account copy */
-  const clearedUnsaved = new Set<number>()
-  w.onClear = (p: Page) => {
-    const u = p.account?.account.get().user?.uid
-    if (!u) return
-    const sK = w.server.get(u).K
-    for (const x of p.K) if (!sK.has(x)) clearedUnsaved.add(x)
+  // Allowed exception: signing out clears this browser's copy, so what it held that hadn't reached the account then
+  // (made in another tab after sign-out checked that everything was saved) is gone. Only the person's own sign-out
+  // (or account deletion) may clear their copy: a tab that clears someone else's (one that heard late that its own
+  // person signed out, say) loses that progress, and it is reported lost.
+  w.onWipe = (b, raw, by, byUid) => {
+    let owner: unknown = null
+    try {
+      owner = JSON.parse(raw).owner
+    } catch {
+      /* (not progress) */
+    }
+    if (typeof owner !== 'string') return
+    if (byUid !== owner) return void w.log(`  (oracle: ${by.name} removed ${owner}'s copy outside ${owner}'s sign-in)`)
+    const srv = w.server.state(owner) ?? crdt.empty()
+    for (const r of recs) {
+      if (r.uid !== owner || r.browser !== b.id || r.lossOk || includes(srv, r.op)) continue
+      r.lossOk = 'cleared by a sign-out before it was saved'
+      w.log(`  (oracle: ${r.desc} cleared from B${b.id} before it reached the account)`)
+    }
   }
   // browsers: all signed in to g1 except maybe the last one (a1 or signed out)
   for (let i = 0; i < cfg.browsers; i++) {
-    const user = i < 2 ? 'g1' : seed % 2 === 0 ? 'a1' : null
-    const b = await w.newBrowser(user)
+    const b = await w.newBrowser(i < 2 ? 'g1' : seed % 2 === 0 ? 'a1' : null)
     await w.openPage(b)
   }
   await vi.advanceTimersByTimeAsync(3000)
@@ -109,10 +125,9 @@ export async function runScript(seed: number, script: Step[], cfg: Config, opts:
     const ps = live()
     return ps.length ? ps[i % ps.length] : null
   }
-  const keyOf = (uid: string, kind: string, i: number) =>
-    kind === 'tick' || kind === 'untick' ? `${uid}/l${i}` : kind === 'cp' ? `${uid}/c${i}` : `${uid}/t${i % 3}.q${i}`
+  const flag = (p: Page, k: string) => (p as any)[k] === true
 
-  for (const [si, s] of script.entries()) {
+  for (const s of script) {
     await vi.advanceTimersByTimeAsync(1)
     switch (s.t) {
       case 'advance':
@@ -124,59 +139,52 @@ export async function runScript(seed: number, script: Step[], cfg: Config, opts:
         const st = p.account.account.get()
         if (st.status !== 'signed-in' || !st.user) break
         const uid: string = st.user.uid
-        if ((p as any).deleting && process.env.SIM_SKIP_DURING_DELETE) break
-        if ((p as any).signingOut) break // the few ms between sign-out's last check and the clear: not humanly reachable
+        if (flag(p, 'signingOut')) break // (the few ms between sign-out's last check and the clear: not humanly reachable)
         const prog = p.progress.progress
-        const cur: ProgressState = prog.get()
-        const record = (kind: 'add' | 'remove', keys: string[] | 'all', desc: string) => {
-          const id = nextOp++
-          p.K.add(id)
-          const during = (p as any).signingOut ? 'sign-out' : (p as any).deleting ? 'delete' : undefined
-          const op: Op = { id, uid, page: p.name, t: Date.now() - T0, kind, keys, Kat: new Set(p.K), desc, during }
-          ops.push(op)
-          w.log(`${p.name}: OP#${id} ${desc} (as ${uid})`)
-          return op
+        if (prog.owner() !== uid) {
+          // A tab that hasn't heard yet that another tab signed out (or someone else signed in): its click lands on
+          // whatever this browser holds now, never on the old person's copy (see progress-store.test.ts).
+          bump('stray')
+          break
         }
+        const before: SyncState = prog.getSync()
+        let kind: 'tick' | 'untick' | 'cp' | 'ans' | 'exam' | 'reset' = 'tick'
+        let key = ''
         if (s.kind === 'tick') {
-          const k = keyOf(uid, 'tick', s.i)
-          if (Object.hasOwn(cur.lessons, k)) break
-          record('add', [k], `tick ${k.split('/')[1]}`)
-          prog.markLesson(k, true)
+          key = `${uid}/l${s.i}`
+          prog.markLesson(key, true)
         } else if (s.kind === 'untick') {
-          const present = Object.keys(cur.lessons)
+          const present = Object.keys(prog.get().lessons)
           if (!present.length) break
-          const k = present[s.i % present.length]
-          record('remove', [k], `untick ${k.split('/')[1]}`)
-          prog.markLesson(k, false)
+          kind = 'untick'
+          key = present[s.i % present.length]
+          prog.markLesson(key, false)
         } else if (s.kind === 'cp') {
-          const k = keyOf(uid, 'cp', s.i)
-          record('add', [k], `checkpoint ${k.split('/')[1]}`)
-          prog.recordCheckpoint(k, s.b ? 1 : 0.5)
+          kind = 'cp'
+          key = `${uid}/c${s.i}`
+          prog.recordCheckpoint(key, s.b ? 1 : 0.5)
         } else if (s.kind === 'ans') {
-          const k = keyOf(uid, 'ans', s.i)
-          record('add', [k], `answer ${k.split('/')[1]}`)
-          prog.recordAnswer(k, s.b)
+          kind = 'ans'
+          key = `${uid}/t${s.i % 3}.q${s.i}`
+          prog.recordAnswer(key, s.b)
         } else if (s.kind === 'exam') {
-          if (cur.exams.length >= 40) break
-          const id = `${uid}-e${nextOp}`
-          record('add', [id], `exam ${id.split('-')[1]}`)
-          prog.recordExam({ id, date: new Date().toISOString(), mode: 'full', total: 4, correct: 2, seconds: 60, byDomain: { d: { total: 4, correct: 2 } } })
+          kind = 'exam'
+          key = `${uid}-e${recs.length}`
+          prog.recordExam({ id: key, date: new Date().toISOString(), mode: 'full', total: 4, correct: 2, seconds: 60, byDomain: { d: { total: 4, correct: 2 } } })
         } else if (s.kind === 'reset') {
-          record('remove', 'all', 'RESET')
+          kind = 'reset'
           prog.reset()
-        } else if (s.kind === 'delcloud') {
-          if ((p as any).deleting) break // the button is disabled while deleting
-          const op = record('remove', 'all', 'DELETE SAVED PROGRESS')
-          ;(op as any).pending = true
+        } else {
+          if (flag(p, 'deleting')) break // (the button is disabled while deleting)
+          kind = 'reset'
           ;(p as any).deleting = true
-          p.deleteOp = op as any
-          void p.account.account.deleteCloudProgress().finally(() => {
-            ;(p as any).deleting = false
-            p.deleteOp = null
-            // a delete that failed never happened
-            if (!p.account.account.get().error) (op as any).pending = false
-          })
+          void p.account.account.deleteCloudProgress().finally(() => ((p as any).deleting = false))
         }
+        const op = opOf(kind, key, before, prog.getSync())
+        if (!op) break
+        const desc = `#${recs.length + 1} ${s.kind} ${key.replace(/^[ga]\d+[/-]/, '')}@${p.name}`
+        recs.push({ op, uid, browser: p.browser.id, desc })
+        w.log(`${p.name}: OP ${desc} t=${op.t - T0} (as ${uid})`)
         break
       }
       case 'net':
@@ -185,29 +193,25 @@ export async function runScript(seed: number, script: Step[], cfg: Config, opts:
       case 'reload': {
         const p = pageAt(s.page)
         if (!p) break
-        if (KNOBS.noLostAcks) for (let i = 0; i < 200 && p.client.awaitingAck && p.browser.online; i++) await vi.advanceTimersByTimeAsync(25)
         if (s.late) {
           // the page lives a moment after pagehide (its own write may get out)
           w.log(`${p.name}: RELOAD (pagehide, page lingers)`)
           p.dispatch('pagehide')
           for (let i = 0; i < 20; i++) await Promise.resolve()
-          w.closePage(p, 'reload')
-        } else w.closePage(p, 'reload')
+        }
+        w.closePage(p, 'reload')
         bump('reload')
         await w.openPage(p.browser)
         break
       }
       case 'newtab': {
         const b = w.browsers[s.browser % w.browsers.length]
-        if (b.pages.length >= 2) break
-        await w.openPage(b)
+        if (b.pages.length < 2) await w.openPage(b)
         break
       }
       case 'closetab': {
         const p = pageAt(s.page)
-        if (!p || p.browser.pages.length < 2) break
-        if (KNOBS.noLostAcks) for (let i = 0; i < 200 && p.client.awaitingAck && p.browser.online; i++) await vi.advanceTimersByTimeAsync(25)
-        w.closePage(p, 'close')
+        if (p && p.browser.pages.length >= 2) w.closePage(p, 'close')
         break
       }
       case 'pagehide': {
@@ -219,7 +223,8 @@ export async function runScript(seed: number, script: Step[], cfg: Config, opts:
       }
       case 'signout': {
         const p = pageAt(s.page)
-        if (!p || p.account.account.get().status !== 'signed-in') break
+        // (one account action at a time in a tab: signing out and deleting the account both take a moment)
+        if (!p || p.account.account.get().status !== 'signed-in' || flag(p, 'signingOut') || flag(p, 'deletingAccount')) break
         w.log(`${p.name}: SIGN OUT`)
         bump('signout')
         ;(p as any).signingOut = true
@@ -242,14 +247,14 @@ export async function runScript(seed: number, script: Step[], cfg: Config, opts:
       case 'delaccount': {
         const p = pageAt(s.page)
         const st = p?.account.account.get()
-        if (!p || st.status !== 'signed-in') break
+        if (!p || st.status !== 'signed-in' || flag(p, 'signingOut') || flag(p, 'deletingAccount')) break
         w.log(`${p.name}: DELETE ACCOUNT ${st.user.uid}`)
         bump('delaccount')
-        void p.account.account.deleteAccount()
+        ;(p as any).deletingAccount = true
+        void p.account.account.deleteAccount().finally(() => ((p as any).deletingAccount = false))
         break
       }
     }
-    void si
   }
 
   // ---- quiesce: everything online, then a long quiet period ----
@@ -258,59 +263,48 @@ export async function runScript(seed: number, script: Step[], cfg: Config, opts:
   for (let i = 0; i < 40; i++) await vi.advanceTimersByTimeAsync(3000)
 
   const problems: string[] = []
-  const serverState = (uid: string): ProgressState => {
-    const f = w.server.get(uid).fields
-    return normalizeProgress(f ? fromFields((k) => (Object.hasOwn(f, k) ? f[k] : undefined)) : null)
-  }
-  const users = new Set<string>(ops.map((o) => o.uid))
-  for (const p of w.pages) if (p.alive && p.account.account.get().user) users.add(p.account.account.get().user.uid)
+  const serverState = (uid: string) => w.server.state(uid) ?? crdt.empty()
 
-  // (3) nothing stuck / (1) convergence / (4) leaks
+  // saves never stuck; every tab ends with the account copy (convergence); nothing leaks between accounts
   for (const p of w.pages) {
     if (!p.alive) continue
     const st = p.account.account.get()
-    if (st.status !== 'signed-in' || !st.user) continue
+    if (st.status !== 'signed-in' || !st.user || p.authUser !== st.user.uid) continue
     const uid = st.user.uid
-    if (p.authUser !== uid) continue
-    const unsaved = p.sync.hasUnsaved()
-    if (unsaved) problems.push(`STUCK: ${p.name} (${uid}) still has unsaved changes after 120 s online (error: ${st.error})`)
-    const mine: ProgressState = p.progress.progress.get()
-    const srv = serverState(uid)
-    if (!sameProgress(mine, srv)) problems.push(`DIVERGED: ${p.name} (${uid}) holds ${w.showState(mine)} but the account copy is ${w.showState(srv)}`)
-    for (const k of presence(mine)) if (!k.startsWith(`${uid}/`) && !k.startsWith(`${uid}-`)) problems.push(`LEAK: ${p.name} signed in as ${uid} holds ${k}`)
+    if (p.sync.hasUnsaved()) problems.push(`STUCK: ${p.name} (${uid}) still has unsaved changes after 120 s online (error: ${st.error})`)
+    const mine: SyncState = p.progress.progress.getSync()
+    if (!crdt.same(mine, serverState(uid))) problems.push(`DIVERGED: ${p.name} (${uid}) holds ${w.showState(mine)} but the account copy is ${w.showState(serverState(uid))}`)
+    for (const k of keysIn(mine)) if (!ownKey(uid, k)) problems.push(`LEAK: ${p.name} signed in as ${uid} holds ${k}`)
   }
-  for (const [uid] of w.server.docs) {
-    const s = serverState(uid)
-    for (const k of presence(s)) if (!k.startsWith(`${uid}/`) && !k.startsWith(`${uid}-`)) problems.push(`LEAK: account copy of ${uid} holds ${k}`)
-    if (w.server.deletedUsers.has(uid) && w.server.get(uid).fields) problems.push(`ORPHAN: deleted user ${uid} still has a progress document ${w.show(w.server.get(uid).fields)}`)
+  for (const [uid, ver] of w.server.docs) {
+    if (!ver.fields) continue
+    for (const k of keysIn(serverState(uid))) if (!ownKey(uid, k)) problems.push(`LEAK: account copy of ${uid} holds ${k}`)
+    if (!w.server.deletedUsers.has(uid)) continue
+    // Allowed exception: a copy created by a device or tab with unsaved progress that had checked the account still
+    // existed before "Delete my account" elsewhere deleted it (the copy itself having been deleted first, or never
+    // created); devices that haven't heard yet may go on saving to it. Only a clean-up on the server when an account is
+    // deleted could catch that. A copy created without such a check is a failure.
+    const deletedAt = w.server.deletedAt.get(uid)!
+    const checked = ver.confirmedAt !== undefined && ver.confirmedAt <= deletedAt && (ver.sentAt ?? Infinity) - ver.confirmedAt < 3000
+    if (ver.createdAt <= deletedAt || checked) bump('orphanRaced')
+    else problems.push(`ORPHAN: deleted user ${uid} still has a progress document ${w.show(ver.fields)}`)
   }
 
-  // (2) intent: per key, the causally-latest operations decide
-  for (const uid of users) {
+  // nothing the student did is lost, and the account copy shows exactly what the oracle says those operations make
+  for (const uid of new Set(recs.map((r) => r.uid))) {
     if (w.server.deletedUsers.has(uid)) continue
-    // deletes that never completed (page closed while "Deleting...", or the delete failed) did not happen, unless the
-    // server applied them (the page closed before hearing back)
-    const mine = ops.filter((o) => o.uid === uid && (!(o as any).pending || (o as any).landed))
-    const keys = new Set<string>()
-    for (const o of mine) if (o.keys !== 'all') o.keys.forEach((k) => keys.add(k))
-    const final = presence(serverState(uid))
-    for (const k of final) keys.add(k)
-    for (const k of keys) {
-      const touching = mine.filter((o) => o.keys === 'all' || o.keys.includes(k))
-      const maximal = touching.filter((o) => !touching.some((o2) => o2 !== o && o2.Kat.has(o.id)))
-      const has = final.has(k)
-      if (maximal.length === 0) {
-        if (has) problems.push(`INTENT: ${k} present in ${uid}'s account but no operation ever added it`)
-        continue
-      }
-      const allAdd = maximal.every((o) => o.kind === 'add')
-      const allRemove = maximal.every((o) => o.kind === 'remove')
-      const desc = maximal.map((o) => `#${o.id} ${o.desc}@${o.page} t=${o.t}`).join(', ')
-      const lostBySignOut = maximal.some((o) => clearedUnsaved.has(o.id))
-      const during = maximal.find((o) => o.during)?.during
-      if (allAdd && !has) problems.push(`LOST${during ? `(made during own ${during})` : lostBySignOut ? '(cleared at sign-out)' : ''}: ${k} missing from ${uid}'s account; latest ops: ${desc}`)
-      if (allRemove && has) problems.push(`RESURRECTED: ${k} present in ${uid}'s account; latest ops: ${desc}`)
-    }
+    const final = serverState(uid)
+    const mine = recs.filter((r) => r.uid === uid)
+    for (const r of mine) if (!r.lossOk && !includes(final, r.op)) problems.push(`LOST: ${r.desc} (t=${r.op.t - T0}) is missing from ${uid}'s account`)
+    const reached = mine.filter((r) => includes(final, r.op)).map((r) => r.op)
+    if (!crdt.same(reached.map(single).reduce(crdt.join, crdt.empty()), final)) problems.push(`EXTRA: ${uid}'s account holds something no operation of theirs made: ${w.showState(final)}`)
+    if (canon(crdt.project(final)) !== canon(oracle(reached))) problems.push(`ORACLE: ${uid}'s account shows ${canon(crdt.project(final))}, the oracle ${canon(oracle(reached))}`)
+    stats.lossOk = (stats.lossOk ?? 0) + mine.filter((r) => r.lossOk && !includes(final, r.op)).length
+  }
+  stats.ops = recs.length
+  for (const p of w.pages) {
+    p.sync?.stop()
+    p.alive = false
   }
   return { ok: problems.length === 0, problems, trace: w.trace, stats }
 }

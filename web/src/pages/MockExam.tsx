@@ -147,6 +147,8 @@ function MockExamRunner() {
     submitting.current = true
     const done = { ...a, submittedAt: Date.now() }
     const byDomain: Record<string, { total: number; correct: number }> = {}
+    /** the answers given, recorded with the exam as one change (one write, however long the paper) */
+    const given: [string, boolean][] = []
     let correct = 0
     for (const id of a.ids) {
       const q = byId.get(id)
@@ -154,21 +156,24 @@ function MockExamRunner() {
       byDomain[q.domain] ??= { total: 0, correct: 0 }
       byDomain[q.domain].total++
       const sel = a.answers[id]
-      if (sel != null) progress.recordAnswer(id, sel === q.answer)
+      if (sel != null) given.push([id, sel === q.answer])
       if (sel === q.answer) {
         correct++
         byDomain[q.domain].correct++
       }
     }
-    progress.recordExam({
-      id: `${a.startedAt}`,
-      date: new Date().toISOString(),
-      mode: a.formatId,
-      total: a.ids.length,
-      correct,
-      seconds: Math.min(a.durationSec, Math.round((done.submittedAt - a.startedAt) / 1000)),
-      byDomain,
-    })
+    progress.recordExam(
+      {
+        id: `${a.startedAt}`,
+        date: new Date().toISOString(),
+        mode: a.formatId,
+        total: a.ids.length,
+        correct,
+        seconds: Math.min(a.durationSec, Math.round((done.submittedAt - a.startedAt) / 1000)),
+        byDomain,
+      },
+      given,
+    )
     setAttempt(done)
     window.scrollTo(0, 0)
   }

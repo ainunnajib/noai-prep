@@ -30,7 +30,7 @@ The site is a static single-page app (hash routing, relative asset paths), so `w
 npm run typecheck        # TypeScript
 npm run check:content    # every lesson renders; quiz, past-paper and bank data are valid
 npm run test:e2e         # Playwright: every page at desktop and phone widths (accounts off)
-npx vitest run tests/accounts                        # accounts: progress merging, sync decisions, access checks
+npx vitest run tests/accounts                        # accounts: the progress CRDT, tabs, sync, simulated devices, access
 npx playwright test -c playwright.accounts.config.ts # accounts end to end, against a pretend backend
 ```
 
@@ -45,6 +45,7 @@ The accounts end-to-end tests build the site with `VITE_ACCOUNTS_MOCK=1` (an off
 | `src/components/` | The shared kit: content blocks (callouts, maths, code, steps, tabs), interactive pieces (plots with draggable points, sliders, matrix grids, bar charts, network diagrams, an in-browser Python runner) and quiz components. |
 | `src/data/` | Exam facts, past papers and the practice bank. |
 | `src/pages/` | Home, roadmap, lesson, exam guide, practice, mock exam, past papers, study plan, account. |
+| `src/lib/progress.ts`, `progress-crdt.ts` | The viewer's progress, kept so that copies (tabs, devices, the account) always combine without losing anything. |
 | `src/lib/accounts/`, `src/components/account/` | Accounts (only when switched on): the account store, progress sync and the Firebase and pretend backends; the sign-in dialog, the lock on paid pages and the header's account button. |
 | `AUTHORING.md` | How to write or edit a lesson: style, visuals, quizzes and accuracy rules. |
 | `../docs/` | Research notes (official facts with sources, the IOAI syllabus, past-paper analyses) and the curriculum design. |

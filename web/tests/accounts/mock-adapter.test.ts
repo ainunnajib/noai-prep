@@ -5,6 +5,7 @@
 */
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { createMockAdapter } from '../../src/lib/accounts/mock-adapter'
+import * as crdt from '../../src/lib/progress-crdt'
 import { authErrorMessage, SIGN_OUT_UNSAVED_ERROR, SYNC_ERROR } from '../../src/lib/accounts/errors'
 import type { AccountUser } from '../../src/lib/accounts/types'
 
@@ -12,6 +13,9 @@ const KEY = (k: string) => `noai-prep:${k}`
 const seed = (k: string, v: unknown) => localStorage.setItem(KEY(k), typeof v === 'string' ? v : JSON.stringify(v))
 const read = (k: string) => JSON.parse(localStorage.getItem(KEY(k)) ?? 'null')
 const D1 = '2026-03-01T00:00:00.000Z'
+const T1 = Date.parse(D1)
+/** The stored copy's lessons that are ticked. */
+const ticked = (k: string) => Object.keys(crdt.project(crdt.fromJSON(read(k))).lessons).sort()
 
 beforeEach(() => localStorage.clear())
 
@@ -88,36 +92,39 @@ describe('mock adapter', () => {
     const a = createMockAdapter()
     await expect(a.readProgress('mock-google')).rejects.toMatchObject({ code: 'unauthenticated' })
     await a.signIn('google')
-    expect(await a.readProgress('mock-google')).toEqual({ data: null, rev: 0 })
-    const s = { lessons: { 'm/a': D1 }, checkpoints: {}, answers: {}, exams: [] }
+    expect(await a.readProgress('mock-google')).toEqual({ state: null, rev: 0 })
+    const s = crdt.markLesson(crdt.empty(), 'm/a', true, T1)
     const snaps: unknown[] = []
     a.watchProgress('mock-google', (snap) => snaps.push(snap), () => {})
     await a.writeProgress('mock-google', s, 1)
-    expect(read('mock-remote-progress:mock-google')).toEqual(s)
-    expect(snaps[0]).toEqual({ data: s, rev: 1, hasPendingWrites: true }) // its own write echoes as pending, like Firestore
-    expect(await a.readProgress('mock-google')).toEqual({ data: s, rev: 1 })
+    expect(read('mock-remote-progress:mock-google')).toEqual(crdt.toJSON(s))
+    expect(snaps[0]).toEqual({ state: s, rev: 1, hasPendingWrites: true }) // its own write echoes as pending, like Firestore
+    expect(await a.readProgress('mock-google')).toEqual({ state: s, rev: 1 })
     await expect(a.writeProgress('someone-else', s, 1)).rejects.toMatchObject({ code: 'permission-denied' })
     await a.deleteProgress('mock-google')
-    expect(await a.readProgress('mock-google')).toEqual({ data: null, rev: 0 })
+    expect(await a.readProgress('mock-google')).toEqual({ state: null, rev: 0 })
+    // a seeded copy in the old plain format reads as this browser's would
+    seed('mock-remote-progress:mock-google', { lessons: { 'm/old': D1 }, checkpoints: {}, answers: {}, exams: [] })
+    expect(crdt.project((await a.readProgress('mock-google')).state!).lessons).toEqual({ 'm/old': D1 })
   })
 
   it('like the rules, refuses a save that is not the next revision, then shows the account copy as it is', async () => {
     const a = createMockAdapter()
     await a.signIn('google')
-    const s = { lessons: { 'm/a': D1 }, checkpoints: {}, answers: {}, exams: [] }
+    const s = crdt.markLesson(crdt.empty(), 'm/a', true, T1)
     await a.writeProgress('mock-google', s, 1)
     const snaps: unknown[] = []
     a.watchProgress('mock-google', (snap) => snaps.push(snap), () => {})
-    await expect(a.writeProgress('mock-google', { ...s, lessons: {} }, 1)).rejects.toMatchObject({ code: 'permission-denied' })
-    await vi.waitFor(() => expect(snaps).toContainEqual({ data: s, rev: 1, hasPendingWrites: false }))
-    expect(read('mock-remote-progress:mock-google')).toEqual(s)
+    await expect(a.writeProgress('mock-google', crdt.empty(), 1)).rejects.toMatchObject({ code: 'permission-denied' })
+    await vi.waitFor(() => expect(snaps).toContainEqual({ state: s, rev: 1, hasPendingWrites: false }))
+    expect(read('mock-remote-progress:mock-google')).toEqual(crdt.toJSON(s))
   })
 
   it('a seeded mock-sync-fail makes saving fail', async () => {
     seed('mock-sync-fail', '1')
     const a = createMockAdapter()
     await a.signIn('google')
-    await expect(a.writeProgress('mock-google', { lessons: {}, checkpoints: {}, answers: {}, exams: [] }, 1)).rejects.toBeTruthy()
+    await expect(a.writeProgress('mock-google', crdt.empty(), 1)).rejects.toBeTruthy()
   })
 })
 
@@ -236,33 +243,31 @@ describe('account store with the mock backend', () => {
     account.init()
     await account.signIn('google')
     await vi.waitFor(() => expect(Object.keys(progress.get().lessons).sort()).toEqual(['m/anonymous', 'm/remote']))
-    await vi.waitFor(() => expect(Object.keys(read('mock-remote-progress:mock-google').lessons).sort()).toEqual(['m/anonymous', 'm/remote']))
+    await vi.waitFor(() => expect(ticked('mock-remote-progress:mock-google')).toEqual(['m/anonymous', 'm/remote']))
   })
 
   it("clears progress left by someone whose sign-in ended while the page was closed, instead of merging it into the next account", async () => {
     // A was signed in when the page closed; then their sign-in ended elsewhere (say, the account was deleted on another device)
-    seed('progress-v1', { lessons: { 'm/A-secret': D1 }, checkpoints: {}, answers: {}, exams: [] })
-    seed('progress-owner', JSON.stringify('u-a'))
+    seed('progress-v1', { lessons: { 'm/A-secret': D1 }, checkpoints: {}, answers: {}, exams: [], owner: 'u-a' })
     const { account, progress } = await load()
     account.init()
     await vi.waitFor(() => expect(account.get().status).toBe('signed-out'))
     expect(progress.get().lessons).toEqual({})
-    expect(read('progress-owner')).toBeNull()
+    expect(read('progress-v1')).toBeNull()
     await account.signIn('google')
     await vi.waitFor(() => expect(account.get().lastSyncedAt).not.toBeNull())
     expect(read('mock-remote-progress:mock-google')).toBeNull()
-    expect(read('progress-owner')).toBe('mock-google')
+    expect(read('progress-v1').owner).toBe('mock-google')
   })
 
   it("keeps this browser's progress when the same person's sign-in is restored", async () => {
-    seed('progress-v1', { lessons: { 'm/mine': D1 }, checkpoints: {}, answers: {}, exams: [] })
-    seed('progress-owner', JSON.stringify('mock-google'))
+    seed('progress-v1', { lessons: { 'm/mine': D1 }, checkpoints: {}, answers: {}, exams: [], owner: 'mock-google' })
     seed('mock-auth', { uid: 'mock-google', email: 'student@example.com', name: 'Sam Student', provider: 'google' })
     const { account, progress } = await load()
     account.init()
     await vi.waitFor(() => expect(account.get().lastSyncedAt).not.toBeNull())
     expect(progress.get().lessons).toEqual({ 'm/mine': D1 })
-    expect(read('mock-remote-progress:mock-google').lessons).toEqual({ 'm/mine': D1 })
+    expect(crdt.project(crdt.fromJSON(read('mock-remote-progress:mock-google'))).lessons).toEqual({ 'm/mine': D1 })
   })
 
   it('sign-out saves waiting progress, then clears this browser (the account keeps it)', async () => {
@@ -270,15 +275,14 @@ describe('account store with the mock backend', () => {
     account.init()
     await account.signIn('google')
     await vi.waitFor(() => expect(account.get().lastSyncedAt).not.toBeNull())
-    expect(read('progress-owner')).toBe('mock-google')
+    expect(read('progress-v1').owner).toBe('mock-google')
     progress.markLesson('m/a')
     expect(account.get().syncing).toBe(true)
     await account.signOut()
-    expect(read('mock-remote-progress:mock-google').lessons['m/a']).toBeDefined()
+    expect(ticked('mock-remote-progress:mock-google')).toEqual(['m/a'])
     expect(progress.get().lessons).toEqual({})
     expect(read('progress-v1')).toBeNull()
     expect(read('access-hint')).toBeNull()
-    expect(read('progress-owner')).toBeNull()
     expect(account.get()).toMatchObject({ status: 'signed-out', user: null, access: 'none' })
   })
 
@@ -292,11 +296,11 @@ describe('account store with the mock backend', () => {
     await vi.waitFor(() => expect(account.get().error).toBe(SYNC_ERROR), { timeout: 4000 })
     expect(await account.signOut()).toBe('unsaved')
     expect(account.get()).toMatchObject({ status: 'signed-in', error: SIGN_OUT_UNSAVED_ERROR })
-    expect(read('progress-v1').lessons['m/a']).toBeDefined()
+    expect(ticked('progress-v1')).toEqual(['m/a'])
     // the connection comes back: it is saved, and signing out goes ahead
     localStorage.removeItem(KEY('mock-sync-fail'))
     expect(await account.signOut()).toBe('done')
-    expect(read('mock-remote-progress:mock-google').lessons['m/a']).toBeDefined()
+    expect(ticked('mock-remote-progress:mock-google')).toEqual(['m/a'])
     expect(account.get()).toMatchObject({ status: 'signed-out', error: null })
   })
 
@@ -307,13 +311,14 @@ describe('account store with the mock backend', () => {
     await vi.waitFor(() => expect(account.get().lastSyncedAt).not.toBeNull())
     seed('mock-sync-fail', '1') // offline
     // another signed-in tab ticks a lesson (its save fails too) and is closed; this tab never hears of it
-    seed('progress-v1', { lessons: { 'm/other-tab': D1 }, checkpoints: {}, answers: {}, exams: [] })
+    const theirs = crdt.markLesson(crdt.fromJSON(read('progress-v1')), 'm/other-tab', true, Date.now())
+    seed('progress-v1', { ...crdt.toJSON(theirs), owner: 'mock-google' })
     expect(await account.signOut()).toBe('unsaved')
     expect(account.get().error).toBe(SIGN_OUT_UNSAVED_ERROR)
     expect(progress.get().lessons['m/other-tab']).toBeDefined()
     localStorage.removeItem(KEY('mock-sync-fail'))
     expect(await account.signOut()).toBe('done')
-    expect(read('mock-remote-progress:mock-google').lessons['m/other-tab']).toBeDefined()
+    expect(ticked('mock-remote-progress:mock-google')).toEqual(['m/other-tab'])
   })
 
   it('"sign out anyway" signs out and clears this browser, with no leftover message about it', async () => {
@@ -343,21 +348,18 @@ describe('account store with the mock backend', () => {
     expect(seen).not.toContain('none')
   })
 
-  it("a returning browser whose copy is what it last synced takes the account copy as it is (deleted elsewhere stays deleted)", async () => {
-    const old = { lessons: { 'm/old': D1 }, checkpoints: {}, answers: {}, exams: [] }
-    seed('progress-v1', old)
-    seed('progress-owner', JSON.stringify('mock-google'))
-    seed('progress-synced', { uid: 'mock-google', data: old })
+  it('"Delete my saved progress" on another device stays deleted when this browser comes back, and later progress is kept', async () => {
+    seed('progress-v1', { lessons: { 'm/old': D1 }, checkpoints: {}, answers: {}, exams: [], owner: 'mock-google' })
     seed('mock-auth', { uid: 'mock-google', email: 'student@example.com', name: 'Sam Student', provider: 'google' })
-    // no mock-remote-progress: deleted on another device
+    // deleted on the phone after this browser's lesson; then a new lesson there
+    const phone = crdt.markLesson(crdt.reset(crdt.empty(), T1 + 1000), 'm/new', true, T1 + 2000)
+    seed('mock-remote-progress:mock-google', crdt.toJSON(phone))
+    seed('mock-remote-rev:mock-google', 5)
     const { account, progress } = await load()
     account.init()
     await vi.waitFor(() => expect(account.get().lastSyncedAt).not.toBeNull())
-    expect(read('mock-remote-progress:mock-google')).toBeNull()
-    expect(progress.get().lessons).toEqual({})
-    expect(read('progress-synced')).toMatchObject({ uid: 'mock-google', data: { lessons: {}, checkpoints: {}, answers: {}, exams: [] } })
-    await account.signOut()
-    expect(read('progress-synced')).toBeNull() // forgotten with this browser's copy
+    expect(Object.keys(progress.get().lessons)).toEqual(['m/new'])
+    expect(ticked('mock-remote-progress:mock-google')).toEqual(['m/new'])
   })
 
   it("a save left hanging by the person who signed out doesn't block the next person's saves", async () => {
@@ -368,11 +370,10 @@ describe('account store with the mock backend', () => {
         createMockAdapter: () => {
           const a = m.createMockAdapter()
           // like Firestore offline: this person's save never settles (and never will once they've signed out)
-          return { ...a, writeProgress: (uid: string, s: ProgressArg, rev: number) => (uid === hangFor ? new Promise<void>(() => {}) : a.writeProgress(uid, s, rev)) }
+          return { ...a, writeProgress: (uid: string, s: crdt.SyncState, rev: number) => (uid === hangFor ? new Promise<void>(() => {}) : a.writeProgress(uid, s, rev)) }
         },
       }
     })
-    type ProgressArg = Parameters<ReturnType<typeof createMockAdapter>['writeProgress']>[1]
     try {
       const { account, progress } = await load()
       account.init()
@@ -387,7 +388,7 @@ describe('account store with the mock backend', () => {
       await account.signIn('apple')
       await vi.waitFor(() => expect(account.get().status).toBe('signed-in'))
       progress.markLesson('m/person-2')
-      await vi.waitFor(() => expect(read('mock-remote-progress:mock-apple')?.lessons['m/person-2']).toBeDefined(), { timeout: 4000 })
+      await vi.waitFor(() => expect(ticked('mock-remote-progress:mock-apple')).toEqual(['m/person-2']), { timeout: 4000 })
       await vi.waitFor(() => expect(account.get().syncing).toBe(false))
     } finally {
       vi.doUnmock('../../src/lib/accounts/mock-adapter')
@@ -417,7 +418,7 @@ describe('account store with the mock backend', () => {
     expect(progress.get().lessons['m/a']).toBeDefined()
   })
 
-  it('deleteCloudProgress empties the account copy (as its next revision), and deleteAccount removes it', async () => {
+  it('deleteCloudProgress empties the account copy (a Reset, as its next revision), and deleteAccount removes it', async () => {
     seed('mock-remote-progress:mock-google', { lessons: { 'm/remote': D1 }, checkpoints: {}, answers: {}, exams: [] })
     seed('mock-remote-rev:mock-google', 3)
     const { account, progress } = await load()
@@ -426,7 +427,8 @@ describe('account store with the mock backend', () => {
     await vi.waitFor(() => expect(progress.get().lessons['m/remote']).toBeDefined())
     await account.deleteCloudProgress()
     expect(account.get().error).toBeNull()
-    expect(read('mock-remote-progress:mock-google')).toEqual({ lessons: {}, checkpoints: {}, answers: {}, exams: [] })
+    expect(read('mock-remote-progress:mock-google')).toMatchObject({ v: 3, lessons: {}, checkpoints: {}, answers: {}, exams: {} })
+    expect(read('mock-remote-progress:mock-google').resetAt).toBeGreaterThan(0)
     expect(read('mock-remote-rev:mock-google')).toBe(4)
     expect(progress.get().lessons).toEqual({})
     progress.markLesson('m/b')

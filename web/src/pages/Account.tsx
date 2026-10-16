@@ -359,10 +359,14 @@ function AccessCard({ s, confirming }: { s: AccountState; confirming: boolean })
   )
 }
 
+const PROGRESS_DELETED = 'Your saved progress has been deleted, from your account and this browser.'
+
 function DangerZone({ s, onAccountDeleted }: { s: AccountState; onAccountDeleted: () => void }) {
   const [confirm, setConfirm] = useState<'progress' | 'account' | null>(null)
   const [busy, setBusy] = useState(false)
   const [done, setDone] = useState<string | null>(null)
+  /** while "Delete my saved progress" is on its way to the account: when the account was last synced before it */
+  const pendingFrom = useRef<string | null | undefined>(undefined)
   const savedWhere = useSavedWhere()
   const paid = s.access === 'paid'
   const progressBtn = useRef<HTMLButtonElement>(null)
@@ -387,12 +391,25 @@ function DangerZone({ s, onAccountDeleted }: { s: AccountState; onAccountDeleted
     setBusy(true)
     setDone(null)
     // straight from the click: deleting the account may need a sign-in pop-up first
-    await (what === 'progress' ? account.deleteCloudProgress() : account.deleteAccount())
+    let deleted: 'done' | 'pending' | 'failed' | null = null
+    if (what === 'progress') deleted = await account.deleteCloudProgress()
+    else await account.deleteAccount()
     setBusy(false)
     close(what)
-    if (!account.get().error && what === 'progress') setDone('Your saved progress has been deleted, from your account and this browser.')
+    pendingFrom.current = deleted === 'pending' ? account.get().lastSyncedAt : undefined
+    if (deleted === 'done') setDone(PROGRESS_DELETED)
+    else if (deleted === 'pending') {
+      setDone("Your progress has been deleted from this browser. It will be deleted from your account too as soon as you're back online.")
+    }
     if (what === 'account' && !account.get().user) onAccountDeleted() // the store signed us out, so this view is about to unmount
   }
+
+  // a deletion that was still on its way has reached the account (everything here is saved once it says synced again)
+  useEffect(() => {
+    if (pendingFrom.current === undefined || s.syncing || s.lastSyncedAt === pendingFrom.current) return
+    pendingFrom.current = undefined
+    setDone(PROGRESS_DELETED)
+  }, [s.syncing, s.lastSyncedAt])
 
   return (
     <section className="section account-danger" aria-labelledby="data-h">

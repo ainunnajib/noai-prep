@@ -3,17 +3,15 @@
   stored progress format, the save sent while the page closes), without any network. Run: npx vitest run tests/accounts
 */
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import type { ProgressState } from '../../src/lib/progress'
-import { EXIT_SAVE_LIMIT, toFields } from '../../src/lib/accounts/progress-doc'
+import * as crdt from '../../src/lib/progress-crdt'
+import { EXIT_SAVE_LIMIT, toDoc, toParts } from '../../src/lib/accounts/progress-doc'
 
 const sdk = vi.hoisted(() => ({
   onSnapshot: [] as unknown[][],
   setDoc: [] as unknown[][],
-  /** the stored revision a transaction reads, and what it sets */
-  txRev: 0 as unknown,
-  txSet: [] as unknown[][],
-  /** the next N transactions are refused, as if another device saved between their read and write */
-  txRefuse: 0,
+  /** what a read from the server finds */
+  serverDoc: null as Record<string, unknown> | null,
+  serverPending: false,
   auth: { currentUser: null as null | { uid: string; reload: () => Promise<void>; getIdToken: () => Promise<string> } },
   tokenChanged: null as null | ((u: unknown) => void),
 }))
@@ -42,23 +40,15 @@ vi.mock('firebase/firestore', () => ({
   connectFirestoreEmulator: () => {},
   deleteDoc: async () => {},
   doc: (_db: unknown, ...path: string[]) => ({ path: path.join('/') }),
-  getDoc: async () => ({ exists: () => false, get: () => undefined }),
+  getDocFromServer: async () => ({
+    exists: () => sdk.serverDoc !== null,
+    get: (k: string) => sdk.serverDoc?.[k],
+    metadata: { fromCache: false, hasPendingWrites: sdk.serverPending },
+  }),
   getFirestore: () => ({}),
   onSnapshot: (...args: unknown[]) => {
     sdk.onSnapshot.push(args)
     return () => {}
-  },
-  runTransaction: async (_db: unknown, fn: (t: unknown) => Promise<unknown>) => {
-    const result = await fn({
-      get: async () => ({ exists: () => sdk.txRev !== undefined, get: (f: string) => (f === 'rev' ? sdk.txRev : undefined) }),
-      set: (...args: unknown[]) => sdk.txSet.push(args),
-    })
-    if (sdk.txRefuse > 0) {
-      sdk.txRefuse--
-      sdk.txRev = (sdk.txRev as number) + 1 // the other device's save
-      throw Object.assign(new Error('Missing or insufficient permissions.'), { code: 'permission-denied' })
-    }
-    return result
   },
   serverTimestamp: () => 'SERVER_TIME',
   setDoc: async (...args: unknown[]) => {
@@ -69,8 +59,8 @@ vi.mock('firebase/functions', () => ({ connectFunctionsEmulator: () => {}, getFu
 
 const { createFirebaseAdapter } = await import('../../src/lib/accounts/firebase-adapter')
 
-const D1 = '2026-03-01T00:00:00.000Z'
-const state = (p: Partial<ProgressState> = {}): ProgressState => ({ lessons: {}, checkpoints: {}, answers: {}, exams: [], ...p })
+const T1 = Date.parse('2026-03-01T00:00:00.000Z')
+const ticked = (...keys: string[]) => keys.reduce((s, k, i) => crdt.markLesson(s, k, true, T1 + i), crdt.empty())
 const config = { apiKey: 'k', authDomain: 'p.firebaseapp.com', projectId: 'p', appId: 'a' }
 /** A document snapshot stand-in. */
 const snap = (data: Record<string, unknown> | null, fromCache = false, hasPendingWrites = false) => ({
@@ -102,13 +92,13 @@ describe('firebase adapter', () => {
     expect(seen).toEqual(['none', 'paid'])
   })
 
-  it('saves progress in parts, with the format, the revision and the server time', async () => {
+  it('saves progress in parts, with the format, the revision, resetAt and the server time', async () => {
     const a = createFirebaseAdapter(config, 'asia-southeast1')
-    const s = state({ lessons: { 'm/a': D1 }, answers: { 'bank.x.q1': [true] } })
+    const s = crdt.recordAnswer(crdt.reset(ticked('m/a'), T1 + 5), 'bank.x.q1', true, T1 + 6)
     await a.writeProgress('u1', s, 5)
     const [ref, data] = sdk.setDoc[0] as [{ path: string }, Record<string, unknown>]
     expect(ref.path).toBe('progress/u1')
-    expect(data).toEqual({ ...toFields(s), v: 2, rev: 5, updatedAt: 'SERVER_TIME' })
+    expect(data).toEqual({ ...toParts(s), v: 3, rev: 5, resetAt: T1 + 5, updatedAt: 'SERVER_TIME' })
   })
 
   it('reads the account copy and its revision from the listener', () => {
@@ -117,39 +107,28 @@ describe('firebase adapter', () => {
     a.watchProgress('u1', (x) => got.push(x), () => {})
     const [, options, next] = sdk.onSnapshot[0] as [unknown, unknown, (s: unknown) => void]
     expect(options).toEqual({ includeMetadataChanges: true })
-    const s = state({ lessons: { 'm/a': D1 } })
-    next(snap({ ...toFields(s), v: 2, rev: 3 }))
-    next(snap(null))
+    const s = ticked('m/a')
+    next(snap(toDoc(s, 3)))
+    next(snap(toDoc(s, 4), false, true))
+    next(snap(null, true))
     expect(got).toEqual([
-      { data: { lessons: { 'm/a': D1 }, checkpoints: {}, exams: [], answers: {} }, rev: 3, hasPendingWrites: false, fromCache: false },
-      { data: null, rev: 0, hasPendingWrites: false, fromCache: false },
+      { state: s, rev: 3, hasPendingWrites: false, fromCache: false },
+      { state: s, rev: 4, hasPendingWrites: true, fromCache: false },
+      { state: null, rev: 0, hasPendingWrites: false, fromCache: true },
     ])
   })
 
-  it('"Delete my saved progress" saves an empty copy as the next revision, in a transaction', async () => {
+  it('reads the account copy from the server itself, saying when it includes a save still on its way', async () => {
     const a = createFirebaseAdapter(config, 'asia-southeast1')
-    sdk.txRev = 6
-    sdk.txSet.length = 0
-    expect(await a.clearProgress('u1')).toBe(7)
-    const [ref, data] = sdk.txSet[0] as [{ path: string }, Record<string, unknown>]
-    expect(ref.path).toBe('progress/u1')
-    expect(data).toEqual({ ...toFields(state()), v: 2, rev: 7, updatedAt: 'SERVER_TIME' })
-    // another device saves between the read and the write: read again and retry
-    sdk.txRev = 6
-    sdk.txRefuse = 1
-    expect(await a.clearProgress('u1')).toBe(8)
-    sdk.txRefuse = 5 // refused every time: gives up
-    await expect(a.clearProgress('u1')).rejects.toMatchObject({ code: 'permission-denied' })
-    sdk.txRefuse = 0
-    sdk.txRev = null // a copy in the first format (no revision)
-    expect(await a.clearProgress('u1')).toBe(1)
-    sdk.txSet.length = 0
-    sdk.txRev = undefined // no copy at all: nothing is written (the account may have been deleted elsewhere)
-    expect(await a.clearProgress('u1')).toBe(0)
-    expect(sdk.txSet).toHaveLength(0)
+    sdk.serverDoc = null
+    expect(await a.readProgress('u1')).toEqual({ state: null, rev: 0, hasPendingWrites: false })
+    sdk.serverDoc = toDoc(ticked('m/a'), 7)
+    sdk.serverPending = true
+    expect(await a.readProgress('u1')).toEqual({ state: ticked('m/a'), rev: 7, hasPendingWrites: true })
+    sdk.serverPending = false
   })
 
-  it('sends the changed parts while the page closes (as many as fit), and reports what it sent', async () => {
+  it('sends the changed parts while the page closes (as many as fit), and says whether it sent anything', async () => {
     const fetches: [string, RequestInit][] = []
     vi.stubGlobal('fetch', async (url: string, init: RequestInit) => {
       fetches.push([url, init])
@@ -157,37 +136,41 @@ describe('firebase adapter', () => {
     })
     const a = createFirebaseAdapter(config, 'asia-southeast1')
     const user = { uid: 'u1', reload: async () => {}, getIdToken: async () => 'token-1' }
-    expect(a.writeProgressOnExit!('u1', state({ lessons: { 'm/a': D1 } }), 2, state())).toBeNull() // no ID token yet
+    const base = ticked('m/a')
+    expect(a.writeProgressOnExit!('u1', ticked('m/a', 'm/b'), 2, base)).toBe(false) // no ID token yet
     sdk.auth.currentUser = user
     sdk.tokenChanged!(user)
     await Promise.resolve()
 
-    const base = state({ lessons: { 'm/a': D1 } })
-    expect(a.writeProgressOnExit!('u1', base, 4, base)).toBeNull() // nothing changed: nothing to send
+    expect(a.writeProgressOnExit!('u1', base, 4, base)).toBe(false) // nothing changed: nothing to send
+    expect(a.writeProgressOnExit!('u2', ticked('m/a', 'm/b'), 4, base)).toBe(false) // not the signed-in user
     expect(fetches).toHaveLength(0)
 
-    const next = state({ lessons: { 'm/a': D1, 'm/b': D1 } })
-    expect(a.writeProgressOnExit!('u1', next, 4, base)).toEqual(next)
+    expect(a.writeProgressOnExit!('u1', ticked('m/a', 'm/b'), 4, base)).toBe(true)
     const [url, init] = fetches[0]
     expect(url).toBe('https://firestore.googleapis.com/v1/projects/p/databases/(default)/documents:commit')
     expect(init).toMatchObject({ method: 'POST', keepalive: true, headers: { Authorization: 'Bearer token-1' } })
     const w = JSON.parse(init.body as string).writes[0]
-    expect(w.updateMask.fieldPaths).toEqual(['lessons', 'v', 'rev'])
+    expect(w.update.name).toBe('projects/p/databases/(default)/documents/progress/u1')
+    expect(w.updateMask.fieldPaths).toEqual(['lessons', 'v', 'rev', 'resetAt'])
     expect(w.update.fields.rev).toEqual({ integerValue: '4' })
+    expect(w.updateTransforms).toEqual([{ fieldPath: 'updatedAt', setToServerValue: 'REQUEST_TIME' }])
 
     // too big for a request that outlives the page: the parts that fit are sent (here the answers, not the lessons),
-    // and the rest reaches the account on the next visit
-    const huge = state({
-      lessons: Object.fromEntries(Array.from({ length: 2000 }, (_, i) => [`module/lesson-${i}`, D1])),
-      answers: { 'bank.x.q1': [true] },
-    })
-    expect(JSON.stringify(toFields(huge)).length).toBeGreaterThan(EXIT_SAVE_LIMIT)
-    expect(a.writeProgressOnExit!('u1', huge, 4, base)).toEqual({ ...base, answers: { 'bank.x.q1': [true] } })
+    // and the rest reaches the account later
+    const huge = crdt.recordAnswer(
+      ticked(...Array.from({ length: 2000 }, (_, i) => `module/lesson-${i}`)),
+      'bank.x.q1',
+      true,
+      T1 + 5000,
+    )
+    expect(JSON.stringify(toParts(huge)).length).toBeGreaterThan(EXIT_SAVE_LIMIT)
+    expect(a.writeProgressOnExit!('u1', huge, 4, base)).toBe(true)
     expect(fetches).toHaveLength(2)
-    expect(JSON.parse(fetches[1][1].body as string).writes[0].updateMask.fieldPaths).not.toContain('lessons')
-    // nothing fits at all: nothing is sent
-    expect(a.writeProgressOnExit!('u1', { ...huge, answers: {} }, 4, base)).toBeNull()
-    expect(fetches).toHaveLength(2)
+    const mask: string[] = JSON.parse(fetches[1][1].body as string).writes[0].updateMask.fieldPaths
+    expect(mask).toHaveLength(4)
+    expect(mask[0]).toMatch(/^a[0-7]$/)
+    expect(mask.slice(1)).toEqual(['v', 'rev', 'resetAt'])
   })
 
   it('checks the account still exists by reloading the signed-in user', async () => {

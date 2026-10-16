@@ -13,13 +13,12 @@ import {
   type AuthProvider,
   type User,
 } from 'firebase/auth'
-import { connectFirestoreEmulator, deleteDoc, doc, getDoc, getFirestore, onSnapshot, runTransaction, serverTimestamp, setDoc } from 'firebase/firestore'
+import { connectFirestoreEmulator, deleteDoc, doc, getDocFromServer, getFirestore, onSnapshot, serverTimestamp, setDoc } from 'firebase/firestore'
 import { connectFunctionsEmulator, getFunctions, httpsCallable } from 'firebase/functions'
-import { accessFrom, revFrom, type AccountsAdapter, type CheckoutStart, type RemoteProgress } from './adapter'
+import { accessFrom, type AccountsAdapter, type CheckoutStart, type RemoteProgress } from './adapter'
 import type { FirebaseWebConfig } from './config'
 import { errorCode } from './errors'
-import { exitCommit, fromFields, PROGRESS_FORMAT, toFields } from './progress-doc'
-import type { ProgressState } from '../progress'
+import { exitCommit, fromDoc, toDoc } from './progress-doc'
 import type { AccountUser, SignInProvider } from './types'
 
 /*
@@ -61,8 +60,10 @@ const toAccountUser = (u: User): AccountUser => ({
 })
 
 /** The account copy from a progress document (see progress-doc.ts for how it is stored). */
-const remoteFrom = (snap: { exists(): boolean; get(field: string): unknown }): RemoteProgress =>
-  snap.exists() ? { data: fromFields((f) => snap.get(f)), rev: revFrom(snap.get('rev')) } : { data: null, rev: 0 }
+function remoteFrom(snap: { exists(): boolean; get(field: string): unknown; metadata: { hasPendingWrites: boolean } }): RemoteProgress {
+  const hasPendingWrites = snap.metadata.hasPendingWrites
+  return snap.exists() ? { ...fromDoc((f) => snap.get(f)), hasPendingWrites } : { state: null, rev: 0, hasPendingWrites }
+}
 
 export function createFirebaseAdapter(config: FirebaseWebConfig, region: string): AccountsAdapter {
   const app = initializeApp(config)
@@ -163,30 +164,31 @@ export function createFirebaseAdapter(config: FirebaseWebConfig, region: string)
     },
 
     async readProgress(uid) {
-      return remoteFrom(await getDoc(progressRef(uid)))
+      return remoteFrom(await getDocFromServer(progressRef(uid)))
     },
 
     watchProgress(uid, cb, onError) {
       return onSnapshot(
         progressRef(uid),
         { includeMetadataChanges: true }, // so the server's answer after a fromCache delivery arrives even when nothing changed
-        (snap) => cb({ ...remoteFrom(snap), hasPendingWrites: snap.metadata.hasPendingWrites, fromCache: snap.metadata.fromCache }),
+        (snap) => cb({ ...remoteFrom(snap), fromCache: snap.metadata.fromCache }),
         onError,
       )
     },
 
     writeProgress(uid, state, rev) {
       // the rules refuse it unless `rev` is the next revision, so a copy that is out of date can't overwrite a newer one
-      return setDoc(progressRef(uid), { ...toFields(state), v: PROGRESS_FORMAT, rev, updatedAt: serverTimestamp() })
+      return setDoc(progressRef(uid), { ...toDoc(state, rev), updatedAt: serverTimestamp() })
     },
 
     writeProgressOnExit(uid, state, rev, base) {
-      if (!idToken || auth.currentUser?.uid !== uid) return null
-      // Browsers cap requests that outlive the page at 64 KB. Changes too big for that (most answer parts at once, after
-      // a mock exam by a student with a lot of progress) are sent in part: the rest stays in this browser and reaches
-      // the account on its next visit, when the first merge brings it in.
+      if (!idToken || auth.currentUser?.uid !== uid) return false
+      // Browsers cap requests that outlive the page at 64 KB. Changes too big for that are sent in part: the rest stays
+      // in this browser and reaches the account on its next visit. That happens after a mock exam by a student with a
+      // lot of progress (it changes most answer parts at once). One answer part alone fits until nearly every question
+      // has been answered about four times (at three attempts each, the largest part is about 49 KB).
       const exit = exitCommit(`${docsPath}/progress/${uid}`, state, rev, base)
-      if (exit === null) return null // nothing changed since the copy it builds on
+      if (exit === null) return false // nothing changed since the copy it builds on
       try {
         void fetch(`${restBase}/v1/${docsPath}:commit`, {
           method: 'POST',
@@ -194,33 +196,9 @@ export function createFirebaseAdapter(config: FirebaseWebConfig, region: string)
           headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${idToken}` },
           body: exit.body,
         }).catch(() => {})
-        return exit.saved
+        return true
       } catch {
-        return null
-      }
-    },
-
-    async clearProgress(uid) {
-      // Read and written in one transaction, so it carries the next revision. Offline it fails after a few seconds
-      // rather than waiting: the person is told, and nothing has changed.
-      const ref = progressRef(uid)
-      const clear = () =>
-        runTransaction(db, async (t) => {
-          const snap = await t.get(ref)
-          if (!snap.exists()) return 0 // nothing to clear (and never create one: the account may be gone)
-          const rev = revFrom(snap.get('rev')) + 1
-          const none: ProgressState = { lessons: {}, checkpoints: {}, answers: {}, exams: [] }
-          t.set(ref, { ...toFields(none), v: PROGRESS_FORMAT, rev, updatedAt: serverTimestamp() })
-          return rev
-        })
-      // Another device's save landing between the read and the write fails the rules' revision check, and Firestore
-      // doesn't retry a refusal by itself: read again and retry.
-      for (let attempt = 1; ; attempt++) {
-        try {
-          return await clear()
-        } catch (e) {
-          if (attempt >= 3 || errorCode(e) !== 'permission-denied') throw e
-        }
+        return false
       }
     },
 
