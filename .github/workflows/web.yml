@@ -20,6 +20,9 @@ concurrency:
 jobs:
   build:
     runs-on: ubuntu-latest
+    env:
+      # the production build (184 lesson chunks with pre-rendered maths) needs more than Node's default 4 GB heap
+      NODE_OPTIONS: --max-old-space-size=8192
     defaults:
       run:
         working-directory: web
