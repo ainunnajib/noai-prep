@@ -185,8 +185,9 @@ function SyncStatus({ s }: { s: AccountState }) {
   const failed = s.error === SYNC_ERROR || s.error === SIGN_OUT_UNSAVED_ERROR
   let label: string
   let age = ''
-  if (s.syncing) label = 'Saving to your account…'
-  else if (failed) label = 'Not saved to your account yet'
+  // (failed first: while a save can't get through, trying again is no news, and the warnings say it isn't saved)
+  if (failed) label = 'Not saved to your account yet'
+  else if (s.syncing) label = 'Saving to your account…'
   else if (s.lastSyncedAt) {
     const mins = Math.floor((now - Date.parse(s.lastSyncedAt)) / 60_000)
     label = 'Synced'

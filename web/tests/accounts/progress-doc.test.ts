@@ -5,7 +5,7 @@
 import { describe, expect, it } from 'vitest'
 import bank from '../../src/data/bank/bank.json'
 import { normalizeProgress, type ExamRecord, type ProgressState } from '../../src/lib/progress'
-import { ANSWER_PARTS, answerPart, EXIT_SAVE_LIMIT, exitCommitBody, fromFields, toFields } from '../../src/lib/accounts/progress-doc'
+import { ANSWER_PARTS, answerPart, EXIT_SAVE_LIMIT, exitCommit, fromFields, toFields } from '../../src/lib/accounts/progress-doc'
 
 const D1 = '2026-03-01T00:00:00.000Z'
 const state = (p: Partial<ProgressState> = {}): ProgressState => ({ lessons: {}, checkpoints: {}, answers: {}, exams: [], ...p })
@@ -71,6 +71,7 @@ describe('stored fields', () => {
 
 describe('the save sent while the page closes', () => {
   const doc = 'projects/p/databases/(default)/documents/progress/u1'
+  const exitCommitBody = (d: string, s: ProgressState, rev: number, base: ProgressState) => exitCommit(d, s, rev, base)?.body ?? null
   const body = (s: ProgressState, base: ProgressState) => JSON.parse(exitCommitBody(doc, s, 7, base)!)
 
   it('sends only the parts that changed, as the next revision', () => {
@@ -85,14 +86,13 @@ describe('the save sent while the page closes', () => {
 
   it('sends an emptied part too (an un-tick or a Reset), and nothing when nothing changed', () => {
     const base = state({ lessons: { 'm/a': D1 }, exams: [{ id: 'e', date: D1, mode: 'sprint', total: 1, correct: 1, seconds: 1, byDomain: {} } as ExamRecord] })
-    expect(body(state(), base).writes[0].updateMask.fieldPaths).toEqual(['lessons', 'exams', 'v', 'rev'])
+    expect(body(state(), base).writes[0].updateMask.fieldPaths).toEqual(['exams', 'lessons', 'v', 'rev'])
     expect(exitCommitBody(doc, base, 7, base)).toBeNull()
   })
 
   it('fits under the 64 KB cap for a lesson ticked, a question answered or a checkpoint finished, even with everything done', () => {
     const all = everything()
-    const full = exitCommitBody(doc, all, 7, state())!
-    expect(bytes(full)).toBeGreaterThan(3 * EXIT_SAVE_LIMIT) // why it is split: all of it is far too big
+    expect(bytes(JSON.stringify(toFields(all)))).toBeGreaterThan(3 * EXIT_SAVE_LIMIT) // why it is split: all of it is far too big
 
     const lesson = Object.keys(all.lessons)[10]
     const unticked = { ...all, lessons: { ...all.lessons } }
@@ -111,5 +111,23 @@ describe('the save sent while the page closes', () => {
     const w = exitCommitBody(doc, checkpoint, 7, base)!
     expect(JSON.parse(w).writes[0].updateMask.fieldPaths).toHaveLength(5) // lessons, checkpoints, one answers part, v, rev
     expect(bytes(w)).toBeLessThan(EXIT_SAVE_LIMIT)
+  })
+
+  it('changes too big to send at once (a mock exam over most answer parts) send what fits, the exam record first', () => {
+    const all = everything()
+    const exam: ExamRecord = { id: 'mock-new', date: D1, mode: 'full', total: 40, correct: 30, seconds: 3600, byDomain: {} }
+    const after = { ...all, answers: { ...all.answers }, exams: [...all.exams.slice(1), exam] }
+    for (const k of Object.keys(after.answers)) after.answers[k] = [...after.answers[k].slice(1), false] // every part changes
+    const exit = exitCommit(doc, after, 7, all)!
+    expect(bytes(exit.body)).toBeLessThanOrEqual(EXIT_SAVE_LIMIT)
+    const sent: string[] = JSON.parse(exit.body).writes[0].updateMask.fieldPaths
+    expect(sent[0]).toBe('exams')
+    expect(sent.length).toBeGreaterThan(3) // the exams, and some answer parts
+    expect(sent.length).toBeLessThan(ANSWER_PARTS + 3) // not all of them
+    // the copy the account then holds: the parts sent from `after`, the rest as they were
+    const stored = { ...toFields(all), v: 2 } as Record<string, unknown>
+    for (const k of sent) if (k !== 'v' && k !== 'rev') stored[k] = toFields(after)[k]
+    expect(exit.saved).toEqual(normalizeProgress(fromFields((f) => stored[f])))
+    expect(exit.saved.exams.at(-1)!.id).toBe('mock-new')
   })
 })

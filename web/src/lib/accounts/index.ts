@@ -295,20 +295,26 @@ export const account = {
     const user = state.user
     if (!a || !user) return 'done'
     set({ error: null })
-    // save waiting progress first, but don't let a lost connection keep the person waiting long
-    const deadline = Date.now() + SIGN_OUT_SAVE_WAIT_MS
-    const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, Math.max(0, ms)))
-    const upTo = (p: Promise<unknown> | undefined) => Promise.race([p, wait(deadline - Date.now())])
-    await upTo(sync?.flush())
-    if (sync?.hasUnsaved() && Date.now() < deadline) {
-      // a save refused because another device had just saved is merged and tried again straight away: allow for that
-      await wait(Math.min(SIGN_OUT_RETRY_MS, deadline - Date.now()))
-      await upTo(sync.flush())
-    }
-    if (state.user?.uid !== user.uid) return 'done' // signed out meanwhile (say, in another tab)
-    if (!opts.force && sync?.hasUnsaved()) {
-      set({ error: SIGN_OUT_UNSAVED_ERROR })
-      return 'unsaved'
+    // ("Sign out anyway" is offered only after a full attempt to save, so it doesn't wait again)
+    if (!opts.force) {
+      // Signing out clears this browser's copy for every tab, so progress another tab saved here but not yet to the
+      // account (offline, say, or the tab has closed since) goes too: take it in, to be saved with this tab's own.
+      progress.takeOtherTabs()
+      // save waiting progress first, but don't let a lost connection keep the person waiting long
+      const deadline = Date.now() + SIGN_OUT_SAVE_WAIT_MS
+      const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, Math.max(0, ms)))
+      const upTo = (p: Promise<unknown> | undefined) => Promise.race([p, wait(deadline - Date.now())])
+      await upTo(sync?.flush())
+      if (sync?.hasUnsaved() && Date.now() < deadline) {
+        // a save refused because another device had just saved is merged and tried again straight away: allow for that
+        await wait(Math.min(SIGN_OUT_RETRY_MS, deadline - Date.now()))
+        await upTo(sync.flush())
+      }
+      if (state.user?.uid !== user.uid) return 'done' // signed out meanwhile (say, in another tab)
+      if (sync?.hasUnsaved()) {
+        set({ error: SIGN_OUT_UNSAVED_ERROR })
+        return 'unsaved'
+      }
     }
     try {
       await a.signOut()

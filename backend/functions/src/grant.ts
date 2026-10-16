@@ -178,10 +178,12 @@ export async function revokeForRefund(deps: BaseDeps, charge: ChargeLike): Promi
       tx.set(deps.db.doc(`payments/${paymentDoc.id}`), { status: 'refunded', updatedAt: now }, { merge: true })
     }
     if (!shouldRevokeForRefund(current, paymentIntent)) return 'kept'
-    // Another payment by the same person that still stands (they paid twice).
+    // Another payment by the same person that still stands (they paid twice), made in the same Stripe mode: a
+    // leftover test-mode payment must never keep a refunded live unlock (Checkout Session ids say which mode).
+    const live = (current?.sessionId ?? paymentDoc?.id ?? '').startsWith('cs_live_')
     const spare = others.docs.find((d) => {
       const p = d.data()
-      return p.status === 'paid' && typeof p.paymentIntent === 'string' && p.paymentIntent !== paymentIntent
+      return p.status === 'paid' && typeof p.paymentIntent === 'string' && p.paymentIntent !== paymentIntent && d.id.startsWith('cs_live_') === live
     })
     if (spare) {
       // They paid twice and the refunded payment was the one tied to the unlock: keep access on the other payment.

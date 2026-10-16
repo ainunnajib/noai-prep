@@ -13,12 +13,13 @@ import {
   type AuthProvider,
   type User,
 } from 'firebase/auth'
-import { connectFirestoreEmulator, deleteDoc, doc, getDoc, getFirestore, onSnapshot, serverTimestamp, setDoc } from 'firebase/firestore'
+import { connectFirestoreEmulator, deleteDoc, doc, getDoc, getFirestore, onSnapshot, runTransaction, serverTimestamp, setDoc } from 'firebase/firestore'
 import { connectFunctionsEmulator, getFunctions, httpsCallable } from 'firebase/functions'
 import { accessFrom, revFrom, type AccountsAdapter, type CheckoutStart, type RemoteProgress } from './adapter'
 import type { FirebaseWebConfig } from './config'
 import { errorCode } from './errors'
-import { EXIT_SAVE_LIMIT, exitCommitBody, fromFields, PROGRESS_FORMAT, toFields } from './progress-doc'
+import { exitCommit, fromFields, PROGRESS_FORMAT, toFields } from './progress-doc'
+import type { ProgressState } from '../progress'
 import type { AccountUser, SignInProvider } from './types'
 
 /*
@@ -180,23 +181,46 @@ export function createFirebaseAdapter(config: FirebaseWebConfig, region: string)
     },
 
     writeProgressOnExit(uid, state, rev, base) {
-      if (!idToken || auth.currentUser?.uid !== uid) return false
-      const body = exitCommitBody(`${docsPath}/progress/${uid}`, state, rev, base)
-      if (body === null) return true // nothing changed since the copy it builds on
-      // Browsers cap requests that outlive the page at 64 KB. Changes too big for that (several parts at once for a
-      // student with a lot of progress) can't be sent while the page closes: they stay in this browser and reach the
-      // account on its next visit, when the first merge brings them in.
-      if (new TextEncoder().encode(body).length > EXIT_SAVE_LIMIT) return false
+      if (!idToken || auth.currentUser?.uid !== uid) return null
+      // Browsers cap requests that outlive the page at 64 KB. Changes too big for that (most answer parts at once, after
+      // a mock exam by a student with a lot of progress) are sent in part: the rest stays in this browser and reaches
+      // the account on its next visit, when the first merge brings it in.
+      const exit = exitCommit(`${docsPath}/progress/${uid}`, state, rev, base)
+      if (exit === null) return null // nothing changed since the copy it builds on
       try {
         void fetch(`${restBase}/v1/${docsPath}:commit`, {
           method: 'POST',
           keepalive: true,
           headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${idToken}` },
-          body,
+          body: exit.body,
         }).catch(() => {})
-        return true
+        return exit.saved
       } catch {
-        return false
+        return null
+      }
+    },
+
+    async clearProgress(uid) {
+      // Read and written in one transaction, so it carries the next revision. Offline it fails after a few seconds
+      // rather than waiting: the person is told, and nothing has changed.
+      const ref = progressRef(uid)
+      const clear = () =>
+        runTransaction(db, async (t) => {
+          const snap = await t.get(ref)
+          if (!snap.exists()) return 0 // nothing to clear (and never create one: the account may be gone)
+          const rev = revFrom(snap.get('rev')) + 1
+          const none: ProgressState = { lessons: {}, checkpoints: {}, answers: {}, exams: [] }
+          t.set(ref, { ...toFields(none), v: PROGRESS_FORMAT, rev, updatedAt: serverTimestamp() })
+          return rev
+        })
+      // Another device's save landing between the read and the write fails the rules' revision check, and Firestore
+      // doesn't retry a refusal by itself: read again and retry.
+      for (let attempt = 1; ; attempt++) {
+        try {
+          return await clear()
+        } catch (e) {
+          if (attempt >= 3 || errorCode(e) !== 'permission-denied') throw e
+        }
       }
     },
 

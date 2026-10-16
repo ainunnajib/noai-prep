@@ -5,7 +5,8 @@ import type { ProgressState } from '../progress'
   JSON text split into parts (lessons, checkpoints, exams, and the answers spread over a0 to a7), plus the format
   version `v`, the revision `rev` and the server's `updatedAt`.
   Split so that the save sent while a page closes can carry just the parts that changed: browsers cap such requests
-  at 64 KB, and a student who has answered most of the question bank has more than that in total.
+  at 64 KB, and a student who has answered most of the question bank has more than that in total. (Even so, a mock
+  exam touches most answer parts: then it sends the parts that fit, and the rest waits for the next visit.)
   Pure functions, no Firebase: firebase-adapter.ts uses them, and the tests check them directly.
 */
 
@@ -68,25 +69,52 @@ export function fromFields(get: (field: string) => unknown): unknown {
 }
 
 /**
- * The body of a Firestore REST commit that saves `state` as revision `rev` of the document `docName`, sending only the
- * fields that differ from `base` (the copy at `rev - 1`; the rules refuse it on any other). Null when nothing differs.
+ * A Firestore REST commit that saves `state` as revision `rev` of the document `docName`, sending only the fields that
+ * differ from `base` (the copy at `rev - 1`; the rules refuse it on any other): its body, and the copy the document then
+ * holds. When the changed fields together are more than `limit` bytes, it sends as many as fit: the mock-exam records
+ * first, then lessons, checkpoints and the smallest answer parts. Null when nothing differs, or nothing fits.
  */
-export function exitCommitBody(docName: string, state: ProgressState, rev: number, base: ProgressState): string | null {
+export function exitCommit(
+  docName: string,
+  state: ProgressState,
+  rev: number,
+  base: ProgressState,
+  limit = EXIT_SAVE_LIMIT,
+): { body: string; saved: ProgressState } | null {
   const next = toFields(state)
   const prev = toFields(base)
-  const changed = Object.keys(next).filter((k) => next[k] !== prev[k])
-  if (changed.length === 0) return null
-  const fields: Record<string, unknown> = { v: { integerValue: String(PROGRESS_FORMAT) }, rev: { integerValue: String(rev) } }
-  for (const k of changed) fields[k] = { stringValue: next[k] }
-  return JSON.stringify({
-    writes: [
-      {
-        update: { name: docName, fields },
-        // only these fields change; the rest of the document stays as it is
-        updateMask: { fieldPaths: [...changed, 'v', 'rev'] },
-        // the server's time, so the rules' updatedAt == request.time still holds
-        updateTransforms: [{ fieldPath: 'updatedAt', setToServerValue: 'REQUEST_TIME' }],
-      },
-    ],
-  })
+  const rank = (k: string) => ['exams', 'lessons', 'checkpoints'].indexOf(k) >>> 0 // (answer parts last)
+  const changed = Object.keys(next)
+    .filter((k) => next[k] !== prev[k])
+    .sort((a, b) => rank(a) - rank(b) || next[a].length - next[b].length)
+  const body = (send: string[]) => {
+    const fields: Record<string, unknown> = { v: { integerValue: String(PROGRESS_FORMAT) }, rev: { integerValue: String(rev) } }
+    for (const k of send) fields[k] = { stringValue: next[k] }
+    return JSON.stringify({
+      writes: [
+        {
+          update: { name: docName, fields },
+          // only these fields change; the rest of the document stays as it is
+          updateMask: { fieldPaths: [...send, 'v', 'rev'] },
+          // the server's time, so the rules' updatedAt == request.time still holds
+          updateTransforms: [{ fieldPath: 'updatedAt', setToServerValue: 'REQUEST_TIME' }],
+        },
+      ],
+    })
+  }
+  const bytes = (text: string) => new TextEncoder().encode(text).length
+  const send: string[] = []
+  for (const k of changed) if (bytes(body([...send, k])) <= limit) send.push(k)
+  if (send.length === 0) return null
+  const sends = new Set(send)
+  const answers: Record<string, boolean[]> = {}
+  for (const [k, v] of Object.entries(base.answers)) if (!sends.has(`a${answerPart(k)}`)) answers[k] = v
+  for (const [k, v] of Object.entries(state.answers)) if (sends.has(`a${answerPart(k)}`)) answers[k] = v
+  const saved: ProgressState = {
+    lessons: sends.has('lessons') ? state.lessons : base.lessons,
+    checkpoints: sends.has('checkpoints') ? state.checkpoints : base.checkpoints,
+    exams: sends.has('exams') ? state.exams : base.exams,
+    answers,
+  }
+  return { body: body(send), saved }
 }

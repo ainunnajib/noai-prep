@@ -7,7 +7,7 @@ The website works without any of this. If the Firebase settings are not given to
 ## How it works
 
 - **Signing in** happens in the browser with Firebase Authentication (a Google or Apple pop-up window).
-- **Progress** is saved in Cloud Firestore at `progress/{uid}`. The security rules in `firestore.rules` let each person read and write only their own document. The progress is stored as text in a few parts (lessons, checkpoints, mock exams, and the answers split over `a0` to `a7`), so the save a page sends while it closes can carry just the parts that changed. Every save also carries a revision number one higher than the stored one, and the rules refuse any other: a save made from an out-of-date copy (say, one queued on a phone while the laptop saved) can't overwrite newer progress. The website then merges the newer copy in and saves again.
+- **Progress** is saved in Cloud Firestore at `progress/{uid}`. The security rules in `firestore.rules` let each person read and write only their own document. The progress is stored as text in a few parts (lessons, checkpoints, mock exams, and the answers split over `a0` to `a7`), so the save a page sends while it closes can carry just the parts that changed. Every save also carries a revision number one higher than the stored one, and the rules refuse any other: a save made from an out-of-date copy (say, one queued on a phone while the laptop saved) can't overwrite newer progress. The website then merges the newer copy in and saves again. "Delete my saved progress" saves an empty copy as the next revision instead of deleting the document, so revision numbers never start again and an old save can't line up with newer ones; the document itself is deleted only with the account.
 - **Access** lives at `entitlements/{uid}`. The website can read its own one (so it unlocks the moment a payment lands) but only the Cloud Functions can write it.
 - **Invited people** are listed in a secret called `ACCESS_WHITELIST`, which is never stored in this repository. Each time someone signs in, the website calls `syncAccess`, which gives free access if their verified email is on the list (and takes it away again if it has been removed).
 - **Paying**: the Unlock button calls `createCheckoutSession`, which opens a Stripe Checkout page for S$10. When Stripe sends the person back to `#/account`, the page calls `confirmCheckout` (which asks Stripe whether the payment went through), and Stripe also sends a signed message to `stripeWebhook`. Either one unlocks the account; whichever arrives first does the work and the other finds it already done.
@@ -141,7 +141,7 @@ Then try the whole journey in test mode: open the site, sign in, open a locked l
    firebase deploy --only functions
    ```
 
-4. Test payments also unlock accounts. If you tested with real accounts, delete their test documents in `entitlements` (Firebase console → Firestore) so they don't keep free access.
+4. Test payments also unlock accounts. If you tested with real accounts, delete their test documents in `entitlements` and `payments` (Firebase console → Firestore) so they don't keep free access. (A refunded live payment never falls back on a test-mode one, but there is no reason to keep them.)
 
 ## Looking after it
 

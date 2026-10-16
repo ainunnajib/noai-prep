@@ -79,7 +79,9 @@ test('deleting saved progress empties the account copy and this browser', async 
   await expect(page.getByRole('button', { name: 'Delete my saved progress' })).toBeFocused()
   await expect(page.locator('.account-stat-wide')).toContainText('0 / 184')
   await expect(page.getByText('No mock exams yet.')).toBeVisible()
-  await expect.poll(() => stored(page, 'mock-remote-progress:mock-google')).toBeNull()
+  // (an empty copy as the next revision, not no copy: revision numbers never start again)
+  await expect.poll(() => stored(page, 'mock-remote-progress:mock-google')).toEqual({ lessons: {}, checkpoints: {}, answers: {}, exams: [] })
+  expect(await stored(page, 'mock-remote-rev:mock-google')).toBeGreaterThan(0)
 })
 
 test('deleting the account signs you out and warns about a paid unlock first', async ({ page }) => {

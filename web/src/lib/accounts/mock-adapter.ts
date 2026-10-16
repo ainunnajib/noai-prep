@@ -210,6 +210,18 @@ export function createMockAdapter(): AccountsAdapter {
       await delay()
     },
 
+    async clearProgress(uid) {
+      await delay()
+      requireUser(uid)
+      // like the real one, a transaction: the next revision, whatever it is by now, and shown as the server's copy
+      if (readJSON<unknown>(remoteKey(uid), null) === null) return 0 // no account copy: nothing to clear
+      const rev = remoteOf(uid).rev + 1
+      writeJSON(revKey(uid), rev)
+      writeJSON(remoteKey(uid), { lessons: {}, checkpoints: {}, answers: {}, exams: [] } satisfies ProgressState)
+      emitProgress(uid, false)
+      return rev
+    },
+
     async deleteProgress(uid) {
       requireUser(uid)
       removeKey(revKey(uid))

@@ -163,6 +163,25 @@ describe('rebaseProgress: this copy\'s own changes since the base, redone on the
     const remote = state({ lessons: { a: D, b: D2 }, exams: [exam('e1', D), exam('e2', D2)] })
     expect(rebaseProgress(state(), remote, base)).toEqual(state({ lessons: { b: D2 }, exams: [exam('e2', D2)] }))
   })
+
+  it('keeps what another device changed since the base, even if it was removed here (ticked again there, say)', () => {
+    // (the base can be out of date: this browser un-ticked a and saved that as the page closed, and the note never heard)
+    const base = state({ lessons: { a: D }, checkpoints: { c: 0.5 }, answers: { q: [true] } })
+    const remote = state({ lessons: { a: D2 }, checkpoints: { c: 1 }, answers: { q: [true, false] } })
+    expect(rebaseProgress(state(), remote, base)).toEqual(remote)
+  })
+
+  it('a value changed only here wins over the account copy left unchanged (an answer at a full history, say)', () => {
+    const five = [true, true, true, true, true]
+    const base = state({ answers: { q: five } })
+    const local = state({ answers: { q: [true, true, true, true, false] } }) // a sixth attempt here
+    expect(rebaseProgress(local, base, base).answers.q).toEqual([true, true, true, true, false])
+    // the same for a lesson ticked again here (its new date) and a checkpoint retaken after a Reset (its new score)
+    const was = state({ lessons: { a: D }, checkpoints: { c: 0.9 } })
+    expect(rebaseProgress(state({ lessons: { a: D2 }, checkpoints: { c: 0.5 } }), was, was)).toEqual(state({ lessons: { a: D2 }, checkpoints: { c: 0.5 } }))
+    // changed on both sides: the longer history, as before
+    expect(rebaseProgress(state({ answers: { q: [false] } }), state({ answers: { q: [true, true] } }), state()).answers.q).toEqual([true, true])
+  })
 })
 
 describe('progress store additions', () => {
@@ -248,6 +267,82 @@ describe('progress store additions', () => {
     } finally {
       progress.followOtherTabs(true)
     }
+  })
+
+  it('signed in, a change here is redone on what another tab saved meanwhile instead of overwriting it', () => {
+    const D = '2026-03-01T00:00:00Z'
+    progress.markLesson('m/a')
+    progress.followOtherTabs(false)
+    try {
+      // another signed-in tab (offline, say) ticks a lesson: its copy may never reach the account, only this browser
+      localStorage.setItem('noai-prep:progress-v1', JSON.stringify({ ...progress.get(), lessons: { ...progress.get().lessons, 'm/other': D } }))
+      progress.recordAnswer('q1', true)
+      expect(Object.keys(progress.get().lessons).sort()).toEqual(['m/a', 'm/other'])
+      const stored = JSON.parse(localStorage.getItem('noai-prep:progress-v1')!)
+      expect(Object.keys(stored.lessons).sort()).toEqual(['m/a', 'm/other'])
+      expect(stored.answers).toEqual({ q1: [true] })
+      // a copy that lacks something this tab has, but wasn't built on this tab's last save (that tab missed it), doesn't
+      // remove it here
+      localStorage.setItem('noai-prep:progress-v1', JSON.stringify({ ...stored, lessons: { 'm/other': D }, saves: ['elsewhere'] }))
+      progress.recordCheckpoint('m/x', 1)
+      expect(Object.keys(progress.get().lessons).sort()).toEqual(['m/a', 'm/other'])
+      // one built on this tab's last save: what it lacks was removed there (an un-tick), and stays removed
+      const mine = JSON.parse(localStorage.getItem('noai-prep:progress-v1')!)
+      localStorage.setItem('noai-prep:progress-v1', JSON.stringify({ ...mine, lessons: { 'm/other': D }, saves: ['there', ...mine.saves] }))
+      progress.recordAnswer('q2', false)
+      expect(Object.keys(progress.get().lessons)).toEqual(['m/other'])
+      // one built on an older save of this tab's (it missed the latest): this tab's changes since then stay, un-ticks too
+      const older = JSON.parse(localStorage.getItem('noai-prep:progress-v1')!)
+      progress.markLesson('m/c')
+      progress.markLesson('m/c', false)
+      progress.markLesson('m/other', false)
+      localStorage.setItem('noai-prep:progress-v1', JSON.stringify({ ...older, answers: { ...older.answers, q3: [true] }, saves: ['stale', ...older.saves] }))
+      progress.recordAnswer('q4', true)
+      expect(progress.get().lessons).toEqual({})
+      expect(Object.keys(progress.get().answers).sort()).toEqual(['q1', 'q2', 'q3', 'q4'])
+      progress.markLesson('m/other')
+      // an un-tick here is still an un-tick
+      localStorage.setItem('noai-prep:progress-v1', JSON.stringify({ ...progress.get(), checkpoints: { 'm/y': 0.5 } }))
+      progress.markLesson('m/other', false)
+      expect(progress.get().lessons).toEqual({})
+      expect(progress.get().checkpoints).toEqual({ 'm/x': 1, 'm/y': 0.5 })
+      // a Reset there, built on this tab's last save, stays done (only this change is added)
+      const last = JSON.parse(localStorage.getItem('noai-prep:progress-v1')!)
+      localStorage.setItem('noai-prep:progress-v1', JSON.stringify({ ...state(), saves: ['reset-there', ...last.saves] }))
+      progress.markLesson('m/b')
+      expect(progress.get()).toEqual(state({ lessons: { 'm/b': progress.get().lessons['m/b'] } }))
+      // a Reset here wipes everything, whatever another tab saved
+      localStorage.setItem('noai-prep:progress-v1', JSON.stringify(state({ lessons: { 'm/c': D } })))
+      progress.reset()
+      expect(progress.get()).toEqual(state())
+    } finally {
+      progress.followOtherTabs(true)
+    }
+  })
+
+  it('takeOtherTabs() takes in what another signed-in tab saved, as a change made here (to be saved)', () => {
+    const D = '2026-03-01T00:00:00Z'
+    progress.followOtherTabs(false)
+    try {
+      const off = progress.onChange((s, origin) => seen.push([s, origin]))
+      progress.takeOtherTabs()
+      expect(seen).toHaveLength(0) // nothing new
+      localStorage.setItem('noai-prep:progress-v1', JSON.stringify(state({ lessons: { 'm/other': D } })))
+      progress.takeOtherTabs()
+      off()
+      expect(progress.get().lessons).toEqual({ 'm/other': D })
+      expect(seen.map(([, o]) => o)).toEqual(['local'])
+    } finally {
+      progress.followOtherTabs(true)
+    }
+  })
+
+  it('turning tab-following off first takes in what another tab saved (no storage event has arrived yet)', () => {
+    const D = '2026-03-01T00:00:00Z'
+    localStorage.setItem('noai-prep:progress-v1', JSON.stringify(state({ lessons: { 'm/other': D } })))
+    progress.followOtherTabs(false)
+    progress.followOtherTabs(true)
+    expect(progress.get().lessons).toEqual({ 'm/other': D })
   })
 
   it('keeps the existing behaviour of the old API', () => {

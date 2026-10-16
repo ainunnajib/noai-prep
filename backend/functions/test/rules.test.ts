@@ -13,6 +13,7 @@ import {
   deleteDoc,
   doc,
   getDoc,
+  runTransaction,
   serverTimestamp,
   setDoc,
   setLogLevel,
@@ -103,6 +104,23 @@ describe.skipIf(!emulator)('firestore.rules', () => {
       await assertSucceeds(setDoc(ref, progress(2)))
       await assertFails(setDoc(ref, { ...progress(3), rev: '3' }))
       await assertFails(setDoc(ref, { ...progress(3), rev: 3.5 }))
+    })
+
+    it('"Delete my saved progress" empties it as the next revision, so a save queued from before stays refused', async () => {
+      const db = as('alice')
+      const ref = doc(db, 'progress/alice')
+      await assertSucceeds(setDoc(ref, progress(1, '{"a/b":"2026-10-16T00:00:00.000Z"}')))
+      await assertSucceeds(setDoc(ref, progress(2, '{"a/b":"2026-10-16T00:00:00.000Z","a/c":"2026-10-16T00:00:00.000Z"}')))
+      // what the website does: in a transaction, read the revision and save an empty copy as the next one
+      await assertSucceeds(
+        runTransaction(db, async (t) => {
+          const rev = ((await t.get(ref)).get('rev') as number) + 1
+          t.set(ref, progress(rev))
+        }),
+      )
+      // a save another device built on revision 2 before the clear (queued offline, say) can't land on top of it
+      await assertFails(setDoc(ref, progress(3, '{"a/b":"2026-10-16T00:00:00.000Z"}')))
+      await assertSucceeds(setDoc(ref, progress(4, '{"a/d":"2026-10-16T00:00:00.000Z"}')))
     })
 
     it('counts a document saved without a revision as revision 0', async () => {

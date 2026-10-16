@@ -63,9 +63,19 @@ export interface AccountsAdapter {
   writeProgress(uid: string, state: ProgressState, rev: number): Promise<void>
   /**
    * Best-effort save while the page is being closed: a request that outlives the page. It saves revision `rev`, sending
-   * only what changed since `base` (the account copy at `rev - 1`). Returns false when it can't send one.
+   * only what changed since `base` (the account copy at `rev - 1`), or as much of that as such a request can carry.
+   * Returns the copy the account holds if it lands (`state`, or `base` with the parts that fit), or null when it sends
+   * nothing (nothing changed, or it can't).
    */
-  writeProgressOnExit?(uid: string, state: ProgressState, rev: number, base: ProgressState): boolean
+  writeProgressOnExit?(uid: string, state: ProgressState, rev: number, base: ProgressState): ProgressState | null
+  /**
+   * "Delete my saved progress": saves an empty copy as the next revision, whatever the account copy's revision is now,
+   * and resolves with that revision. (Not a deleted document: revision numbers then never start again, so a save
+   * queued elsewhere before this can't line up with later ones.) With no account copy there is nothing to clear: it
+   * writes nothing (the account may have been deleted elsewhere) and resolves with 0.
+   */
+  clearProgress(uid: string): Promise<number>
+  /** Deletes the account copy altogether: only for deleting the account itself. */
   deleteProgress(uid: string): Promise<void>
 }
 

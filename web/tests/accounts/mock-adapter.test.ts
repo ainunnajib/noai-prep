@@ -300,6 +300,22 @@ describe('account store with the mock backend', () => {
     expect(account.get()).toMatchObject({ status: 'signed-out', error: null })
   })
 
+  it("signing out also asks first about progress another tab saved to this browser but not to the account", async () => {
+    const { account, progress } = await load()
+    account.init()
+    await account.signIn('google')
+    await vi.waitFor(() => expect(account.get().lastSyncedAt).not.toBeNull())
+    seed('mock-sync-fail', '1') // offline
+    // another signed-in tab ticks a lesson (its save fails too) and is closed; this tab never hears of it
+    seed('progress-v1', { lessons: { 'm/other-tab': D1 }, checkpoints: {}, answers: {}, exams: [] })
+    expect(await account.signOut()).toBe('unsaved')
+    expect(account.get().error).toBe(SIGN_OUT_UNSAVED_ERROR)
+    expect(progress.get().lessons['m/other-tab']).toBeDefined()
+    localStorage.removeItem(KEY('mock-sync-fail'))
+    expect(await account.signOut()).toBe('done')
+    expect(read('mock-remote-progress:mock-google').lessons['m/other-tab']).toBeDefined()
+  })
+
   it('"sign out anyway" signs out and clears this browser, with no leftover message about it', async () => {
     const { account, progress } = await load()
     account.init()
@@ -339,7 +355,7 @@ describe('account store with the mock backend', () => {
     await vi.waitFor(() => expect(account.get().lastSyncedAt).not.toBeNull())
     expect(read('mock-remote-progress:mock-google')).toBeNull()
     expect(progress.get().lessons).toEqual({})
-    expect(read('progress-synced')).toEqual({ uid: 'mock-google', data: { lessons: {}, checkpoints: {}, answers: {}, exams: [] } })
+    expect(read('progress-synced')).toMatchObject({ uid: 'mock-google', data: { lessons: {}, checkpoints: {}, answers: {}, exams: [] } })
     await account.signOut()
     expect(read('progress-synced')).toBeNull() // forgotten with this browser's copy
   })
@@ -365,7 +381,9 @@ describe('account store with the mock backend', () => {
       hangFor = 'mock-google'
       progress.markLesson('m/person-1')
       await new Promise((r) => setTimeout(r, 1700))
+      const t0 = Date.now()
       expect(await account.signOut({ force: true })).toBe('done')
+      expect(Date.now() - t0).toBeLessThan(1500) // "sign out anyway" comes after a full attempt to save: no second wait
       await account.signIn('apple')
       await vi.waitFor(() => expect(account.get().status).toBe('signed-in'))
       progress.markLesson('m/person-2')
@@ -399,14 +417,17 @@ describe('account store with the mock backend', () => {
     expect(progress.get().lessons['m/a']).toBeDefined()
   })
 
-  it('deleteCloudProgress and deleteAccount remove the account copy', async () => {
+  it('deleteCloudProgress empties the account copy (as its next revision), and deleteAccount removes it', async () => {
     seed('mock-remote-progress:mock-google', { lessons: { 'm/remote': D1 }, checkpoints: {}, answers: {}, exams: [] })
+    seed('mock-remote-rev:mock-google', 3)
     const { account, progress } = await load()
     account.init()
     await account.signIn('google')
     await vi.waitFor(() => expect(progress.get().lessons['m/remote']).toBeDefined())
     await account.deleteCloudProgress()
-    expect(read('mock-remote-progress:mock-google')).toBeNull()
+    expect(account.get().error).toBeNull()
+    expect(read('mock-remote-progress:mock-google')).toEqual({ lessons: {}, checkpoints: {}, answers: {}, exams: [] })
+    expect(read('mock-remote-rev:mock-google')).toBe(4)
     expect(progress.get().lessons).toEqual({})
     progress.markLesson('m/b')
     await account.deleteAccount()

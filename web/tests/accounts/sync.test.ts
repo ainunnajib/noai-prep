@@ -12,7 +12,7 @@ const D1 = '2026-03-01T00:00:00.000Z'
 const D2 = '2026-03-02T00:00:00.000Z'
 const state = (p: Partial<ProgressState> = {}): ProgressState => ({ lessons: {}, checkpoints: {}, answers: {}, exams: [], ...p })
 
-type SyncAdapter = Pick<AccountsAdapter, 'readProgress' | 'watchProgress' | 'writeProgress' | 'writeProgressOnExit' | 'deleteProgress' | 'confirmUser'>
+type SyncAdapter = Pick<AccountsAdapter, 'readProgress' | 'watchProgress' | 'writeProgress' | 'writeProgressOnExit' | 'clearProgress' | 'confirmUser'>
 
 const clone = <T,>(x: T): T => JSON.parse(JSON.stringify(x))
 
@@ -23,7 +23,10 @@ class FakeBackend implements SyncAdapter {
   writes: ProgressState[] = []
   /** whose account each write went to */
   writeUids: string[] = []
-  deletes = 0
+  /** "Delete my saved progress" calls that emptied the account copy */
+  clears = 0
+  /** the next clear fails */
+  failClear = false
   /** the next N writes fail */
   failWrites = 0
   readFails = false
@@ -36,8 +39,8 @@ class FakeBackend implements SyncAdapter {
   confirmUser = vi.fn(async () => {
     if (this.userGone) throw Object.assign(new Error('account gone'), { code: 'auth/user-token-expired' })
   })
-  /** the save sent while the page closes (a spy) */
-  writeProgressOnExit = vi.fn((_uid: string, _s: ProgressState, _rev: number, _base: ProgressState) => true)
+  /** the save sent while the page closes (a spy): reports all of it as sent */
+  writeProgressOnExit = vi.fn((_uid: string, s: ProgressState, _rev: number, _base: ProgressState): ProgressState | null => clone(s))
   private held: (() => void)[] = []
   private watchers = new Set<(s: ProgressSnapshot) => void>()
 
@@ -66,10 +69,13 @@ class FakeBackend implements SyncAdapter {
     // the confirmation shows what this write saved (even if a later write has landed since)
     if (this.echoWrites) setTimeout(() => this.deliver(copy, rev, false, false), 0)
   }
-  async deleteProgress() {
-    this.deletes++
-    this.remote = null
-    this.rev = 0
+  async clearProgress() {
+    if (this.failClear) throw Object.assign(new Error('offline'), { code: 'unavailable' })
+    if (this.remote === null) return 0
+    this.clears++
+    this.remote = state()
+    this.rev++
+    return this.rev
   }
   release() {
     this.holdWrites = false
@@ -341,6 +347,7 @@ describe('saving changes', () => {
   })
 
   it('also sends a save that outlives the page when it closes with unsaved changes', async () => {
+    backend.saveElsewhere(state({ lessons: { 'm/x': D1 } }))
     await sync.start('u1')
     window.dispatchEvent(new Event('pagehide'))
     expect(backend.writeProgressOnExit).not.toHaveBeenCalled() // nothing unsaved
@@ -348,10 +355,10 @@ describe('saving changes', () => {
     window.dispatchEvent(new Event('pagehide')) // before the 1.5 s wait is up
     expect(backend.writeProgressOnExit).toHaveBeenCalledTimes(1)
     // the next revision, and the account copy it builds on (so only what changed since needs sending)
-    expect(backend.writeProgressOnExit).toHaveBeenCalledWith('u1', progress.get(), 1, state())
+    expect(backend.writeProgressOnExit).toHaveBeenCalledWith('u1', progress.get(), 2, state({ lessons: { 'm/x': D1 } }))
   })
 
-  it('the save sent on close builds on a save still in flight (which was sent first)', async () => {
+  it('the save sent on close builds on the last confirmed copy, not on a save still in flight (which may yet be refused)', async () => {
     backend.saveElsewhere(state({ lessons: { 'm/a': D1 } }))
     await sync.start('u1')
     backend.holdWrites = true
@@ -360,10 +367,20 @@ describe('saving changes', () => {
     progress.markLesson('m/c')
     window.dispatchEvent(new Event('pagehide'))
     const [, sent, rev, base] = backend.writeProgressOnExit.mock.calls[0]
-    expect(rev).toBe(3)
-    expect(Object.keys(base.lessons).sort()).toEqual(['m/a', 'm/b'])
+    expect(rev).toBe(2)
+    expect(Object.keys(base.lessons).sort()).toEqual(['m/a'])
     expect(Object.keys(sent.lessons).sort()).toEqual(['m/a', 'm/b', 'm/c'])
     backend.release()
+  })
+
+  it('never creates the account copy with the save sent on close (the account may have been deleted elsewhere)', async () => {
+    await sync.start('u1') // a new account: no copy yet
+    progress.markLesson('m/a')
+    window.dispatchEvent(new Event('pagehide'))
+    expect(backend.writeProgressOnExit).not.toHaveBeenCalled()
+    await tick()
+    expect(backend.confirmUser).toHaveBeenCalledTimes(1) // the normal save checks first
+    expect(backend.rev).toBe(1)
   })
 
   it('a failed save shows the error, keeps the change, and tries again on the next change', async () => {
@@ -415,16 +432,40 @@ describe('stopping and deleting', () => {
     expect(backend.writes).toHaveLength(0)
   })
 
-  it('deleteRemote() deletes the account copy and empties this browser without writing it back', async () => {
-    backend.remote = state({ lessons: { a: D1 } })
+  it('deleteRemote() empties the account copy (as the next revision) and this browser without writing it back', async () => {
+    backend.saveElsewhere(state({ lessons: { a: D1 } }))
     await sync.start('u1')
     progress.markLesson('m/b')
     await sync.deleteRemote()
     await tick(5000)
-    expect(backend.deletes).toBe(1)
-    expect(backend.remote).toBeNull()
+    expect(backend.clears).toBe(1)
+    expect(backend.remote).toEqual(state())
+    expect(backend.rev).toBe(2) // revision numbers never start again
     expect(backend.writes).toHaveLength(0)
     expect(progress.get()).toEqual(state())
+    // the next change is saved on top of the empty copy
+    progress.markLesson('m/c')
+    await tick(1500)
+    expect(backend.rev).toBe(3)
+    expect(Object.keys(backend.remote!.lessons)).toEqual(['m/c'])
+  })
+
+  it('deleteRemote() that fails changes nothing, and saves what was waiting', async () => {
+    backend.saveElsewhere(state({ lessons: { a: D1 } }))
+    await sync.start('u1')
+    progress.markLesson('m/b')
+    backend.failClear = true
+    await expect(sync.deleteRemote()).rejects.toThrow()
+    expect(Object.keys(progress.get().lessons).sort()).toEqual(['a', 'm/b'])
+    await tick(1500)
+    expect(Object.keys(backend.remote!.lessons).sort()).toEqual(['a', 'm/b'])
+  })
+
+  it('deleteRemote() before the account copy has loaded is refused (nothing is deleted)', async () => {
+    backend.readFails = true
+    await sync.start('u1')
+    await expect(sync.deleteRemote()).rejects.toThrow()
+    expect(backend.clears).toBe(0)
   })
 })
 
@@ -469,7 +510,7 @@ describe('the account copy this browser builds on (changes made on another devic
   it('notes the account copy for the next visit as it syncs', async () => {
     backend.saveElsewhere(state({ lessons: { 'm/a': D1 } }))
     await sync.start('u1')
-    expect(note()).toEqual({ uid: 'u1', data: state({ lessons: { 'm/a': D1 } }) })
+    expect(note()).toMatchObject({ uid: 'u1', data: state({ lessons: { 'm/a': D1 } }) })
     progress.markLesson('m/b')
     await tick(1500)
     expect(Object.keys(note().data.lessons).sort()).toEqual(['m/a', 'm/b'])
@@ -550,7 +591,7 @@ describe('one sign-in after another on the same page', () => {
     expect(backend.writes[0].lessons).toEqual({ 'm/person-2': expect.any(String) })
     expect(status.syncing).toBe(false)
     await sync.deleteRemote() // doesn't wait on u1's hung save either
-    expect(backend.deletes).toBe(1)
+    expect(backend.clears).toBe(1)
   })
 })
 
@@ -606,5 +647,70 @@ describe('the account copy deleted on another device', () => {
     expect(backend.confirmUser).toHaveBeenCalledTimes(2)
     expect(backend.rev).toBe(1)
     expect(Object.keys(backend.remote!.lessons)).toEqual(['m/b'])
+  })
+})
+
+describe('more regressions', () => {
+  it("a save that was only built on an out-of-date copy isn't shown as an error, even twice in a row", async () => {
+    backend.saveElsewhere(state({ lessons: { 'm/a': D1 } }))
+    await sync.start('u1')
+    backend.holdWrites = true
+    progress.markLesson('m/b')
+    await tick(1500) // its save (revision 2) is on its way...
+    backend.saveElsewhere(state({ lessons: { 'm/a': D1, 'm/x': D2 } })) // ...and another device's lands first
+    progress.reset() // Reset: its save waits behind the first, and is built on revision 1 too
+    backend.releaseOne() // the first is refused
+    await tick()
+    backend.redeliver() // the other device's copy arrives while the Reset's save is on its way
+    backend.release() // refused as well
+    await tick()
+    expect(status.error).toBeNull()
+    await tick(5000)
+    expect(status.error).toBeNull()
+    expect(backend.remote).toEqual(state({ lessons: { 'm/x': D2 } })) // the Reset, and what the other device added
+  })
+
+  it("keeps and saves progress another signed-in tab saved to this browser but not to the account", async () => {
+    backend.saveElsewhere(state({ lessons: { 'm/a': D1 } }))
+    await sync.start('u1')
+    // another tab, offline, ticks a lesson and is closed: only this browser's copy has it
+    localStorage.setItem('noai-prep:progress-v1', JSON.stringify(state({ lessons: { 'm/a': D1, 'm/other-tab': D2 } })))
+    backend.push(state({ lessons: { 'm/a': D1, 'm/phone': D2 } })) // this tab applies an account copy
+    expect(Object.keys(progress.get().lessons).sort()).toEqual(['m/a', 'm/other-tab', 'm/phone'])
+    await tick(1500)
+    expect(Object.keys(backend.remote!.lessons).sort()).toEqual(['m/a', 'm/other-tab', 'm/phone'])
+  })
+
+  it('starting to sync, a tab first takes in what another tab saved, so its copy matches the note it builds on', async () => {
+    progress.replace(state({ lessons: { 'm/a': D1 } }), 'remote')
+    // meanwhile another tab synced: it saved the account copy (with the phone's lesson) here, and noted it
+    localStorage.setItem('noai-prep:progress-v1', JSON.stringify(state({ lessons: { 'm/a': D1, 'm/phone': D2 } })))
+    setNote('u1', state({ lessons: { 'm/a': D1, 'm/phone': D2 } }))
+    backend.saveElsewhere(state({ lessons: { 'm/a': D1, 'm/phone': D2 } }))
+    await sync.start('u1')
+    expect(backend.writes).toHaveLength(0)
+    expect(Object.keys(backend.remote!.lessons).sort()).toEqual(['m/a', 'm/phone'])
+    expect(Object.keys(progress.get().lessons).sort()).toEqual(['m/a', 'm/phone'])
+  })
+
+  it('a save sent as the page closed that landed is the base next time (an un-tick before the first merge stays)', async () => {
+    backend.saveElsewhere(state({ lessons: { 'm/a': D1 } }))
+    // what the close-time save does: lands as the next revision
+    backend.writeProgressOnExit.mockImplementation((_u, s, rev) => {
+      backend.saveElsewhere(s)
+      expect(backend.rev).toBe(rev)
+      return clone(s)
+    })
+    await sync.start('u1')
+    progress.markLesson('m/b')
+    window.dispatchEvent(new Event('pagehide'))
+    await sync.stop() // the page has gone before the normal save's reply (here: it never left)
+    // the next visit: the student un-ticks b at once, before the first merge is done
+    backend.readFails = true
+    await sync.start('u1')
+    progress.markLesson('m/b', false)
+    backend.redeliver()
+    await tick(1500)
+    expect(Object.keys(backend.remote!.lessons)).toEqual(['m/a'])
   })
 })

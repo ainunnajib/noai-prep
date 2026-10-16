@@ -321,6 +321,25 @@ describe('stripeWebhook: refunds', () => {
     expect(deps.db.read('payments/cs_test_second')?.status).toBe('refunded')
   })
 
+  it('a leftover test-mode payment never keeps a refunded live unlock (and a live second payment still does)', async () => {
+    const deps = makeDeps()
+    // the owner tested in test mode, then removed the test unlock as the README says (the payment record stays)
+    await grantFromSession(deps, session({ id: 'cs_test_T1', payment_intent: 'pi_test_1' }))
+    deps.db.docs.delete('entitlements/user-1')
+    await grantFromSession(deps, session({ id: 'cs_live_L1', payment_intent: 'pi_live_1' }))
+    const refunded = await handleStripeWebhook(deps, post('charge.refunded', charge({ id: 'ch_live_1', payment_intent: 'pi_live_1' })))
+    expect(refunded).toEqual({ status: 200, body: { received: true, outcome: 'revoked' } })
+    expect(deps.db.read('entitlements/user-1')?.access).toBe('revoked')
+
+    // a genuine second live payment does keep it
+    const twice = makeDeps()
+    await grantFromSession(twice, session({ id: 'cs_live_A', payment_intent: 'pi_live_a' }))
+    await grantFromSession(twice, session({ id: 'cs_live_B', payment_intent: 'pi_live_b' }))
+    const moved = await handleStripeWebhook(twice, post('charge.refunded', charge({ id: 'ch_live_a', payment_intent: 'pi_live_a' })))
+    expect(moved).toEqual({ status: 200, body: { received: true, outcome: 'moved' } })
+    expect(twice.db.read('entitlements/user-1')).toMatchObject({ access: 'paid', sessionId: 'cs_live_B' })
+  })
+
   it('sees a second payment granted just before the refund is applied, and keeps access on it', async () => {
     const deps = await paidUser()
     // the second payment's grant lands after the refund has started, just before its transaction

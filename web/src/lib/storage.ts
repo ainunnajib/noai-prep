@@ -10,6 +10,15 @@ export function readJSON<T>(key: string, fallback: T): T {
   }
 }
 
+/** The stored text itself (null when absent or storage is blocked), for telling whether another tab has written a key. */
+export function readRaw(key: string): string | null {
+  try {
+    return window.localStorage.getItem(PREFIX + key)
+  } catch {
+    return null
+  }
+}
+
 export function writeJSON(key: string, value: unknown): void {
   try {
     window.localStorage.setItem(PREFIX + key, JSON.stringify(value))
